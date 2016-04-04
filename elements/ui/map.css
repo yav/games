@@ -1,0 +1,154 @@
+.hex {
+  position:          absolute;
+  width:             33%;
+  height:            39%;
+}
+
+.hex>.bg {
+  position:          absolute;
+  background-color:  black;
+  width:             100%;
+  height:            100%;
+  background-size:   100% 100%;
+  z-index:           2;
+  -webkit-clip-path: url("index.html#clip-hex-polygon");
+  clip-path:         url("index.html#clip-hex-polygon");
+}
+
+
+.hex>.feature {
+  position: absolute;
+  top:  12.5%;
+  left: 12.5%;
+  width:  75%;
+  height: 50%;
+  background-size:  100% 100%;
+  font-size: 24px;
+  z-index:   3;
+  pointer-events: none;
+}
+
+.hex>.bg:hover~.feature {
+  top: -30%;
+  z-index: 14;
+}
+
+.hex>.feature.shop { background-image: url("/img/terrain/feature/shop.svg"); }
+.hex>.feature.castle { background-image: url("/img/terrain/feature/castle.svg"); }
+.hex>.feature.rest_fire { background-image: url("/img/terrain/feature/rest_fire.svg"); }
+.hex>.feature.rest_earth { background-image: url("/img/terrain/feature/rest_earth.svg"); }
+.hex>.feature.rest_air { background-image: url("/img/terrain/feature/rest_air.svg"); }
+.hex>.feature.rest_water { background-image: url("/img/terrain/feature/rest_water.svg"); }
+.hex>.feature.rest_birth{ background-image: url("/img/terrain/feature/rest_birth.svg"); }
+.hex>.feature.rest_death{ background-image: url("/img/terrain/feature/rest_death.svg"); }
+
+
+.hex>.bg:hover~.player{
+  top:     70%;
+  z-index: 15;
+}
+
+
+
+.hex>.player.icon {
+  z-index: 10;
+  position: absolute;
+  border:           2px solid black;
+  background-image: url("/img/head.svg");
+  background-size:  100%, 100%;
+  left: 25%;
+  top:  35%;
+  pointer-events: none;
+  width: 60%;
+  height: 60%;
+}
+
+.hex.NW { left: 16.66%; top: 0; }
+.hex.NE { left: 50%;    top: 0; }
+.hex.W  { left: 0%;     top: 30%; }
+.hex.C  { left: 33.33%; top: 30%; }
+.hex.E  { left: 66.66%; top: 30%; }
+.hex.SW { left: 16.66%; top: 60%; }
+.hex.SE { left: 50%;    top: 60%; }
+
+.hex>.bg            { background-repeat: no-repeat; }
+.hex>.bg            { background-image: url("/img/terrain/pattern.svg"); }
+.hex>.bg.mountains  { background-image: url("/img/terrain/pattern_closed.svg"); }
+.hex>.bg.sea        { background-image: url("/img/terrain/pattern_closed.svg"); }
+
+
+.hex>.bg.road       { background-color: #8ec040; }
+.hex>.bg.hills      { background-color: #6c7b01; }
+.hex>.bg.forest     { background-color: #349d34; }
+.hex>.bg.sea        { background-color: #349d9d; }
+.hex>.bg.mountains  { background-color: #666;    }
+.hex>.bg.desert     { background-color: #ddcd8c; }
+.hex>.bg.bog        { background-color: #406666; }
+.hex>.bg.lava       { background-color: #7a5a21; }
+.hex>.bg.empty      { background-color: #333; opacity: 0.5;  }
+
+
+
+
+.hex:hover> .bg.road { background-image: url("/img/terrain/road.svg"); }
+.hex:hover> .bg.hills { background-image: url("/img/terrain/hills.svg"); }
+.hex:hover> .bg.forest { background-image: url("/img/terrain/forest.svg"); }
+.hex:hover> .bg.sea { background-image: url("/img/terrain/sea.svg"); }
+.hex:hover> .bg.mountains { background-image: url("/img/terrain/mountains.svg"); }
+.hex:hover> .bg.desert { background-image: url("/img/terrain/desert.svg"); }
+.hex:hover> .bg.bog { background-image: url("/img/terrain/bog.svg"); }
+.hex:hover> .bg.lava { background-image: url("/img/terrain/lava.svg"); }
+.hex:hover> .bg.empty { background-image: url("/img/terrain/empty.svg"); }
+
+
+
+
+
+.hex>img {
+  width:    60%;
+  height:   60%;
+  top:      20%;
+  left:     20%;
+  position: absolute;
+}
+
+
+/* See also: `drawMap` in `map.js` */
+.tile {
+  position: absolute;
+  width:    65%;
+  height:   49%;
+  display:  inline-block;
+  margin:   0px;
+}
+
+.tile.size1 {
+  width: 32%;
+  height: 24%;
+}
+
+.tile.size2 {
+  width:  21%;
+  height: 16%;
+}
+
+
+.map_container {
+  margin: 8px;
+}
+
+.map {
+  position: relative;
+  background-color: black;
+  width:    450px;    /* 0.9 * height, for 3h 4v tiles  */
+  height:   500px;
+  overflow: auto;
+}
+
+.map_container>.mini_btn {
+  position: absolute;
+  z-index: 30;
+  color: white;
+  margin: 8px;
+}
+

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="ui.css"/>
+<link rel="stylesheet" href="map.css"/>
+<script src="libs/jquery.js"></script>
+<script src="draw.js"></script>
+<script src="map.js"></script>
+
+
+<script>
+$(document).ready(function() {
+  var body = $('#content')
+
+  jQuery.post('/view', {},
+    function(g) {
+      console.log(g)
+      body.append(drawGame(g))
+    })
+    .fail(function(e) {
+      console.log('FAIL', e)
+    })
+})
+
+</script>
+</head>
+<body
+><div id="content"
+></div><svg class="svg-hide">
+  <defs>
+  <clipPath id="clip-hex-polygon" clipPathUnits="objectBoundingBox" >
+    <polygon points="0.5 0, 1 0.25, 1 0.75, 0.5 1, 0 0.75, 0 0.25" />
+  </clipPath>
+</defs>
+</svg
+></body>
+</html>

@@ -1,0 +1,5 @@
+packages:
+- game-utils
+- hyper-knight
+- elements
+resolver: lts-5.8

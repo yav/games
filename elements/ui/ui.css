@@ -1,0 +1,254 @@
+@font-face {
+  font-family: 'Luckiest Guy';
+  src:         url('fonts/LuckiestGuy.ttf')
+}
+
+.svg-hide { position: fixed; width:  0; height: 0; }
+
+html,body {
+  width:       100%;
+  height:      100%;
+  font-family: 'Luckiest Guy', cursive;
+  font-size:   64px;
+  margin: 0;
+}
+
+#content {
+  width:  100%;
+  height: 100%;
+}
+
+.mainFrame     {
+  width:    100%;
+  height:   100%;
+}
+
+
+.mainFrame>div {
+  height: 99%;
+  float: left;
+  overflow: auto;
+}
+
+.mainFrame>.left {
+  width: 40%;
+}
+
+.mainFrame>.middle {
+  width:     15%;
+}
+
+.mainFrame>.right {
+  width:     30%;
+}
+
+
+/* ************************************************************ */
+
+
+.box .earth { background-color: #393; }
+.box .fire  { background-color: #900; }
+.box .water { background-color: #339; }
+.box .air   { background-color: #ccc; }
+
+.icon {
+  width:          32px;
+  height:         32px;
+  display:        inline-block;
+}
+
+.box {
+  display: inline-block;
+}
+
+.question .box table {
+  width:     128px;
+  font-size: 8px;
+}
+
+.used { display: inline-block; }
+.active { display: inline-block; }
+
+.used .box {
+  display:  block;
+  height:   96px;
+  overflow: hidden;
+}
+
+.used .box:hover {
+  height: auto;
+}
+
+.box table {
+  width:          300px;
+  border-radius:  16px;
+  text-align:     center;
+  border:         4px solid black;
+  margin:         8px;
+  font-size:      32px;
+}
+
+/* Small actions in question */
+.question .box th {
+  font-size:      24px;
+}
+.box th {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  background-color: rgba(255,255,255,0.5);
+  border: 2px solid rgba(255,255,255,0.5);
+  padding: 8px;
+}
+.question .box td.small {
+  height:   32px;
+  padding:  2px;
+  overflow: hidden;
+}
+.question .box td.small>div {
+  height: 32px;
+  overflow: hidden;
+}
+.question .box td.small>div:hover {
+  overflow: visible;
+  height:   auto;
+}
+
+
+.box td.small {
+  height:   100px;
+  padding:  8px;
+  margin:   8px;
+  background-color: rgba(255,255,200,0.85);
+  border: 2px solid rgba(255,255,255,0.5);
+}
+
+
+
+.box td.small.bottom {
+  border-radius: 8px 8px 16px 16px;
+}
+.topbox td.small.top {
+  border-radius: 0px 0px 8px 8px;
+}
+.question .box .icon {
+  width:  16px;
+  height: 16px;
+}
+.question .box .small .icon {
+  width: 16px;
+  height: 16px;
+}
+.box .small .icon {
+  width:  32px;
+  height: 32px;
+}
+
+
+.text-layout {
+  display: inline-block;
+}
+
+.text-layout .icon {
+  margin: 0 0.25em 0 0.25em;
+}
+
+
+
+
+
+/* ************************************************* */
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  box-shadow:       0px 0px 20px 10px rgba(255,255,200,0.5);
+  background-color: rgba(255,255,200,0.5);
+  z-index: 100;
+}
+
+
+
+/* ************************************************ */
+
+.item {
+  width:           64px;
+  height:          64px;
+  background-size: 100% 100%;
+  display:         inline-block;
+}
+
+.water     { background-image: url("img/water.svg"); }
+.fire      { background-image: url("img/fire.svg"); }
+.earth     { background-image: url("img/earth.svg"); }
+.air       { background-image: url("img/air.svg"); }
+.death     { background-image: url("img/skull.svg"); }
+.birth     { background-image: url("img/elements.svg"); }
+
+.movement  { background-image: url("img/movement.svg"); }
+.attack    { background-image: url("img/attack.svg"); }
+.block     { background-image: url("img/block.svg"); }
+.currency  { background-image: url("img/currency.svg"); }
+.heal      { background-image: url("img/heal.svg"); }
+.flaw      { background-image: url("img/devil.svg"); }
+.summon    { background-image: url("img/well.svg"); }
+
+.well      { background-image: url("/img/well.svg"); }
+
+
+
+/* ****************************************************** */
+
+
+
+
+
+/* ************************************************ */
+
+.field {
+  display:        inline-block;
+  position:       relative;
+  line-height:    0;
+  overflow:       visible;
+  vertical-align: top;
+  margin:         6px;
+}
+
+.field>.value {
+  position:       absolute;
+  top:            0;
+  right:          -10px;
+  width:          40px;
+  height:         40px;
+  text-align:     center;
+  border-radius:  32px;
+  background-color: rgba(255,255,255,0.7);
+  box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.5);
+}
+
+.field>.value>span {
+  font-size:    32px;
+  line-height:  32px;
+}
+
+.field>.value>div.strut {
+  display: inline-block;
+  height:  32px;
+  vertical-align: baseline;
+}
+
+
+
+
+/* *********************************** */
+
+.bordered {
+  border-radius:  8px;
+  border:         4px solid black;
+  min-width:      64px;
+  min-height:     64px;
+  margin:         8px;
+}
+
+

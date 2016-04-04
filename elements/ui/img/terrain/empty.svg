@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="58.285728mm"
+   height="62.099899mm"
+   viewBox="0 0 206.52423 220.03901"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r"
+   sodipodi:docname="empty.svg">
+  <defs
+     id="defs4">
+    <filter
+       style="color-interpolation-filters:sRGB"
+       inkscape:label="Drop Shadow"
+       id="filter4371">
+      <feFlood
+         flood-opacity="0.498039"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         id="feFlood4373" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="in"
+         result="composite1"
+         id="feComposite4375" />
+      <feGaussianBlur
+         in="composite1"
+         stdDeviation="22.1"
+         result="blur"
+         id="feGaussianBlur4377" />
+      <feOffset
+         dx="15.3"
+         dy="15.3"
+         result="offset"
+         id="feOffset4379" />
+      <feComposite
+         in="SourceGraphic"
+         in2="offset"
+         operator="over"
+         result="composite2"
+         id="feComposite4381" />
+    </filter>
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter4370"
+       x="-0.45390001"
+       width="1.9078"
+       y="-0.48556744"
+       height="1.9711349">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="16.737273"
+         id="feGaussianBlur4372" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.51978302"
+     inkscape:cx="179.11364"
+     inkscape:cy="148.59892"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1366"
+     inkscape:window-height="716"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(104.3058,-447.04549)">
+    <ellipse
+       style="opacity:1;fill:#ffebb9;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter4370)"
+       id="path4148"
+       cx="7.279222"
+       cy="568.0047"
+       rx="73.10743"
+       ry="91.384285"
+       transform="matrix(1.4198409,0,0,1.1100529,-4.9799939,-73.091884)" />
+    <g
+       transform="scale(1.0664606,0.93768114)"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:94.6212616px;line-height:125%;font-family:'Carter One';-inkscape-font-specification:'Carter One';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       id="text4144">
+      <path
+         d="m -18.922861,600.23784 q 6.375847,-3.41893 12.1048687,-8.50113 5.8214253,-5.1746 10.1643934,-10.90362 4.342968,-5.82142 6.8378649,-11.55044 2.5873,-5.82143 2.5873,-10.62642 0,-5.1746 -2.8645111,-8.40872 -2.8645108,-3.23413 -9.42516468,-3.23413 -3.69614302,0 -6.09863602,0.92404 -2.402493,0.83163 -3.8809502,2.21769 -1.386054,1.38605 -1.940475,3.04931 -0.554422,1.66327 -0.554422,3.23413 0,2.12528 0.646826,3.88095 0.646825,1.75567 0.646825,2.31009 0,0.73923 -1.293651,1.01644 -1.29365,0.27721 -4.250564,0.73923 -2.864511,0.46201 -7.669497,1.38605 -4.804986,0.83163 -11.827657,2.77211 -2.679704,0.73923 -4.158161,1.01644 -1.478458,0.27721 -2.31009,0.27721 -1.016439,0 -1.755668,-1.38606 -0.646825,-1.38605 -1.016439,-3.23412 -0.369614,-1.94048 -0.554422,-3.97336 -0.0924,-2.03287 -0.0924,-3.32652 0,-8.50113 4.158161,-15.15419 4.250564,-6.74546 10.996025,-11.36564 6.745461,-4.62018 15.154187,-7.02267 8.5011287,-2.4949 17.0022577,-2.4949 10.9960253,0 19.8667683,3.41893 8.963147,3.32653 15.24659,8.68594 6.375847,5.267 9.79478,11.92006 3.418932,6.56065 3.418932,12.9365 0,5.26701 -1.848072,10.44161 -1.755668,5.08219 -4.897389,9.97958 -3.049318,4.89739 -7.207479,9.51757 -4.065757,4.62018 -8.593533,8.87074 -4.527775,4.25057 -9.240357,8.13152 -4.620179,3.88095 -8.9631471,7.29988 -0.1848071,0.27721 -0.7392286,0.55442 -0.4620179,0.27721 -1.0164393,0.27721 -0.2772108,0 -0.7392286,-0.0924 -0.3696143,-0.0924 -0.5544215,-0.27721 -3.5113359,-1.66327 -6.37584671,-2.95692 -2.77210729,-1.29365 -5.45181099,-2.40249 -2.6797037,-1.10884 -5.5442142,-1.94047 -2.772108,-0.92404 -6.19104,-1.66327 -1.29365,-0.27721 -1.940475,-0.83163 -0.554421,-0.64683 -0.554421,-1.29365 0.739228,-0.46202 0.831632,-1.10884 0.0924,-0.73923 0.0924,-1.10885 z m 0.369615,58.86108 q 0.184807,-4.34297 0.27721,-6.83786 0.0924,-2.5873 0.0924,-3.97336 0.0924,-1.38605 0.0924,-1.94047 0,-0.55442 0,-1.01644 0,-0.55442 0,-1.29365 0.0924,-0.73923 0.184808,-2.40249 0.0924,-1.75567 0.27721,-4.71259 0.184808,-3.04931 0.462018,-8.03911 0.184807,-3.04932 0.554422,-4.15816 0.462018,-1.20125 2.125282,-1.47846 8.1315146,0 17.0022579,0 8.8707431,-0.0924 16.7250471,-0.1848 1.016439,0 1.478457,0.64682 0.462018,0.55442 0.462018,2.12528 l -2.5873,28.46031 q -0.369614,3.04931 -0.739229,4.15816 -0.27721,1.20124 -2.032878,1.38605 -7.8543041,0.0924 -16.17062597,0.18481 -8.22391823,0.0924 -17.18706503,0.0924 -0.739229,0 -0.924036,-0.18481 -0.0924,-0.0924 -0.0924,-0.83163 z"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:189.24252319px;font-family:'Carter One';-inkscape-font-specification:'Carter One'"
+         id="path4375" />
+    </g>
+  </g>
+</svg>
