@@ -1,0 +1,16 @@
+<html><head>
+<script src="jquery.js"></script>
+<script src="factory.js"></script>
+<script>
+$(document).ready(function() {
+  var body = $('body')
+  jQuery.post('/view'
+             ,{}
+             , function(v) {
+                 body.append(drawFactory(v))
+             })
+
+
+})
+</script>
+</head><body></body></html>
