@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
-module HyperKnight.Rules
+module Hyperborea.Rules
   ( Factory
   , factoryEmpty
   , factoryAddGroup
@@ -42,7 +42,7 @@ import Util.Random
 import Util.JSON
 
 
-data Raw      = A | B | C | D | E | F
+data Raw      = Green | Red | Magenta | Orange | Yellow | Blue
                 deriving (Eq,Ord)
 
 data Material = Waste | Raw Raw
@@ -72,10 +72,13 @@ inputsRemoveMaterial m Inputs { .. } =
 data Action = Move   | Fly
             | Attack | RangedAttack
             | Fortify
-            | Upgrade
+            | ProgressDifferent | Progress1 | Progress2 | Progress3
             | Buy
+            | Spawn
+            | Gem
             -- ..
-            deriving (Eq,Ord,Enum,Bounded,Show)
+            deriving (Eq,Ord,Show,Enum,Bounded)
+
 
 data Rule     = Rule { ruleName       :: Text
                      , ruleInputs     :: Inputs
@@ -418,13 +421,13 @@ instance Export Factory where
 actionToText :: Action -> Text
 actionToText a =
   case a of
-    Move          -> "move"
-    Fly           -> "fly"
-    Attack        -> "attack"
-    RangedAttack  -> "ranged_attack"
-    Fortify       -> "fortify"
-    Upgrade       -> "upgrade"
-    Buy           -> "buy"
+    Move              -> "move"
+    Fly               -> "fly"
+    Attack            -> "attack"
+    RangedAttack      -> "ranged_attack"
+    Fortify           -> "fortify"
+    ProgressDifferent -> "progress_different" -- XXX
+    Buy               -> "buy"
 
 actionsToJS :: Bag Action -> Value
 actionsToJS = object . map mk . bagToListGrouped
@@ -437,12 +440,12 @@ instance Export Material where
 
 instance Export Raw where
   toJS r = toJS $ case r of
-                    A -> "A" :: Text
-                    B -> "B"
-                    C -> "C"
-                    D -> "D"
-                    E -> "E"
-                    F -> "F"
+                    Green   -> "A" :: Text
+                    Red     -> "B"
+                    Magenta -> "C"
+                    Orange  -> "D"
+                    Yellow  -> "E"
+                    Blue    -> "F"
 
 instance Export RuleGroup where
   toJS RuleGroup { .. } =

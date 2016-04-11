@@ -1,5 +1,5 @@
 packages:
 - game-utils
-- hyper-knight
+- hyperborea
 - elements
 resolver: lts-5.8

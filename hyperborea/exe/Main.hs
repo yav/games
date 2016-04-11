@@ -13,7 +13,7 @@ import Util.Random
 import Util.History
 import Util.Perhaps
 
-import HyperKnight.Rules
+import Hyperborea.Rules
 
 data GameState = GameState { theGame :: History Factory }
 type S = MVar GameState
@@ -24,12 +24,12 @@ test =
      let Ok f1 = factoryAddGroup g f
          Ok f2 = factoryAddGroup g f1
      return $ factoryRestock
-            $ factoryExtendSource (Raw A)
-            $ factoryExtendSource (Raw B)
-            $ factoryExtendSource (Raw C)
-            $ factoryExtendSource (Raw C)
-            $ factoryExtendSource (Raw C)
-            $ factoryExtendSource (Raw C)
+            $ factoryExtendSource (Raw Green)
+            $ factoryExtendSource (Raw Red)
+            $ factoryExtendSource (Raw Magenta)
+            $ factoryExtendSource (Raw Magenta)
+            $ factoryExtendSource (Raw Magenta)
+            $ factoryExtendSource (Raw Magenta)
             $ factoryChangeSize 3 f2
 
 
@@ -41,7 +41,7 @@ test =
 
   r = Rule { ruleName     = "Test rule"
            , ruleInputs   = Inputs { inputsWild = 1
-                                   , inputsMaterial = bagFromList [ Raw B ]
+                                   , inputsMaterial = bagFromList [ Raw Red ]
                                    }
            , ruleProduces = [ bagFromList [ Move ] ]
            , ruleLongTerm = False
@@ -50,7 +50,7 @@ test =
 
   r2 = Rule { ruleName     = "Test Cont"
            , ruleInputs   = Inputs { inputsWild = 1
-                                   , inputsMaterial = bagFromList [ Raw B ]
+                                   , inputsMaterial = bagFromList [ Raw Magenta ]
                                    }
            , ruleProduces = [ bagFromList [ Move ] ]
            , ruleLongTerm = True

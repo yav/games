@@ -1,4 +1,4 @@
-name:                hyper-knight
+name:                hyperborea
 version:             0.1.0.0
 license:             MIT
 license-file:        LICENSE
@@ -9,7 +9,8 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     HyperKnight.Rules
+  exposed-modules:     Hyperborea.Rules,
+                       Hyperborea.Actions
 
   build-depends:       base,
                        game-utils,
@@ -17,11 +18,12 @@ library
 
   default-language:    Haskell2010
 
-executable HyperKnight
+executable Hyperborea
+  default-language:    Haskell2010
   main-is:             Main.hs
   hs-source-dirs:      exe
   build-depends:       base,
-                       hyper-knight,
+                       hyperborea,
                        game-utils,
                        snap-core,
                        snap-server
