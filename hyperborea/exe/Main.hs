@@ -37,7 +37,7 @@ test =
 
 
   where
-  g = ruleGroup [r,r2]
+  g = ruleGroup 0 [r,r2]
 
   r = Rule { ruleName     = "Test rule"
            , ruleInputs   = Inputs { inputsWild = 1

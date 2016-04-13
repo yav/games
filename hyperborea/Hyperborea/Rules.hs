@@ -170,10 +170,11 @@ activeRuleResourceNum ActiveRule { .. }
 data RuleGroup = RuleGroup
   { rules       :: [ Rule ]
   , rulesActive :: Maybe ActiveRule
+  , rulesVP     :: !Int
   }
 
-ruleGroup :: [Rule] -> RuleGroup
-ruleGroup rules = RuleGroup { rulesActive = Nothing, .. }
+ruleGroup :: Int -> [Rule] -> RuleGroup
+ruleGroup rulesVP rules = RuleGroup { rulesActive = Nothing, .. }
 
 -- | Does nothing if the group is already active.
 chooseActive :: Int -> RuleGroup -> Perhaps RuleGroup
