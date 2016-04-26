@@ -124,8 +124,10 @@ function drawRule(groupIsActive, groupId,ruleId,x) {
           .css('font-style','italic')
           .css('padding', '0 5 0 2')
           .text(x.name)
+  console.log(x)
+  var isLongTerm = x.produce.tag == 'long_term'
 
-  if (x.continuous) {
+  if (isLongTerm) {
     var inf = $('<b/>')
               .css('float', 'right')
               .html('&#x221e;')
@@ -149,17 +151,18 @@ function drawRule(groupIsActive, groupId,ruleId,x) {
     }
   }
 
+  var row_num = isLongTerm ? 1 : x.produce.outputs.length
   var b = $('<table/>')
   var have = $('<td/>')
-             .attr('rowspan', x.outputs.length)
+             .attr('rowspan', row_num)
   if (x.have !== undefined)
     have.append(drawInputs(x.have))
 
   var tr = $('<tr/>')
            .append([ $('<td/>').append(drawInputs(x.inputs))
-                               .attr('rowspan', x.outputs.length)
+                               .attr('rowspan', row_num)
                    , $('<td/>').html('&#x2192')
-                     .attr('rowspan', x.outputs.length)
+                     .attr('rowspan', row_num)
                    , have
                    ])
 
@@ -178,22 +181,27 @@ function drawRule(groupIsActive, groupId,ruleId,x) {
      })
   }
 
+  if (isLongTerm) {
+    console.log('XXX: Long term')
+  } else {
 
-  jQuery.each(x.outputs,function(ix,n) {
-    var td = $('<td/>')
-             .append(drawOutputs(n))
-    if (ready) {
-      td.css('background-color', '#ff0')
-      mkClick(td, "Click to collect actions."
-             , function() { call('/produce', { group: groupId, variant: ix }) })
-    }
+    jQuery.each(x.produce.outputs,function(ix,n) {
+      var td = $('<td/>')
+               .append(drawOutputs(n))
+      if (ready) {
+        td.css('background-color', '#ff0')
+        mkClick(td, "Click to collect actions."
+               , function() { call('/produce'
+                            , { group: groupId, variant: ix }) })
+      }
 
-    if (ix + 1 < x.outputs.length)
-      td.css('border-bottom','1px solid #ccc')
-    tr.append(td)
-    b.append(tr)
-    tr = $('<tr/>')
-  })
+      if (ix + 1 < row_num)
+        td.css('border-bottom','1px solid #ccc')
+      tr.append(td)
+      b.append(tr)
+      tr = $('<tr/>')
+    })
+  }
 
 
   r.append([t,b])

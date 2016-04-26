@@ -43,8 +43,7 @@ test =
            , ruleInputs   = Inputs { inputsWild = 1
                                    , inputsMaterial = bagFromList [ Raw Red ]
                                    }
-           , ruleProduces = [ bagFromList [ Move ] ]
-           , ruleLongTerm = False
+           , ruleProduces = Immediate [ bagFromList [ Move ] ]
            }
 
 
@@ -52,8 +51,7 @@ test =
            , ruleInputs   = Inputs { inputsWild = 1
                                    , inputsMaterial = bagFromList [ Raw Magenta ]
                                    }
-           , ruleProduces = [ bagFromList [ Move ] ]
-           , ruleLongTerm = True
+           , ruleProduces = Immediate [ bagFromList [ Move ] ]
            }
 
 

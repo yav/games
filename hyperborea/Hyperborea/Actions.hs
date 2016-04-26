@@ -40,18 +40,39 @@ instance ToInputs Wild where
 --------------------------------------------------------------------------------
 
 class ToOutputs a where
-  toOutputs :: a -> [ Bag Action ]
+  toOutputs :: a -> RuleYield
 
-instance ToOutputs [ (Bag Action) ] where
+instance ToOutputs RuleYield where
   toOutputs = id
 
+instance ToOutputs LongTermAction where
+  toOutputs = LongTerm
+
+instance ToOutputs [ (Bag Action) ] where
+  toOutputs = Immediate
+
 instance ToOutputs Action where
-  toOutputs a = [ bagFromList [a] ]
+  toOutputs a = Immediate [ bagFromList [a] ]
 
 instance (ToOutputs a, ToOutputs b) => ToOutputs (a,b) where
-  toOutputs (a,b) = [ bagUnion x y | x <- toOutputs a, y <- toOutputs b ]
+  toOutputs (a,b) =
+    case (toOutputs a, toOutputs b) of
+      (Immediate xs, Immediate ys) ->
+                                Immediate [ bagUnion x y | x <- xs, y <- ys ]
+      _ -> error "toOutputs: bad rule"
 
 
+class ToActions a where
+  toBag :: a -> Bag Action
+
+instance ToActions (Bag Action) where
+  toBag = id
+
+instance ToActions Action where
+  toBag a = bagFromList [a]
+
+instance (ToActions a, ToActions b) => ToActions (a,b) where
+  toBag (a,b) = bagUnion (toBag a) (toBag b)
 
 
 --------------------------------------------------------------------------------
@@ -65,21 +86,21 @@ infix 5 *
 xs --> ys = Rule { ruleName     = ""
                  , ruleInputs   = toInputs xs
                  , ruleProduces = toOutputs ys
-                 , ruleLongTerm = False
                  }
 
 (>) :: Text -> Rule -> Rule
 x > r = r { ruleName = x }
 
-longTerm :: Rule -> Rule
-longTerm r = r { ruleLongTerm = True }
-
 (/) :: (ToOutputs a, ToOutputs b) => a -> b -> [ Bag Action ]
-xs / ys = toOutputs xs ++ toOutputs ys
+xs / ys = case (toOutputs xs, toOutputs ys) of
+            (Immediate a, Immediate b) -> a ++ b
+            _ -> error "Invalid rule: only immaddiate rules may be or-ed"
 
 (*) :: Int -> Action -> [ Bag Action ]
 n * x = [ bagAdd n x bagEmpty ]
 
+generate :: ToActions a => a -> Upgrade
+generate = Generate . toBag
 
 --------------------------------------------------------------------------------
 
@@ -135,9 +156,10 @@ group1 =
   , vp 2 "Weapons Mastery"      $ (Red,Red,Wild)    --> 2 * Attack
 
   -- Continuous
-  , vp 1 "Flying Ships" $ longTerm $ Green  --> xxx "Mov = Fly"
-  , vp 1 "Nomadism"     $ longTerm $ (Green,Green) --> xxx "Mov -> +1 Mov"
-  , vp 2 "Weapons Supremacy" $ longTerm $ (Red,Red,Wild) --> xxx "Attack -> +1 Attack"
+  , vp 1 "Flying Ships" $ Green         --> WhenProduce Move (ConvertTo Fly)
+  , vp 1 "Nomadism"     $ (Green,Green) --> WhenProduce Move (generate Move)
+  , vp 2 "Weapons Supremacy"
+      $ (Red,Red,Wild) --> WhenProduce Attack (generate Attack)
   ]
   where
   vp n nm x  = ruleGroup n [nm > x]

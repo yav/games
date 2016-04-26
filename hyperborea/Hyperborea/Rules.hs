@@ -20,6 +20,7 @@ module Hyperborea.Rules
   , factoryTimeForReset
   , factoryReset
   , Rule(..)
+  , RuleYield(..)
   , Inputs(..)
 
   , RuleGroup
@@ -30,14 +31,13 @@ module Hyperborea.Rules
   , Action(..)
   , LongTermAction(..)
   , Upgrade(..)
-  , useLongTerm
 
   ) where
 
 import Control.Monad(guard)
 import Data.Text(Text)
-import Data.List(findIndex)
-import Data.Maybe(isJust)
+import Data.List(findIndex,unfoldr)
+import Data.Maybe(isJust,mapMaybe)
 import Util.Bag
 import Util.Perhaps
 import Util.Random
@@ -89,30 +89,53 @@ data Action = Move   | Fly
 data LongTermAction   = WhenProduce Action Upgrade
                       | AtStart (Bag Action)
 
-data Upgrade          = Converter Action
-                      | Generator (Bag Action)
+data Upgrade          = ConvertTo Action
+                      | Generate (Bag Action)
+
+upgradeProduce :: [LongTermAction] -> Bag Action -> Bag Action
+upgradeProduce acts = upgradeWith convert  convertors
+                    . upgradeWith generate generators
+  where
 
 
-useLongTerm :: LongTermAction -> Bag Action -> Maybe (Bag Action)
-useLongTerm lt as =
-  case lt of
-    WhenProduce a u | produced > 0 ->
-      Just $
+  upgradeWith f us as = case unfoldr (upgradeStep f) (us,as) of
+                          [] -> as
+                          xs -> last xs
+
+  upgradeStep f (us,as) =
+    case foldr (upgarde f) (False, [], as) us of
+      (ch,later,as) -> if ch then Just (as,(later,as)) else Nothing
+
+  upgarde f (a,b) (changes, later, as) =
+    let p = bagLookup a as
+    in if p > 0 then (True, later, f p a b as) else (changes, (a,b):later, as)
+
+
+  convert n a b as   = bagAdd n b (bagRemoveAll a as)
+  generate _ _ bs as = bagUnion bs as
+
+  (convertors, generators) = foldr classify ([],[]) acts
+
+  classify p (conv,gen) =
+    case p of
+      AtStart _       -> (conv,gen)
+      WhenProduce a u ->
         case u of
-          Converter b   -> bagAdd produced b (bagRemoveAll a as)
-          Generator bs  -> bagUnion bs as
-      where produced = bagLookup a as
-    _ -> Nothing
+          ConvertTo b   -> ((a,b) : conv, gen)
+          Generate bs   -> (conv, (a,bs) : gen)
+
+
 
 --------------------------------------------------------------------------------
 
 
 data Rule     = Rule { ruleName       :: Text
                      , ruleInputs     :: Inputs
-                     , ruleProduces   :: [ Bag Action ]
-                       -- ^ The list accomodates alternatives
-                     , ruleLongTerm   :: Bool
+                     , ruleProduces   :: RuleYield
                      }
+
+data RuleYield  = Immediate [ Bag Action ]    -- ^ Pick one of these actions
+                | LongTerm  LongTermAction    -- ^ A long-term benefit
 
 
 
@@ -121,7 +144,8 @@ data ActiveRule = ActiveRule
   , activeNeed      :: Inputs         -- ^ What inputs are still missing
   , activeHave      :: Bag Material   -- ^ The materials used in the instance
   , activeFired     :: Bool           -- ^ Did this rule generate its produce
-  , activeReset     :: Bool           -- ^ Should this be auto-reset
+  , activeReset     :: Bool           -- ^ Should we reset this rule.
+                                      -- Allows fro reseting long-term actions.
   }
 
 activateRule :: Rule -> ActiveRule
@@ -129,16 +153,28 @@ activateRule r = ActiveRule { activeOriginal  = r
                             , activeNeed      = ruleInputs r
                             , activeHave      = bagEmpty
                             , activeFired     = False
-                            , activeReset     = not (ruleLongTerm r)
+                            , activeReset     = case ruleProduces r of
+                                                  Immediate _ -> True
+                                                  LongTerm _  -> False
                             }
 
 activeRuleProduce :: Int -> ActiveRule -> Perhaps (Bag Action, ActiveRule)
 activeRuleProduce v ActiveRule { .. }
   | not (inputsAreEmpty activeNeed) = Failed "Not yet ready to produce."
   | activeFired                     = Failed "We already produced."
-  | Just as <- lookup v (zip [ 0 .. ] (ruleProduces activeOriginal)) =
-    return (as, ActiveRule { activeFired = True, .. })
-  | otherwise                       = Failed "We don't know this variant."
+
+  | Immediate opts <- ruleProduces activeOriginal =
+    case lookup v (zip [ 0 .. ] opts) of
+      Just as -> return (as, ActiveRule { activeFired = True, .. })
+      Nothing -> Failed "We don't know this variant."
+  | LongTerm _ <- ruleProduces activeOriginal =
+    Failed "Long-term actions are used automaitcally."
+
+activeRuleLongTermReady :: ActiveRule -> Maybe LongTermAction
+activeRuleLongTermReady ActiveRule { .. }
+  | inputsAreEmpty activeNeed
+  , LongTerm a <- ruleProduces activeOriginal = return a
+  | otherwise                                 = Nothing
 
 
 activeRuleApply :: Material -> ActiveRule -> Perhaps ActiveRule
@@ -178,8 +214,10 @@ activeRuleDestroyInput m ActiveRule { .. } =
 
 activeRuleForceReset :: Bool -> ActiveRule -> Perhaps ActiveRule
 activeRuleForceReset r ActiveRule { .. }
-  | ruleLongTerm activeOriginal || r = return ActiveRule { activeReset = r, .. }
-  | otherwise = Failed "Cannot persis resets."
+  | r = reset
+  | LongTerm _ <- ruleProduces activeOriginal = reset
+  | otherwise = Failed "Cannot persist resets."
+  where reset = return ActiveRule { activeReset = r, .. }
 
 -- | We do this when this rule survives a reset
 activeRuleRestart :: ActiveRule -> ActiveRule
@@ -198,9 +236,10 @@ activeRuleResourceNum ActiveRule { .. }
 data RuleGroup = RuleGroup
   { rules       :: [ Rule ]           -- ^ All alternatives
   , rulesActive :: Maybe ActiveRule   -- ^ The rule that is currently active
-  , rulesVP     :: !Int               -- ^
+  , rulesVP     :: !Int               -- ^ Victory points
   }
 
+-- | Construct a new group using worth some victory points, and some rules.
 ruleGroup :: Int -> [Rule] -> RuleGroup
 ruleGroup rulesVP rules = RuleGroup { rulesActive = Nothing, .. }
 
@@ -245,6 +284,9 @@ ruleGroupDestroyInput m = updateActive_ (activeRuleDestroyInput m)
 
 ruleGroupProduce :: Int -> RuleGroup -> Perhaps (Bag Action, RuleGroup)
 ruleGroupProduce v = updateActive (activeRuleProduce v)
+
+ruleGroupLongTerm :: RuleGroup -> Maybe LongTermAction
+ruleGroupLongTerm RuleGroup { .. } = activeRuleLongTermReady =<< rulesActive
 
 ruleGroupForceReset :: Bool -> RuleGroup -> Perhaps RuleGroup
 ruleGroupForceReset r = updateActive_ (activeRuleForceReset r)
@@ -389,6 +431,10 @@ factoryUse n a Factory { .. } =
     do b1 <- bagRemove n a factoryProduced
        return Factory { factoryProduced = b1, .. }
 
+-- | Get the currently active long-term benefits for this factory.
+factoryLongTerm :: Factory -> [LongTermAction]
+factoryLongTerm Factory { .. } = mapMaybe ruleGroupLongTerm factoryGroups
+
 
 factoryForceReset :: Bool -> Int {-^ group -} -> Factory -> Perhaps Factory
 factoryForceReset r n = updateRuleGroup_ n (ruleGroupForceReset r)
@@ -429,6 +475,7 @@ factoryReset Factory { .. } =
                                     , ..
                                     }
 
+-- | Total number of materials in the factory.
 factoryResourceNum :: Factory -> Int
 factoryResourceNum Factory { .. } =
   sum ( length factoryPool
@@ -506,9 +553,19 @@ ruleFields :: Rule -> [(Text,Value)]
 ruleFields Rule { .. } =
   [ "name"       .= ruleName
   , "inputs"     .= ruleInputs
-  , "outputs"    .= map actionsToJS ruleProduces
-  , "continuous" .= ruleLongTerm
+  , "produce"    .= ruleProduces
   ]
+
+instance Export RuleYield where
+  toJS y =
+    case y of
+      Immediate as ->
+        object [ jsTag "immediate", "outputs" .= map actionsToJS as ]
+      LongTerm a ->
+        object [ jsTag "long_term", "outputs" .= a ]
+
+instance Export LongTermAction where
+  toJS _ = toJS ("XXX: LONG_TERM_ACTION" :: Text)
 
 instance Export Inputs where
   toJS Inputs { .. } =
