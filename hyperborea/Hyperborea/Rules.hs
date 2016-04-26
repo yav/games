@@ -28,6 +28,9 @@ module Hyperborea.Rules
   , Raw(..)
   , Material(..)
   , Action(..)
+  , LongTermAction(..)
+  , Upgrade(..)
+  , useLongTerm
 
   ) where
 
@@ -72,12 +75,36 @@ inputsRemoveMaterial m Inputs { .. } =
 data Action = Move   | Fly
             | Attack | RangedAttack
             | Fortify
-            | ProgressDifferent | Progress1 | Progress2 | Progress3
+            | ProgressDifferent
+            | Progress1 | Progress2 | Progress3 | Progress4
             | Buy
             | Spawn
             | Gem
             -- ..
-            deriving (Eq,Ord,Show,Enum,Bounded)
+            deriving (Eq,Ord,Show,Bounded,Enum)
+
+
+--------------------------------------------------------------------------------
+
+data LongTermAction   = WhenProduce Action Upgrade
+                      | AtStart (Bag Action)
+
+data Upgrade          = Converter Action
+                      | Generator (Bag Action)
+
+
+useLongTerm :: LongTermAction -> Bag Action -> Maybe (Bag Action)
+useLongTerm lt as =
+  case lt of
+    WhenProduce a u | produced > 0 ->
+      Just $
+        case u of
+          Converter b   -> bagAdd produced b (bagRemoveAll a as)
+          Generator bs  -> bagUnion bs as
+      where produced = bagLookup a as
+    _ -> Nothing
+
+--------------------------------------------------------------------------------
 
 
 data Rule     = Rule { ruleName       :: Text
@@ -167,10 +194,11 @@ activeRuleResourceNum ActiveRule { .. }
 
 --------------------------------------------------------------------------------
 
+-- | A collection of rules, only one of which may be used at a time.
 data RuleGroup = RuleGroup
-  { rules       :: [ Rule ]
-  , rulesActive :: Maybe ActiveRule
-  , rulesVP     :: !Int
+  { rules       :: [ Rule ]           -- ^ All alternatives
+  , rulesActive :: Maybe ActiveRule   -- ^ The rule that is currently active
+  , rulesVP     :: !Int               -- ^
   }
 
 ruleGroup :: Int -> [Rule] -> RuleGroup
@@ -249,7 +277,7 @@ data Factory = Factory
   , factorySource     :: ![ Material ]
   , factoryDiscarded  :: !(Bag Material)
 
-  , factoryPoolSize   :: !Int         -- ^ How many raw to use
+  , factoryPoolSize   :: !Int               -- ^ How many raw to use
   , factoryPool       :: ![Material]
 
   , factoryProduced   :: !(Bag Action)
@@ -312,10 +340,12 @@ updateRuleGroup_ :: Int -> (RuleGroup -> Perhaps RuleGroup) ->
 updateRuleGroup_ n = discarding (updateRuleGroup n)
 
 
+-- | Select a rule to be working on.
 factoryActivate :: Int {- variant -} -> Int {-^ group -} ->
                    Factory -> Perhaps Factory
 factoryActivate v g = updateRuleGroup_ g (chooseActive v)
 
+-- | Add a resources to a rule.
 factoryApply ::
   Int {-^ resource -} -> Int {-^ group -} -> Factory -> Perhaps Factory
 factoryApply m g Factory { .. } =
@@ -324,22 +354,25 @@ factoryApply m g Factory { .. } =
                     Factory { factoryPool = as ++ bs, .. }
     _ -> Failed "This material is not avilable."
 
+-- | Produce using a rule.
 factoryProduce :: Int {-^ variant -} -> Int {-^ group -} ->
               Factory -> Perhaps Factory
 factoryProduce v g f =
   do (as,Factory { .. }) <- updateRuleGroup g (ruleGroupProduce v) f
      return Factory { factoryProduced = bagUnion as factoryProduced, .. }
 
+-- | Remove a resource from a rule.
 factoryDestroyInput :: Material -> Int -> Factory -> Perhaps Factory
 factoryDestroyInput m g f = updateRuleGroup_ g (ruleGroupDestroyInput m) f
 
+-- | Remove a resource from the discarded area.
 factoryDestroyDiscarded :: Material -> Factory -> Perhaps Factory
 factoryDestroyDiscarded m Factory { .. } =
   case bagRemove 1 m factoryDiscarded of
     Just b -> return Factory { factoryDiscarded = b, .. }
     Nothing -> Failed "No such discarded"
 
-
+-- | Remove a resource from the ready-to-use area.
 factoryDestroyFromPool :: Material -> Factory -> Perhaps Factory
 factoryDestroyFromPool m Factory { .. } =
   case findIndex (== m) factoryPool of
@@ -349,11 +382,13 @@ factoryDestroyFromPool m Factory { .. } =
                                  , factoryPoolSize = factoryPoolSize - 1, .. }
 
 
+-- | Use an action that was produced.
 factoryUse :: Int -> Action -> Factory -> Perhaps Factory
 factoryUse n a Factory { .. } =
   perhaps "Not enough actions." $
     do b1 <- bagRemove n a factoryProduced
        return Factory { factoryProduced = b1, .. }
+
 
 factoryForceReset :: Bool -> Int {-^ group -} -> Factory -> Perhaps Factory
 factoryForceReset r n = updateRuleGroup_ n (ruleGroupForceReset r)
