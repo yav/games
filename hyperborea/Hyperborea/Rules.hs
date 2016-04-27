@@ -30,6 +30,7 @@ module Hyperborea.Rules
   , Material(..)
   , Action(..)
   , LongTermAction(..)
+  , ImmediateAction(..)
   , Upgrade(..)
 
   ) where
@@ -54,8 +55,7 @@ data Material = Waste | Raw Raw
 
 
 data Inputs   = Inputs { inputsWild     :: Int
-                       , inputsMaterial :: Bag Material
-                       }
+                       , inputsMaterial :: Bag Material }
 
 inputsAreEmpty :: Inputs -> Bool
 inputsAreEmpty i = inputsWild i == 0 && bagIsEmpty (inputsMaterial i)
@@ -78,10 +78,22 @@ data Action = Move   | Fly
             | ProgressDifferent
             | Progress1 | Progress2 | Progress3 | Progress4
             | Buy
-            | Spawn
-            | Gem
+            | Spawn | Clone | Sacrifice
+            | GainWild | LooseWild | LooseGray | ChangeWild
+            | Gem | LooseGem
+    
             -- ..
             deriving (Eq,Ord,Show,Bounded,Enum)
+
+
+compulsory :: Action -> Bool
+compulsory a =
+  case a of
+    Sacrifice -> True
+    LooseWild -> True
+    LooseGray -> True
+    LooseGem  -> True
+    _         -> False
 
 
 --------------------------------------------------------------------------------
@@ -134,8 +146,13 @@ data Rule     = Rule { ruleName       :: Text
                      , ruleProduces   :: RuleYield
                      }
 
-data RuleYield  = Immediate [ Bag Action ]    -- ^ Pick one of these actions
-                | LongTerm  LongTermAction    -- ^ A long-term benefit
+data RuleYield  = Immediate [ ImmediateAction ] -- ^ Pick one of these actions
+                | LongTerm  LongTermAction      -- ^ A long-term benefit
+
+data ImmediateAction = ImmediateAction
+  { playerActions   :: Bag Action     -- ^ Effects for player
+  , adjacentActions :: Bag Action     -- ^ Effects on neighbours
+  }
 
 
 
@@ -158,7 +175,7 @@ activateRule r = ActiveRule { activeOriginal  = r
                                                   LongTerm _  -> False
                             }
 
-activeRuleProduce :: Int -> ActiveRule -> Perhaps (Bag Action, ActiveRule)
+activeRuleProduce :: Int -> ActiveRule -> Perhaps (ImmediateAction, ActiveRule)
 activeRuleProduce v ActiveRule { .. }
   | not (inputsAreEmpty activeNeed) = Failed "Not yet ready to produce."
   | activeFired                     = Failed "We already produced."
@@ -282,7 +299,7 @@ ruleGroupApply m = updateActive_ (activeRuleApply m)
 ruleGroupDestroyInput :: Material -> RuleGroup -> Perhaps RuleGroup
 ruleGroupDestroyInput m = updateActive_ (activeRuleDestroyInput m)
 
-ruleGroupProduce :: Int -> RuleGroup -> Perhaps (Bag Action, RuleGroup)
+ruleGroupProduce :: Int -> RuleGroup -> Perhaps (ImmediateAction, RuleGroup)
 ruleGroupProduce v = updateActive (activeRuleProduce v)
 
 ruleGroupLongTerm :: RuleGroup -> Maybe LongTermAction
@@ -400,7 +417,9 @@ factoryApply m g Factory { .. } =
 factoryProduce :: Int {-^ variant -} -> Int {-^ group -} ->
               Factory -> Perhaps Factory
 factoryProduce v g f =
-  do (as,Factory { .. }) <- updateRuleGroup g (ruleGroupProduce v) f
+  do (ImmediateAction as adj, Factory { .. }) <-
+                                updateRuleGroup g (ruleGroupProduce v) f
+     -- XXX: apply `adj` effects
      return Factory { factoryProduced = bagUnion as factoryProduced, .. }
 
 -- | Remove a resource from a rule.
@@ -560,9 +579,13 @@ instance Export RuleYield where
   toJS y =
     case y of
       Immediate as ->
-        object [ jsTag "immediate", "outputs" .= map actionsToJS as ]
+        object [ jsTag "immediate", "outputs" .= as ]
       LongTerm a ->
         object [ jsTag "long_term", "outputs" .= a ]
+
+
+instance Export ImmediateAction where
+  toJS _ = toJS ("XXX: IMMEDIATE_ACTION " :: Text)
 
 instance Export LongTermAction where
   toJS _ = toJS ("XXX: LONG_TERM_ACTION" :: Text)
