@@ -29,9 +29,13 @@ module Hyperborea.Rules
   , Raw(..)
   , Material(..)
   , Action(..)
+  , AdjEffect(..)
   , LongTermAction(..)
   , ImmediateAction(..)
   , Upgrade(..)
+
+  -- XXX
+  , upgradeProduce
 
   ) where
 
@@ -55,7 +59,12 @@ data Material = Waste | Raw Raw
 
 
 data Inputs   = Inputs { inputsWild     :: Int
-                       , inputsMaterial :: Bag Material }
+                         -- ^ Any raw material
+                       , inputsMaterial :: Bag Material
+                         -- ^ A specific set of raw materials
+                       , inputsSacrifice :: Int
+                         -- ^ An active player
+                       }
 
 inputsAreEmpty :: Inputs -> Bool
 inputsAreEmpty i = inputsWild i == 0 && bagIsEmpty (inputsMaterial i)
@@ -78,22 +87,16 @@ data Action = Move   | Fly
             | ProgressDifferent
             | Progress1 | Progress2 | Progress3 | Progress4
             | Buy
-            | Spawn | Clone | Sacrifice
-            | GainWild | LooseWild | LooseGray | ChangeWild
-            | Gem | LooseGem
-    
-            -- ..
+            | Spawn | Clone
+            | GainWild | ChangeWild
+            | Gem
+            | Draw
+            | Espionage
             deriving (Eq,Ord,Show,Bounded,Enum)
 
-
-compulsory :: Action -> Bool
-compulsory a =
-  case a of
-    Sacrifice -> True
-    LooseWild -> True
-    LooseGray -> True
-    LooseGem  -> True
-    _         -> False
+data AdjEffect  = LooseGem
+                | GainAction Action
+                  deriving (Eq,Ord,Show)
 
 
 --------------------------------------------------------------------------------
@@ -108,15 +111,13 @@ upgradeProduce :: [LongTermAction] -> Bag Action -> Bag Action
 upgradeProduce acts = upgradeWith convert  convertors
                     . upgradeWith generate generators
   where
-
-
   upgradeWith f us as = case unfoldr (upgradeStep f) (us,as) of
                           [] -> as
                           xs -> last xs
 
   upgradeStep f (us,as) =
     case foldr (upgarde f) (False, [], as) us of
-      (ch,later,as) -> if ch then Just (as,(later,as)) else Nothing
+      (ch,later,as') -> if ch then Just (as',(later,as')) else Nothing
 
   upgarde f (a,b) (changes, later, as) =
     let p = bagLookup a as
@@ -151,7 +152,7 @@ data RuleYield  = Immediate [ ImmediateAction ] -- ^ Pick one of these actions
 
 data ImmediateAction = ImmediateAction
   { playerActions   :: Bag Action     -- ^ Effects for player
-  , adjacentActions :: Bag Action     -- ^ Effects on neighbours
+  , adjacentActions :: Bag AdjEffect  -- ^ Effects on neighbours
   }
 
 

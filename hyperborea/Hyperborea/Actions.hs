@@ -11,17 +11,22 @@ import Hyperborea.Rules
 class ToInputs a where
   toInputs :: a -> Inputs
 
+noInputs :: Inputs
+noInputs = Inputs { inputsWild      = 0
+                  , inputsSacrifice = 0
+                  , inputsMaterial  = bagEmpty
+                  }
+
 inputsUnion :: Inputs -> Inputs -> Inputs
 inputsUnion i j =
-  Inputs { inputsWild     = inputsWild i + inputsWild j
-         , inputsMaterial = bagUnion (inputsMaterial i) (inputsMaterial j)
+  Inputs { inputsWild       = inputsWild i + inputsWild j
+         , inputsMaterial   = bagUnion (inputsMaterial i) (inputsMaterial j)
+         , inputsSacrifice  = inputsSacrifice i + inputsSacrifice j
          }
 
 instance ToInputs Inputs where
   toInputs = id
 
-instance ToInputs Material where
-  toInputs a = Inputs { inputsWild = 0, inputsMaterial = bagFromList [a] }
 
 instance ToInputs Raw where
   toInputs = toInputs . Raw
@@ -32,10 +37,20 @@ instance (ToInputs a, ToInputs b) => ToInputs (a,b) where
 instance (ToInputs a, ToInputs b, ToInputs c) => ToInputs (a,b,c) where
   toInputs (x,y,z) = toInputs (x,(y,z))
 
-data Wild = Wild
+instance (ToInputs a, ToInputs b, ToInputs c,ToInputs d) => ToInputs (a,b,c,d)
+  where toInputs (x,y,z,z') = toInputs (x,(y,z,z'))
+
+data Wild      = Wild
+data Sacrifice = Sacrifice
 
 instance ToInputs Wild where
-  toInputs _ = Inputs { inputsWild = 1, inputsMaterial = bagEmpty }
+  toInputs _ = noInputs { inputsWild = 1 }
+
+instance ToInputs Sacrifice where
+  toInputs _ = noInputs { inputsMaterial = bagEmpty }
+
+instance ToInputs Material where
+  toInputs a = noInputs { inputsMaterial = bagFromList [a] }
 
 --------------------------------------------------------------------------------
 
@@ -56,6 +71,9 @@ instance ToOutputs ImmediateAction where
 
 instance ToOutputs [ Bag Action ] where
   toOutputs ass = Immediate [ ImmediateAction as bagEmpty | as <- ass ]
+
+instance ToOutputs (Bag Action) where
+  toOutputs as = Immediate [ ImmediateAction as bagEmpty ]
 
 instance ToOutputs Action where
   toOutputs a = Immediate [ ImmediateAction (bagFromList [a]) bagEmpty ]
@@ -81,6 +99,15 @@ instance ToActions Action where
 
 instance (ToActions a, ToActions b) => ToActions (a,b) where
   toBag (a,b) = bagUnion (toBag a) (toBag b)
+
+class ToAdjEffect a where
+  toAdjEffect :: a -> Bag AdjEffect
+
+instance ToAdjEffect AdjEffect where
+  toAdjEffect a = bagFromList [a]
+
+instance ToAdjEffect Action where
+  toAdjEffect a = bagFromList [GainAction a]
 
 
 --------------------------------------------------------------------------------
@@ -109,54 +136,57 @@ xs / ys = case (toOutputs xs, toOutputs ys) of
             (Immediate a, Immediate b) -> a ++ b
             _ -> error "Invalid rule: only immaddiate rules may be or-ed"
 
-(*) :: Int -> Action -> [ Bag Action ]
-n * x = [ bagAdd n x bagEmpty ]
+(*) :: Int -> Action -> Bag Action
+n * x = bagAdd n x bagEmpty
 
 (=>+) :: ToActions a => Action -> a -> LongTermAction
 x =>+ y = WhenProduce x (Generate (toBag y))
 
+eachTurn :: ToActions a => a -> LongTermAction
+eachTurn x = AtStart (toBag x)
+
 (===) :: Action -> Action -> LongTermAction
 x === y = WhenProduce x (ConvertTo y)
 
-adj :: ToActions a => a -> RuleYield
-adj as = Immediate [ ImmediateAction bagEmpty (toBag as) ]
+adj :: ToAdjEffect a => a -> RuleYield
+adj a = Immediate [ ImmediateAction bagEmpty (toAdjEffect a) ]
 
 --------------------------------------------------------------------------------
 
 basic :: [RuleGroup]
 basic =
-  [ basic
+  [ oneOf
       [ "G1"> (Green,Wild)        --> 2 * Move
       , "G2"> (Green,Magenta)     --> Move & Spawn
       ]
 
-  , basic
+  , oneOf
       [ "R1"> (Red,Wild)          --> Attack / 2 * Fortify
       , "R2"> (Red,Green)         --> Attack & Move
       ]
 
-  , basic
+  , oneOf
       [ "M1"> (Magenta,Wild)      --> Spawn & Fortify
       , "M2"> (Magenta,Red)       --> Spawn & Attack
       ]
 
-  , basic
+  , oneOf
       [ "O1"> (Orange,Wild)       --> ProgressDifferent
       , "O2"> (Orange,Blue)       --> Progress2
       ]
 
-  , basic
+  , oneOf
       [ "Y1"> (Yellow,Wild)       --> Gem
       , "Y2"> (Yellow,Orange)     --> Gem & Progress1
       ]
 
-  , basic
+  , oneOf
       [ "B1"> (Blue,Wild,Wild)    --> Buy
       , "B2"> (Blue,Yellow,Wild)  --> Buy & Gem
       ]
   ]
   where
-  basic = ruleGroup 0
+  oneOf = ruleGroup 0
 
 tech :: Int -> Text -> Rule -> RuleGroup
 tech n nm x  = ruleGroup n [nm > x]
@@ -191,21 +221,43 @@ group2 =
   , tech 1 "Marketplaces"       $ Yellow                --> Gem
   , tech 1 "Merchant Guilds"    $ (Yellow,Yellow,Wild)  --> Gem =>+ Gem
   , tech 1 "Military Conquests" $ (Magenta,Yellow)      --> Spawn & Gem
-  , tech 1 "Monasteries"        $ (Magenta,Orange,Wild) -->
-                                          Sacrifice & GainWild & 3 * Progress1
+  , tech 1 "Monasteries"        $ (Magenta,Orange,Wild,Sacrifice)
+                                                  --> GainWild & 3 * Progress1
   , tech 0 "Outposts"           $ (Magenta,Wild)        --> Clone
   , tech 2 "Peace Treaties"     $ Magenta               --> 2*Spawn & adj Spawn
   , tech 1 "Plundering"         $ (Yellow,Red,Wild)     --> adj LooseGem
   , tech 2 "Recruitment"        $ (Magenta,Magenta)     --> Spawn =>+ Spawn
-  , tech 1 "Sanctuaries"        $ (Magenta,Yellow,Orange) -->
-                                          Sacrifice & Gem & 4 * Progress1
-  , tech 1 "Temples"            $ (Magenta,Yellow,Wild) -->
-                                          Sacrifice & 2 * Gem
+  , tech 1 "Sanctuaries"        $ (Magenta,Yellow,Orange,Sacrifice)
+                                                        --> Gem & 4 * Progress1
+  , tech 1 "Temples"            $ (Magenta,Yellow,Wild,Sacrifice)
+                                                        --> 2 * Gem
   , tech 2 "Trading Companies"  $ Yellow                --> 2 * Gem & adj Gem
   , tech 2 "Treasuries"         $ (Yellow,Wild)         --> Gem
   ]
 
 
+group3 :: [RuleGroup]
+group3 =
+  [ tech 1 "Alchemy"            $ Blue               --> Draw & ChangeWild
+  , tech 2 "Architecture"       $ (Orange,Blue,Wild) --> 2*Draw & 2*Progress1
+  , tech 1 "Council of Elders"  $ (Orange,Orange)    --> Progress1 =>+ Progress1
+  , tech 1 "Crossbows"          $ (Orange,Red)       --> RangedAttack
+  , tech 0 "Diplomacy"          $ Blue               --> 3 * Draw & adj Draw
+  , tech 1 "Expertise"          $ (Blue,Blue)        --> eachTurn Draw
+  , tech 1 "Giant Libraries"    $ Orange             --> 2 * Progress1
+  , tech 1 "Halls of Knowledge" $ (Blue,Wild)        --> Buy
+  , tech 1 "Infiltrations"      $ (Blue,Orange,Wild) --> Espionage & Draw
+  , tech 1 "Prosperity"         $ (Orange,Yellow)    --> 2 * Progress1 & Gem
+  , tech 2 "Roads and Bridges"  $ (Orange,Wild)
+                                            --> 3 * Progress1 & adj Progress1
+  , tech 1 "Siege Engines"      $ (Blue,Red)         --> RangedAttack
+  , tech 1 "Splying"            $ (Blue,Orange)      --> Espionage
+  , tech 2 "Undercover Agents"  $ (Blue,Orange,Wild)
+                                            --> Espionage & 2 * Progress1
+  , tech 1 "Universities"       $ Orange             --> eachTurn Progress1
+  , tech 1 "War Ships"          $ (Blue,Orange,Green)
+                                                  --> RangedAttack & Move
+  ]
 
 
 
