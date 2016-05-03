@@ -260,4 +260,15 @@ group3 =
   ]
 
 
+group4 :: [RuleGroup]
+group4 =
+  [ tech 2 "Barricades"   $ (Red,Waste) --> 2 * Fortify
+  , tech 1 "Bastions"     $ (Red,Orange,Waste) --> eachTurn (2 * Fortify)
+  , tech 1 "Black Market" $ (Wild,Waste) --> Restore
+  , tech 2 "Bureaucracy"  $ (Wild,Waste) --> Draw
+  , tech 2 "Cartography"  $ (Green,Waste) --> Draw & Move
+  , tech 1 "Code of Laws" $ (Blue,Wild,Waste) --> Draw & Buy
+  , tech 1 "Corruption"   $ (Wild,Waste)
+  ]
+
 
