@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
-module Hyperborea.Rules
+{-# LANGUAGE FlexibleInstances #-}
+module Hyperborea.Rules {-
   ( Factory
   , factoryEmpty
   , factoryAddGroup
@@ -37,9 +38,8 @@ module Hyperborea.Rules
   -- XXX
   , upgradeProduce
 
-  ) where
+  ) -} where
 
-import Control.Monad(guard)
 import Data.Text(Text)
 import Data.List(findIndex,unfoldr)
 import Data.Maybe(isJust,mapMaybe)
@@ -50,34 +50,21 @@ import Util.Random
 import Util.JSON
 
 
-data Raw      = Green | Red | Magenta | Orange | Yellow | Blue
-                deriving (Eq,Ord)
+data Raw          = Green | Red | Magenta | Orange | Yellow | Blue
+                    deriving (Eq,Ord)
 
-data Material = Waste | Raw Raw
-                deriving (Eq,Ord)
+data Material     = Waste | Raw Raw
+                    deriving (Eq,Ord)
+
+data AnyMaterial  = AnyRaw | Material Material
+                    deriving (Eq,Ord)
+
+data Input        = Recall              -- ^ Recall an active avatar
+                  | Use     AnyMaterial -- ^ Use some material
+                  | Discard AnyMaterial -- ^ Discard a material
+                    deriving (Eq,Ord)
 
 
-
-data Inputs   = Inputs { inputsWild     :: Int
-                         -- ^ Any raw material
-                       , inputsMaterial :: Bag Material
-                         -- ^ A specific set of raw materials
-                       , inputsSacrifice :: Int
-                         -- ^ An active player
-                       }
-
-inputsAreEmpty :: Inputs -> Bool
-inputsAreEmpty i = inputsWild i == 0 && bagIsEmpty (inputsMaterial i)
-
-inputsRemoveWild :: Inputs -> Maybe Inputs
-inputsRemoveWild Inputs { .. } =
-  do guard (inputsWild > 0)
-     return Inputs { inputsWild = inputsWild - 1, .. }
-
-inputsRemoveMaterial :: Material -> Inputs -> Maybe Inputs
-inputsRemoveMaterial m Inputs { .. } =
-  do im <- bagRemove 1 m inputsMaterial
-     return Inputs { inputsMaterial = im, .. }
 
 --------------------------------------------------------------------------------
 
@@ -88,16 +75,15 @@ data Action = Move   | Fly
             | Progress1 | Progress2 | Progress3 | Progress4
             | Buy
             | Spawn | Clone
-            | GainWild | ChangeWild
+            | GainAnyRaw | ChangeAnyRaw
             | Gem
-            | Draw
+            | Draw | Restore
             | Espionage
             deriving (Eq,Ord,Show,Bounded,Enum)
 
 data AdjEffect  = LooseGem
                 | GainAction Action
                   deriving (Eq,Ord,Show)
-
 
 --------------------------------------------------------------------------------
 
@@ -143,7 +129,7 @@ upgradeProduce acts = upgradeWith convert  convertors
 
 
 data Rule     = Rule { ruleName       :: Text
-                     , ruleInputs     :: Inputs
+                     , ruleInputs     :: Bag Input
                      , ruleProduces   :: RuleYield
                      }
 
@@ -159,8 +145,9 @@ data ImmediateAction = ImmediateAction
 
 data ActiveRule = ActiveRule
   { activeOriginal  :: Rule           -- ^ The original rule
-  , activeNeed      :: Inputs         -- ^ What inputs are still missing
-  , activeHave      :: Bag Material   -- ^ The materials used in the instance
+  , activeNeed      :: Bag Input      -- ^ What inputs are still missing
+  , activeHave      :: Bag Material
+    -- ^ The materials used in the instance, that will be reused.
   , activeFired     :: Bool           -- ^ Did this rule generate its produce
   , activeReset     :: Bool           -- ^ Should we reset this rule.
                                       -- Allows fro reseting long-term actions.
@@ -176,10 +163,11 @@ activateRule r = ActiveRule { activeOriginal  = r
                                                   LongTerm _  -> False
                             }
 
+-- XXX: APPLY UPGRADES
 activeRuleProduce :: Int -> ActiveRule -> Perhaps (ImmediateAction, ActiveRule)
 activeRuleProduce v ActiveRule { .. }
-  | not (inputsAreEmpty activeNeed) = Failed "Not yet ready to produce."
-  | activeFired                     = Failed "We already produced."
+  | not (bagIsEmpty activeNeed)   = Failed "Not yet ready to produce."
+  | activeFired                   = Failed "We already produced."
 
   | Immediate opts <- ruleProduces activeOriginal =
     case lookup v (zip [ 0 .. ] opts) of
@@ -190,44 +178,35 @@ activeRuleProduce v ActiveRule { .. }
 
 activeRuleLongTermReady :: ActiveRule -> Maybe LongTermAction
 activeRuleLongTermReady ActiveRule { .. }
-  | inputsAreEmpty activeNeed
+  | bagIsEmpty activeNeed
   , LongTerm a <- ruleProduces activeOriginal = return a
   | otherwise                                 = Nothing
 
 
-activeRuleApply :: Material -> ActiveRule -> Perhaps ActiveRule
-activeRuleApply m ActiveRule { .. } =
-  case inputsRemoveMaterial m activeNeed of
-    Just i  -> ok i
-    Nothing ->
-      case m of
-        Waste -> noSlot
-        Raw _ ->
-          case inputsRemoveWild activeNeed of
-            Just i  -> ok i
-            Nothing -> noSlot
-  where
-  noSlot  = Failed "No slot accepts this material."
-  ok i    = return ActiveRule { activeHave = bagAdd 1 m activeHave
-                              , activeNeed = i
-                              , .. }
+activeRuleApply :: Input -> ActiveRule -> Perhaps ActiveRule
+activeRuleApply m ActiveRule { .. }
+  | Use AnyRaw <- m     = wildErr
+  | Discard AnyRaw <- m = wildErr
+  | otherwise =
+    case bagRemove 1 m activeNeed of
+      Just i  -> ok i
+      _ | Just w <- asAnyRaw, Just i <- bagRemove 1 w activeNeed -> ok i
 
-activeRuleDestroyInput :: Material -> ActiveRule -> Perhaps ActiveRule
-activeRuleDestroyInput m ActiveRule { .. } =
-  case bagRemove 1 m activeHave of
-    Nothing -> Failed "Cannot destroy this material."
-    Just b  -> Ok ActiveRule { activeHave  = b
-                             , activeFired = False
-                             , activeNeed  = newNeed
-                             , .. }
-
+      _ -> Failed "No slot accepts this material."
   where
-  wildFilled = inputsWild (ruleInputs activeOriginal) - inputsWild activeNeed
-  newNeed =
-    let Inputs { .. } = activeNeed
-    in if wildFilled > 0
-         then Inputs { inputsWild = 1 + inputsWild, .. }
-         else Inputs { inputsMaterial = bagAdd 1 m inputsMaterial, .. }
+  wildErr   = Failed "Only concrete materials may be used."
+  asAnyRaw  = case m of
+                Use (Material (Raw _))      -> Just (Use AnyRaw)
+                Discard (Material (Raw _))  -> Just (Discard AnyRaw)
+                _                           -> Nothing
+
+  ok i =
+    case m of
+      Use (Material x) ->
+        return ActiveRule { activeHave = bagAdd 1 x activeHave
+                          , activeNeed = i
+                          , .. }
+      _ -> return ActiveRule { activeNeed = i, .. }
 
 
 activeRuleForceReset :: Bool -> ActiveRule -> Perhaps ActiveRule
@@ -294,11 +273,8 @@ discarding :: ((a -> Perhaps ((),b)) -> (p -> Perhaps ((),q))) ->
 discarding op f g = snd <$> op f' g
   where f' r = (\x -> ((),x)) <$> f r
 
-ruleGroupApply :: Material -> RuleGroup -> Perhaps RuleGroup
+ruleGroupApply :: Input -> RuleGroup -> Perhaps RuleGroup
 ruleGroupApply m = updateActive_ (activeRuleApply m)
-
-ruleGroupDestroyInput :: Material -> RuleGroup -> Perhaps RuleGroup
-ruleGroupDestroyInput m = updateActive_ (activeRuleDestroyInput m)
 
 ruleGroupProduce :: Int -> RuleGroup -> Perhaps (ImmediateAction, RuleGroup)
 ruleGroupProduce v = updateActive (activeRuleProduce v)
@@ -410,7 +386,7 @@ factoryApply ::
   Int {-^ resource -} -> Int {-^ group -} -> Factory -> Perhaps Factory
 factoryApply m g Factory { .. } =
   case splitAt m factoryPool of
-    (as,b:bs) -> updateRuleGroup_ g (ruleGroupApply b)
+    (as,b:bs) -> updateRuleGroup_ g (ruleGroupApply (Use (Material b)))
                     Factory { factoryPool = as ++ bs, .. }
     _ -> Failed "This material is not avilable."
 
@@ -423,9 +399,6 @@ factoryProduce v g f =
      -- XXX: apply `adj` effects
      return Factory { factoryProduced = bagUnion as factoryProduced, .. }
 
--- | Remove a resource from a rule.
-factoryDestroyInput :: Material -> Int -> Factory -> Perhaps Factory
-factoryDestroyInput m g f = updateRuleGroup_ g (ruleGroupDestroyInput m) f
 
 -- | Remove a resource from the discarded area.
 factoryDestroyDiscarded :: Material -> Factory -> Perhaps Factory
@@ -591,8 +564,6 @@ instance Export ImmediateAction where
 instance Export LongTermAction where
   toJS _ = toJS ("XXX: LONG_TERM_ACTION" :: Text)
 
-instance Export Inputs where
-  toJS Inputs { .. } =
-    toJS (replicate inputsWild wild ++ map toJS (bagToList inputsMaterial))
-    where wild = toJS ("wild" :: Text)
+instance Export (Bag Input) where
+  toJS _ = toJS ("XXX: INPUT" :: Text)
 
