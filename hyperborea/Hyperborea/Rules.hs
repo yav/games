@@ -1,97 +1,104 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Hyperborea.Rules {-
-  ( Factory
-  , factoryEmpty
-  , factoryAddGroup
-  , factoryChangeSize
-  , factoryExtendSource
-  , factoryUpdateLimit
-  , factoryDestroyInput
-  , factoryDestroyDiscarded
-  , factoryDestroyFromPool
-
-  , factoryActivate
-  , factoryApply
-  , factoryUse
-  , factoryProduce
-  , factoryForceReset
-  , factoryEndPeriod
-  , factoryRestock
-  , factoryTimeForReset
-  , factoryReset
-  , Rule(..)
-  , RuleYield(..)
-  , Inputs(..)
-
-  , RuleGroup
-  , ruleGroup
-
-  , Raw(..)
+module Hyperborea.Rules
+  ( Raw(..)
   , Material(..)
+  , AnyMaterial(..)
+  , Input(..)
   , Action(..)
   , AdjEffect(..)
   , LongTermAction(..)
-  , ImmediateAction(..)
   , Upgrade(..)
+  , Rule(..)
+  , RuleYield(..)
+  , ImmediateAction(..)
 
-  -- XXX
-  , upgradeProduce
+  , RuleGroup
+  , ruleGroup
+  , ruleGroupActiveRule
+  , ruleGroupRules
+  , ruleGroupVPs
 
-  ) -} where
+  , ActiveRule(..)
+
+  , Factory(..)
+  , factoryEmpty
+  , factoryChangeSize
+  , factoryAddGroup
+  , factoryExtendSource
+  , factoryUpdateLimit
+
+  , factoryRestock
+  , factoryEndPeriod
+  , factoryForceReset
+  , factoryReset
+  , factoryTimeForReset
+
+  , factoryActivate
+
+  , factoryUseMaterial
+  , factoryRecall
+  , factoryDestroyFromPool
+  , factoryDestroyDiscarded
+
+  , factoryResourceNum
+
+  , factoryProduce
+
+  , factoryUse
+
+  ) where
 
 import Data.Text(Text)
 import Data.List(findIndex,unfoldr)
-import Data.Maybe(isJust,mapMaybe)
+import Data.Maybe(mapMaybe)
 import Util.Bag
 import Util.Perhaps
 import Util.Random
 
-import Util.JSON
 
 
-data Raw          = Green | Red | Magenta | Orange | Yellow | Blue
-                    deriving (Eq,Ord)
+data Raw            = Green | Red | Magenta | Orange | Yellow | Blue
+                      deriving (Eq,Ord)
 
-data Material     = Waste | Raw Raw
-                    deriving (Eq,Ord)
+data Material       = Waste | Raw Raw
+                      deriving (Eq,Ord)
 
-data AnyMaterial  = AnyRaw | Material Material
-                    deriving (Eq,Ord)
+data AnyMaterial    = AnyRaw | Material Material
+                      deriving (Eq,Ord)
 
-data Input        = Recall              -- ^ Recall an active avatar
-                  | Use     AnyMaterial -- ^ Use some material
-                  | Discard AnyMaterial -- ^ Discard a material
-                    deriving (Eq,Ord)
+data Input          = Recall              -- ^ Recall an active avatar
+                    | Use     AnyMaterial -- ^ Use some material
+                    | Discard AnyMaterial -- ^ Discard a material
+                      deriving (Eq,Ord)
 
 
-
---------------------------------------------------------------------------------
-
-data Action = Move   | Fly
-            | Attack | RangedAttack
-            | Fortify
-            | ProgressDifferent
-            | Progress1 | Progress2 | Progress3 | Progress4
-            | Buy
-            | Spawn | Clone
-            | GainAnyRaw | ChangeAnyRaw
-            | Gem
-            | Draw | Restore
-            | Espionage
-            deriving (Eq,Ord,Show,Bounded,Enum)
-
-data AdjEffect  = LooseGem
-                | GainAction Action
-                  deriving (Eq,Ord,Show)
 
 --------------------------------------------------------------------------------
 
-data LongTermAction   = WhenProduce Action Upgrade
-                      | AtStart (Bag Action)
+data Action         = Move   | Fly
+                    | Attack | RangedAttack
+                    | Fortify
+                    | ProgressDifferent | Progress1 | Progress2 | Progress3
+                    | Buy
+                    | Spawn | Clone
+                    | GainAnyRaw | ChangeAnyRaw
+                    | Gem
+                    | Draw | Restore
+                    | Espionage
+                      deriving (Eq,Ord,Show,Bounded,Enum)
 
-data Upgrade          = ConvertTo Action
-                      | Generate (Bag Action)
+data AdjEffect      = LooseGem
+                    | GainAction Action
+                      deriving (Eq,Ord,Show)
+
+--------------------------------------------------------------------------------
+
+data LongTermAction = WhenProduce Action Upgrade
+                    | AtStart (Bag Action)
+
+data Upgrade        = ConvertTo Action
+                    | Generate (Bag Action)
 
 upgradeProduce :: [LongTermAction] -> Bag Action -> Bag Action
 upgradeProduce acts = upgradeWith convert  convertors
@@ -126,8 +133,6 @@ upgradeProduce acts = upgradeWith convert  convertors
 
 
 --------------------------------------------------------------------------------
-
-
 data Rule     = Rule { ruleName       :: Text
                      , ruleInputs     :: Bag Input
                      , ruleProduces   :: RuleYield
@@ -147,7 +152,7 @@ data ActiveRule = ActiveRule
   { activeOriginal  :: Rule           -- ^ The original rule
   , activeNeed      :: Bag Input      -- ^ What inputs are still missing
   , activeHave      :: Bag Material
-    -- ^ The materials used in the instance, that will be reused.
+    -- Materials used in the instance, which will be reused.
   , activeFired     :: Bool           -- ^ Did this rule generate its produce
   , activeReset     :: Bool           -- ^ Should we reset this rule.
                                       -- Allows fro reseting long-term actions.
@@ -163,18 +168,19 @@ activateRule r = ActiveRule { activeOriginal  = r
                                                   LongTerm _  -> False
                             }
 
--- XXX: APPLY UPGRADES
 activeRuleProduce :: Int -> ActiveRule -> Perhaps (ImmediateAction, ActiveRule)
 activeRuleProduce v ActiveRule { .. }
   | not (bagIsEmpty activeNeed)   = Failed "Not yet ready to produce."
   | activeFired                   = Failed "We already produced."
+  | otherwise =
+    case ruleProduces activeOriginal of
+      Immediate opts ->
+        case lookup v (zip [ 0 .. ] opts) of
+          Just as -> return (as, ActiveRule { activeFired = True, .. })
+          Nothing -> Failed "We don't know this variant."
+      LongTerm _ ->
+        Failed "Long-term actions are used automaitcally."
 
-  | Immediate opts <- ruleProduces activeOriginal =
-    case lookup v (zip [ 0 .. ] opts) of
-      Just as -> return (as, ActiveRule { activeFired = True, .. })
-      Nothing -> Failed "We don't know this variant."
-  | LongTerm _ <- ruleProduces activeOriginal =
-    Failed "Long-term actions are used automaitcally."
 
 activeRuleLongTermReady :: ActiveRule -> Maybe LongTermAction
 activeRuleLongTermReady ActiveRule { .. }
@@ -303,6 +309,15 @@ ruleGroupResourceNum RuleGroup { .. } =
     Just a  -> activeRuleResourceNum a
     Nothing -> 0
 
+ruleGroupActiveRule :: RuleGroup -> Maybe ActiveRule
+ruleGroupActiveRule RuleGroup { .. } = rulesActive
+
+ruleGroupRules :: RuleGroup -> [Rule]
+ruleGroupRules RuleGroup { .. } = rules
+
+ruleGroupVPs :: RuleGroup -> Int
+ruleGroupVPs RuleGroup { .. } = rulesVP
+
 --------------------------------------------------------------------------------
 
 data Factory = Factory
@@ -313,7 +328,7 @@ data Factory = Factory
   , factorySource     :: ![ Material ]
   , factoryDiscarded  :: !(Bag Material)
 
-  , factoryPoolSize   :: !Int               -- ^ How many raw to use
+  , factoryPoolSize   :: !Int  -- ^ How many to draw by default (e.g. 3)
   , factoryPool       :: ![Material]
 
   , factoryProduced   :: !(Bag Action)
@@ -381,14 +396,50 @@ factoryActivate :: Int {- variant -} -> Int {-^ group -} ->
                    Factory -> Perhaps Factory
 factoryActivate v g = updateRuleGroup_ g (chooseActive v)
 
+
+
+--------------------------------------------------------------------------------
+-- Satisfying rule requirements
+
 -- | Add a resources to a rule.
-factoryApply ::
+factoryUseMaterial ::
   Int {-^ resource -} -> Int {-^ group -} -> Factory -> Perhaps Factory
-factoryApply m g Factory { .. } =
+factoryUseMaterial m g Factory { .. } =
   case splitAt m factoryPool of
-    (as,b:bs) -> updateRuleGroup_ g (ruleGroupApply (Use (Material b)))
-                    Factory { factoryPool = as ++ bs, .. }
-    _ -> Failed "This material is not avilable."
+    (as,b:bs) -> factoryApplyInput (Use (Material b)) g
+                                   Factory { factoryPool = as ++ bs, .. }
+    _         -> Failed "This material is not avilable."
+
+-- | Use a material from the pool to satisfy a rule.
+factoryApplyInput :: Input -> Int {-^ group -} -> Factory -> Perhaps Factory
+factoryApplyInput i g = updateRuleGroup_ g (ruleGroupApply i)
+
+-- | Recall a unit to satisfy a rule.
+factoryRecall :: Int {-^ group -} -> Factory -> Perhaps Factory
+factoryRecall = factoryApplyInput Recall
+
+-- | Discard a resource from the discarded area to satisfy a rule.
+factoryDestroyDiscarded :: Material -> Int -> Factory -> Perhaps Factory
+factoryDestroyDiscarded m g Factory { .. } =
+  case bagRemove 1 m factoryDiscarded of
+    Just b  -> factoryApplyInput (Discard (Material m)) g
+                                 Factory { factoryDiscarded = b, .. }
+    Nothing -> Failed "No such discarded"
+
+-- | Discard a resource from the ready-to-use area, to satisfy a rule.
+factoryDestroyFromPool :: Material -> Int -> Factory -> Perhaps Factory
+factoryDestroyFromPool m g Factory { .. } =
+  case findIndex (== m) factoryPool of
+    Just i -> factoryApplyInput (Discard (Material m)) g
+                                Factory { factoryPool = as ++ bs, .. }
+      where (as,_:bs) = splitAt i factoryPool
+    Nothing -> Failed "No such material in pool"
+
+
+
+
+
+--------------------------------------------------------------------------------
 
 -- | Produce using a rule.
 factoryProduce :: Int {-^ variant -} -> Int {-^ group -} ->
@@ -396,25 +447,12 @@ factoryProduce :: Int {-^ variant -} -> Int {-^ group -} ->
 factoryProduce v g f =
   do (ImmediateAction as adj, Factory { .. }) <-
                                 updateRuleGroup g (ruleGroupProduce v) f
+     let bonuses = factoryLongTerm f
+         bs      = upgradeProduce bonuses as
+
      -- XXX: apply `adj` effects
-     return Factory { factoryProduced = bagUnion as factoryProduced, .. }
+     return Factory { factoryProduced = bagUnion bs factoryProduced, .. }
 
-
--- | Remove a resource from the discarded area.
-factoryDestroyDiscarded :: Material -> Factory -> Perhaps Factory
-factoryDestroyDiscarded m Factory { .. } =
-  case bagRemove 1 m factoryDiscarded of
-    Just b -> return Factory { factoryDiscarded = b, .. }
-    Nothing -> Failed "No such discarded"
-
--- | Remove a resource from the ready-to-use area.
-factoryDestroyFromPool :: Material -> Factory -> Perhaps Factory
-factoryDestroyFromPool m Factory { .. } =
-  case findIndex (== m) factoryPool of
-    Nothing -> Failed "No such material in pool"
-    Just i  -> let (as,_:bs) = splitAt i factoryPool
-               in return Factory { factoryPool = as ++ bs
-                                 , factoryPoolSize = factoryPoolSize - 1, .. }
 
 
 -- | Use an action that was produced.
@@ -477,93 +515,4 @@ factoryResourceNum Factory { .. } =
       : map ruleGroupResourceNum factoryGroups)
 
 
---------------------------------------------------------------------------------
-
-
---------------------------------------------------------------------------------
-
-instance Export Factory where
-  toJS Factory { .. } =
-    object [ "groupLimit"   .= factoryGroupLimit
-           , "groups"       .= factoryGroups
-           , "source"       .= length factorySource
-           , "sourceSize"   .= factoryResourceNum Factory { .. }
-           , "poolSize"     .= factoryPoolSize
-           , "pool"         .= factoryPool
-           , "discarded"    .= bagToList factoryDiscarded
-           , "produced"     .= actionsToJS factoryProduced
-           ]
-
-actionToText :: Action -> Text
-actionToText a =
-  case a of
-    Move              -> "move"
-    Fly               -> "fly"
-    Attack            -> "attack"
-    RangedAttack      -> "ranged_attack"
-    Fortify           -> "fortify"
-    ProgressDifferent -> "progress_different" -- XXX
-    Buy               -> "buy"
-
-actionsToJS :: Bag Action -> Value
-actionsToJS = object . map mk . bagToListGrouped
-  where mk (a,n) = actionToText a .= n
-
-instance Export Material where
-  toJS m = case m of
-             Waste -> toJS ("waste" :: Text)
-             Raw r -> toJS r
-
-instance Export Raw where
-  toJS r = toJS $ case r of
-                    Green   -> "A" :: Text
-                    Red     -> "B"
-                    Magenta -> "C"
-                    Orange  -> "D"
-                    Yellow  -> "E"
-                    Blue    -> "F"
-
-instance Export RuleGroup where
-  toJS RuleGroup { .. } =
-    let actName = fmap (ruleName . activeOriginal) rulesActive
-    in object [ "rules" .= [ if Just (ruleName r) == actName
-                             then toJS rulesActive else toJS r | r <- rules ]
-              , "activated" .= isJust rulesActive
-              ]
-
-instance Export ActiveRule where
-  toJS ActiveRule { activeOriginal = Rule { .. }, .. } =
-    object $ ruleFields Rule { ruleInputs   = activeNeed, .. }
-              ++ [ "have"      .= bagToList activeHave
-                 , "fired"     .= activeFired
-                 , "willreset" .= activeReset
-                 ]
-
-instance Export Rule where
-  toJS = object . ruleFields
-
-ruleFields :: Rule -> [(Text,Value)]
-ruleFields Rule { .. } =
-  [ "name"       .= ruleName
-  , "inputs"     .= ruleInputs
-  , "produce"    .= ruleProduces
-  ]
-
-instance Export RuleYield where
-  toJS y =
-    case y of
-      Immediate as ->
-        object [ jsTag "immediate", "outputs" .= as ]
-      LongTerm a ->
-        object [ jsTag "long_term", "outputs" .= a ]
-
-
-instance Export ImmediateAction where
-  toJS _ = toJS ("XXX: IMMEDIATE_ACTION " :: Text)
-
-instance Export LongTermAction where
-  toJS _ = toJS ("XXX: LONG_TERM_ACTION" :: Text)
-
-instance Export (Bag Input) where
-  toJS _ = toJS ("XXX: INPUT" :: Text)
 

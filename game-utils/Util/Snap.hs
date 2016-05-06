@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Util.Snap where
 
-import Util.JSON(Export,jsonBytes)
 
 import           Snap.Core (Snap, bracketSnap)
 import qualified Snap.Core as Snap
@@ -16,6 +15,8 @@ import           Data.Char(toLower)
 import           Control.Monad.IO.Class(liftIO)
 import           Control.Concurrent(MVar, takeMVar, putMVar)
 import           Data.IORef(newIORef, readIORef, writeIORef)
+
+import qualified Util.JSON as JS
 
 snapIO :: IO a -> Snap a
 snapIO = liftIO
@@ -42,10 +43,10 @@ snapModifyMVar_ m f = snapModifyMVar m f1
 
 
 
-sendJSON :: Export a => a -> Snap ()
+sendJSON :: JS.Value -> Snap ()
 sendJSON a =
   do Snap.modifyResponse (Snap.setHeader "content-type" "application/json")
-     Snap.writeLBS (jsonBytes a)
+     Snap.writeLBS (JS.toBytes a)
 
 --------------------------------------------------------------------------------
 -- Error reporting

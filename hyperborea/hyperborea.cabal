@@ -10,7 +10,8 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Hyperborea.Rules,
-                       Hyperborea.Actions
+                       Hyperborea.Actions,
+                       Hyperborea.Protocol
 
   build-depends:       base,
                        game-utils,

@@ -7,13 +7,14 @@ import           Control.Applicative ((<|>))
 import           Control.Monad((<=<))
 import           Control.Concurrent
 
-import Util.Bag
 import Util.Snap
 import Util.Random
 import Util.History
 import Util.Perhaps
 
 import Hyperborea.Rules
+import Hyperborea.Actions
+import Hyperborea.Protocol
 
 data GameState = GameState { theGame :: History Factory }
 type S = MVar GameState
@@ -37,24 +38,7 @@ test =
 
 
   where
-  g = ruleGroup 0 [r,r2]
-
-  r = Rule { ruleName     = "Test rule"
-           , ruleInputs   = Inputs { inputsWild = 1
-                                   , inputsMaterial = bagFromList [ Raw Red ]
-                                   }
-           , ruleProduces = Immediate [ ImmediateAction (bagFromList [ Move ])
-                                                        bagEmpty ]
-           }
-
-
-  r2 = Rule { ruleName     = "Test Cont"
-           , ruleInputs   = Inputs { inputsWild = 1
-                                   , inputsMaterial = bagFromList [ Raw Magenta ]
-                                   }
-           , ruleProduces = Immediate [ ImmediateAction (bagFromList [ Move ])
-                                                        bagEmpty ]
-           }
+  g = basic !! 0
 
 
 
@@ -81,14 +65,14 @@ main =
 snapView :: S -> Snap ()
 snapView s =
   do h <- snapIO (readMVar s)
-     sendJSON (historyCurrent (theGame h))
+     sendJSON (toJS (historyCurrent (theGame h)))
 
 snapWithGame :: S -> (Factory -> Perhaps Factory) -> Snap ()
 snapWithGame s upd =
   snapModifyMVar_ s $ \state ->
     case historyUpdateF upd (theGame state) of
       Ok h -> do let s1 = state { theGame = h }
-                 sendJSON (historyCurrent h)
+                 sendJSON (toJS (historyCurrent h))
                  return s1
       Failed x -> badInput x
 
@@ -97,7 +81,7 @@ snapApply s =
   do g <- snapParam "group"
      r <- snapParam "rule"
      m <- snapParam "material"
-     snapWithGame s (factoryApply m g <=< factoryActivate r g)
+     snapWithGame s (factoryUseMaterial m g <=< factoryActivate r g)
 
 snapUse :: S -> Snap ()
 snapUse s =

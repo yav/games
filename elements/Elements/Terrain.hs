@@ -39,7 +39,6 @@ import           Data.Map ( Map )
 import qualified Data.Map as Map
 import qualified Data.Text as Text
 
-import Util.JSON
 import Elements.BasicTypes
 import Elements.Enemies
 
@@ -245,93 +244,6 @@ validPlacement sh explored t backup pt@(x,y) =
   neighboursOf a  = [ b | b <- globalNeighbours a, explored b ]
 
 
-
---------------------------------------------------------------------------------
--- External format
-
-
-instance Export Dir where
-  toJS dir = toJS (txt :: Text)
-    where
-    txt = case dir of
-            NE -> "NE"
-            E  -> "E"
-            SE -> "SE"
-            SW -> "SW"
-            W  -> "W"
-            NW -> "NW"
-
-
-instance Export MapShape where
-  toJS sh = case sh of
-              Wedge           -> object [ "shape" .= ("wedge" :: Text) ]
-              OpenMap up down -> object [ "shape" .= ("open" :: Text)
-                                        , "up"    .= up
-                                        , "down"  .= down
-                                        ]
-
-instance Export Addr where
-  toJS Addr { addrGlobal = (x,y), .. } = object [ "x"   .= x
-                                                , "y"   .= y
-                                                , "hex" .= addrLocal
-                                                ]
-
-
-instance Export HexAddr where
-  toJS addr = case addr of
-                Center   -> toJS ("C" :: Text)
-                Border b -> toJS b
-
-instance Export TileType where
-  toJS t = toJS (txt :: Text)
-    where
-    txt = case t of
-            BasicTile    -> "country"
-            AdvancedTile -> "advanced"
-
-instance Export Tile where
-  toJS Tile { .. } =
-    toJS [ object [ "addr"    .= addr
-                  , "content" .= tileTerrain addr
-                  ] | addr <- allHexAddrs ]
-
-instance Export HexLandInfo where
-  toJS HexLandInfo { .. } =
-    object [ "terrain"  .= hexTerrain
-           , "features" .= hexFeatures
-           ]
-
-
-
-instance Export EnemyVis where
-  toJS v =
-    case v of
-      EnemyVisible -> "visible"
-      EnemyHidden  -> "hidden"
-      EnemyAmbush  -> "ambush"
-
-instance Export Terrain where
-  toJS t = case t of
-             Road       -> txt "road"
-             Hills      -> txt "hills"
-             Forest     -> txt "forest"
-             Lava       -> txt "lava"
-             Desert     -> txt "desert"
-             Bog        -> txt "bog"
-             Sea        -> txt "sea"
-             Mountain   -> txt "mountains"
-             Empty      -> txt "empty"
-
-    where txt x = toJS (x :: Text)
-
-instance ExportAsKey Feature where
-  toKeyJS f = case f of
-                Shop   -> "shop"
-                Castle -> "castle"
-                Rest s -> "rest_" `Text.append` toKeyJS s
-
-instance Export Feature where
-  toJS = jsKey
 
 
 

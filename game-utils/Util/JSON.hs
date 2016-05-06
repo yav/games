@@ -1,71 +1,48 @@
 {-# LANGUAGE Trustworthy, OverloadedStrings #-}
 module Util.JSON
-  ( Export(..)
-  , jsonBytes
-  , (.=)
+  ( toBytes
+  , null
+  , bool
+  , text
+  , int
+  , maybe
+  , list
   , object
-  , jsNull
   , JS.Value
-  , ExportAsKey(..)
-  , jsKey
-  , jsTag
   ) where
 
+import           Prelude hiding (null,maybe)
 import           Data.Text(Text)
-import qualified Data.Text as Text
 import qualified Data.Aeson as JS
-import qualified Data.Aeson.Types as JS
 import qualified Data.Vector as Vector
 import qualified Data.ByteString.Lazy as LBS
 
-class Export a where
-  toJS :: a -> JS.Value
 
-class ExportAsKey a where
-  toKeyJS :: a -> Text
+toBytes :: JS.Value -> LBS.ByteString
+toBytes = JS.encode
 
-(.=) :: Export a => Text -> a -> JS.Pair
-x .= y = x JS..= toJS y
+null :: JS.Value
+null = JS.Null
 
-object :: [ JS.Pair ] -> JS.Value
+bool :: Bool -> JS.Value
+bool = JS.Bool
+
+text :: Text -> JS.Value
+text t = JS.String t
+
+int :: Integral a => a -> JS.Value
+int = JS.Number . fromIntegral
+
+list :: (a -> JS.Value) -> [a] -> JS.Value
+list cvt xs = JS.Array (Vector.fromList (map cvt xs))
+
+maybe :: (a -> JS.Value) -> Maybe a -> JS.Value
+maybe cvt x = case x of
+                  Nothing -> JS.Null
+                  Just a  -> cvt a
+
+object :: [ (Text,JS.Value) ] -> JS.Value
 object = JS.object
 
-jsNull :: JS.Value
-jsNull = JS.Null
 
-
-jsonBytes :: Export a => a -> LBS.ByteString
-jsonBytes = JS.encode . toJS
-
-jsKey :: ExportAsKey a => a -> JS.Value
-jsKey = toJS . toKeyJS
-
-jsTag :: Text -> JS.Pair
-jsTag x = "tag" .= x
-
-instance Export Bool where
-  toJS n = JS.Bool n
-
-instance Export Int where
-  toJS n = JS.Number (fromIntegral n)
-
-instance ExportAsKey Int where
-  toKeyJS = Text.pack . show
-
-instance Export Text where
-  toJS xs = JS.String xs
-
-instance ExportAsKey Text where
-  toKeyJS = id
-
-instance Export JS.Value where
-  toJS x = x
-
-instance Export a => Export (Maybe a) where
-  toJS x = case x of
-             Nothing -> JS.Null
-             Just a  -> toJS a
-
-instance Export a => Export [a] where
-  toJS xs = JS.Array (Vector.fromList (map toJS xs))
 

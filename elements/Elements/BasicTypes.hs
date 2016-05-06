@@ -19,24 +19,4 @@ instance Enumerate Spirit where
   enumerate = Death : Birth : map Element enumerate
 
 
-instance ExportAsKey Element where
-  toKeyJS e =
-    case e of
-      Earth -> "earth"
-      Water -> "water"
-      Fire  -> "fire"
-      Air   -> "air"
-
-instance Export Element where
-  toJS = jsKey
-
-instance ExportAsKey Spirit where
-  toKeyJS p = case p of
-                Death     -> "death"
-                Birth     -> "birth"
-                Element e -> toKeyJS e
-
-instance Export Spirit where
-  toJS = jsKey
-
 

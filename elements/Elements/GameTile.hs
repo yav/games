@@ -2,7 +2,6 @@
 -- | An active game tile.
 module Elements.GameTile
   ( GameTile
-  , exportGameTile
   , gameTilePlaceHolder
   , emptyGameTile
   , HexInfo(..)
@@ -16,7 +15,6 @@ module Elements.GameTile
 
 import Elements.Terrain
 import Elements.Enemies
-import Util.JSON as JS
 
 import           Data.Map ( Map )
 import qualified Data.Map as Map
@@ -95,26 +93,4 @@ gameTileSearch p GameTile { .. } =
 
 --------------------------------------------------------------------------------
 
-exportGameTile :: [(Text,HexAddr)] -> GameTile -> JS.Value
-exportGameTile ps GameTile { .. } =
-  JS.object [ "static"  .= gameTile
-            , "dynamic" .= map export (Map.toList gameTileContent)
-            ]
-    where
-    players l = [ JS.object [ "name" .= name ] | (name,loc) <- ps, loc == l ]
-
-    export (l,c) =
-      JS.object
-        [ "addr" .= l
-        , "content"  .=
-             JS.object
-               [ "players" .= players l
-               , "enemies" .= map enemy (hexEnemies c)
-               ]
-        ]
-
-    enemy (vis,e) = object [ "visibility" .= vis, "enemy" .= mbName vis e ]
-    mbName vis e  = case vis of
-                      EnemyVisible -> Just (enemyName e)
-                      _            -> Nothing
 

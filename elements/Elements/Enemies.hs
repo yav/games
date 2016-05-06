@@ -2,7 +2,6 @@
 module Elements.Enemies where
 
 import Util.ResourceQ(ResourceQ)
-import Util.JSON
 
 import           Data.Set (Set)
 import qualified Data.Set as Set
@@ -41,20 +40,6 @@ instance Eq Enemy where
 
 instance Ord Enemy where
   compare x y = compare (enemyName x) (enemyName y)
-
-
-enemyTypeText :: EnemyType -> Text
-enemyTypeText et =
-  case et of
-    Orc         -> "orc"
-    Guardian    -> "guardian"
-    Mage        -> "mage"
-    Underworld  -> "underworld"
-    Citizen     -> "citizen"
-    Draconum    -> "draconum"
-
-instance Export EnemyType where
-  toJS = toJS . enemyTypeText
 
 
 
