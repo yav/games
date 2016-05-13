@@ -1,6 +1,6 @@
 module Hyperborea.Terrain where
 
-import Utils.Bag
+import Util.Bag
 
 data Terrain = Plain | Forest | Swamp | Mountain
 
@@ -21,9 +21,27 @@ moveCost from to = exit + 1 + enter
 
 data Location = Location
   { locTerrain  :: Terrain
-  , locPlayers  :: Bag String
-  -- cities, ruins
+  , locPlayers  :: Bag String   -- ^ In location, not in any features.
+  , locFeautres :: [ Feature ]
   }
 
 
+data Feature = Feature
+  { featureType   :: FeatureType
+  , featureGuests :: FeatureGuests
+  }
+
+data FeatureType = FeatureTypeXXX
+
+data FeatureGuests =
+    MultipleGuests (Bag String)
+    -- ^ Supports any number of inhabitatnts.
+
+  | SingleGuestOnce (Maybe String)
+    -- ^ Supports at most one inhabitant.
+    -- Cannot be used when occupied.
+
+  | SingleGuestMany (Maybe String)
+    -- ^ Supports at most one inhabitant.
+    -- May be used when occupied---the previous guessed is "kicked-out".
 
