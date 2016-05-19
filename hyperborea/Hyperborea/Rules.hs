@@ -1,23 +1,10 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Hyperborea.Rules
-  ( Raw(..)
-  , Material(..)
-  , AnyMaterial(..)
-  , Input(..)
-  , Action(..)
-  , AdjEffect(..)
-  , LongTermAction(..)
-  , Upgrade(..)
-  , Rule(..)
-  , RuleYield(..)
-  , ImmediateAction(..)
-
-  , RuleGroup
-  , ruleGroup
+  ( DynRuleGroup
+  , activateRuleGroup
   , ruleGroupActiveRule
-  , ruleGroupRules
-  , ruleGroupVPs
+  , ruleGroupStatic
 
   , ActiveRule(..)
 
@@ -49,56 +36,14 @@ module Hyperborea.Rules
 
   ) where
 
-import Data.Text(Text)
 import Data.List(findIndex,unfoldr)
 import Data.Maybe(mapMaybe)
 import Util.Bag
 import Util.Perhaps
 import Util.Random
 
+import Hyperborea.Types
 
-
-data Raw            = Green | Red | Magenta | Orange | Yellow | Blue
-                      deriving (Eq,Ord)
-
-data Material       = Waste | Raw Raw
-                      deriving (Eq,Ord)
-
-data AnyMaterial    = AnyRaw | Material Material
-                      deriving (Eq,Ord)
-
-data Input          = Recall              -- ^ Recall an active avatar
-                    | Use     AnyMaterial -- ^ Use some material
-                    | Discard AnyMaterial -- ^ Discard a material
-                      deriving (Eq,Ord)
-
-
-
---------------------------------------------------------------------------------
-
-data Action         = Move   | Fly
-                    | Attack | RangedAttack
-                    | Fortify
-                    | ProgressDifferent | Progress1 | Progress2 | Progress3
-                    | Buy
-                    | Spawn | Clone
-                    | GainAnyRaw | ChangeAnyRaw
-                    | Gem
-                    | Draw | Restore
-                    | Espionage
-                      deriving (Eq,Ord,Show,Bounded,Enum)
-
-data AdjEffect      = LooseGem
-                    | GainAction Action
-                      deriving (Eq,Ord,Show)
-
---------------------------------------------------------------------------------
-
-data LongTermAction = WhenProduce Action Upgrade
-                    | AtStart (Bag Action)
-
-data Upgrade        = ConvertTo Action
-                    | Generate (Bag Action)
 
 upgradeProduce :: [LongTermAction] -> Bag Action -> Bag Action
 upgradeProduce acts = upgradeWith convert  convertors
@@ -133,18 +78,6 @@ upgradeProduce acts = upgradeWith convert  convertors
 
 
 --------------------------------------------------------------------------------
-data Rule     = Rule { ruleName       :: Text
-                     , ruleInputs     :: Bag Input
-                     , ruleProduces   :: RuleYield
-                     }
-
-data RuleYield  = Immediate [ ImmediateAction ] -- ^ Pick one of these actions
-                | LongTerm  LongTermAction      -- ^ A long-term benefit
-
-data ImmediateAction = ImmediateAction
-  { playerActions   :: Bag Action     -- ^ Effects for player
-  , adjacentActions :: Bag AdjEffect  -- ^ Effects on neighbours
-  }
 
 
 
@@ -235,43 +168,37 @@ activeRuleResourceNum ActiveRule { .. }
 
 --------------------------------------------------------------------------------
 
--- | A collection of rules, only one of which may be used at a time.
-data RuleGroup = RuleGroup
-  { rules       :: [ Rule ]           -- ^ All alternatives
+data DynRuleGroup = DynRuleGroup
+  { ruleGroup   :: RuleGroup
   , rulesActive :: Maybe ActiveRule   -- ^ The rule that is currently active
-  , rulesVP     :: !Int               -- ^ Victory points
   }
 
--- | Construct a new group using worth some victory points, and some rules.
-ruleGroup :: Int -> [Rule] -> RuleGroup
-ruleGroup rulesVP rules = RuleGroup { rulesActive = Nothing, .. }
+activateRuleGroup :: RuleGroup -> DynRuleGroup
+activateRuleGroup ruleGroup = DynRuleGroup { rulesActive = Nothing, .. }
 
 -- | Does nothing if the group is already active.
-chooseActive :: Int -> RuleGroup -> Perhaps RuleGroup
-chooseActive n RuleGroup { .. } =
+chooseActive :: Int -> DynRuleGroup -> Perhaps DynRuleGroup
+chooseActive n DynRuleGroup { .. } =
   case rulesActive of
-    Just _  -> return RuleGroup { .. }
+    Just _  -> return DynRuleGroup { .. }
     Nothing ->
-      case splitAt n rules of
-        (_,r:_) -> Ok RuleGroup { rulesActive = Just (activateRule r), .. }
+      case splitAt n (rules ruleGroup) of
+        (_,r:_) -> Ok DynRuleGroup { rulesActive = Just (activateRule r), .. }
         _       -> Failed "There is no such rule."
 
-
-
-
 updateActive :: (ActiveRule -> Perhaps (a,ActiveRule)) ->
-                (RuleGroup -> Perhaps (a,RuleGroup))
-updateActive f RuleGroup { .. } =
+                (DynRuleGroup -> Perhaps (a,DynRuleGroup))
+updateActive f DynRuleGroup { .. } =
   case rulesActive of
     Just r  -> ok r
-    Nothing -> case rules of
+    Nothing -> case rules ruleGroup of
                  [ r ] -> ok (activateRule r)
                  _     -> Failed "This groups is not yet activated."
   where ok r = do (a,r1) <- f r
-                  return (a,RuleGroup { rulesActive = Just r1, .. })
+                  return (a,DynRuleGroup { rulesActive = Just r1, .. })
 
 updateActive_ :: (ActiveRule -> Perhaps ActiveRule) ->
-                 (RuleGroup -> Perhaps RuleGroup)
+                 (DynRuleGroup -> Perhaps DynRuleGroup)
 updateActive_ = discarding updateActive
 
 discarding :: ((a -> Perhaps ((),b)) -> (p -> Perhaps ((),q))) ->
@@ -279,49 +206,46 @@ discarding :: ((a -> Perhaps ((),b)) -> (p -> Perhaps ((),q))) ->
 discarding op f g = snd <$> op f' g
   where f' r = (\x -> ((),x)) <$> f r
 
-ruleGroupApply :: Input -> RuleGroup -> Perhaps RuleGroup
+ruleGroupApply :: Input -> DynRuleGroup -> Perhaps DynRuleGroup
 ruleGroupApply m = updateActive_ (activeRuleApply m)
 
-ruleGroupProduce :: Int -> RuleGroup -> Perhaps (ImmediateAction, RuleGroup)
+ruleGroupProduce :: Int -> DynRuleGroup -> Perhaps (ImmediateAction, DynRuleGroup)
 ruleGroupProduce v = updateActive (activeRuleProduce v)
 
-ruleGroupLongTerm :: RuleGroup -> Maybe LongTermAction
-ruleGroupLongTerm RuleGroup { .. } = activeRuleLongTermReady =<< rulesActive
+ruleGroupLongTerm :: DynRuleGroup -> Maybe LongTermAction
+ruleGroupLongTerm DynRuleGroup { .. } = activeRuleLongTermReady =<< rulesActive
 
-ruleGroupForceReset :: Bool -> RuleGroup -> Perhaps RuleGroup
+ruleGroupForceReset :: Bool -> DynRuleGroup -> Perhaps DynRuleGroup
 ruleGroupForceReset r = updateActive_ (activeRuleForceReset r)
 
-ruleGroupReset :: RuleGroup -> (Bag Material, RuleGroup)
-ruleGroupReset RuleGroup { .. } =
+ruleGroupReset :: DynRuleGroup -> (Bag Material, DynRuleGroup)
+ruleGroupReset DynRuleGroup { .. } =
   case rulesActive of
     Just a
       | activeReset a ->
-        (activeHave a, RuleGroup { rulesActive = Nothing, .. })
+        (activeHave a, DynRuleGroup { rulesActive = Nothing, .. })
 
       | otherwise ->
-        (bagEmpty, RuleGroup { rulesActive = Just (activeRuleRestart a), .. })
+        (bagEmpty, DynRuleGroup { rulesActive = Just (activeRuleRestart a), .. })
 
-    Nothing -> (bagEmpty, RuleGroup { .. })
+    Nothing -> (bagEmpty, DynRuleGroup { .. })
 
-ruleGroupResourceNum :: RuleGroup -> Int
-ruleGroupResourceNum RuleGroup { .. } =
+ruleGroupResourceNum :: DynRuleGroup -> Int
+ruleGroupResourceNum DynRuleGroup { .. } =
   case rulesActive of
     Just a  -> activeRuleResourceNum a
     Nothing -> 0
 
-ruleGroupActiveRule :: RuleGroup -> Maybe ActiveRule
-ruleGroupActiveRule RuleGroup { .. } = rulesActive
+ruleGroupActiveRule :: DynRuleGroup -> Maybe ActiveRule
+ruleGroupActiveRule DynRuleGroup { .. } = rulesActive
 
-ruleGroupRules :: RuleGroup -> [Rule]
-ruleGroupRules RuleGroup { .. } = rules
-
-ruleGroupVPs :: RuleGroup -> Int
-ruleGroupVPs RuleGroup { .. } = rulesVP
+ruleGroupStatic :: DynRuleGroup -> RuleGroup
+ruleGroupStatic DynRuleGroup { .. } = ruleGroup
 
 --------------------------------------------------------------------------------
 
 data Factory = Factory
-  { factoryGroups     :: ![RuleGroup]
+  { factoryGroups     :: ![DynRuleGroup]
   , factoryGroupLimit :: !(Maybe Int)
 
   , factoryRandom     :: !StdGen
@@ -353,7 +277,7 @@ factoryAddGroup g Factory { .. }
   | Just n <- factoryGroupLimit, length factoryGroups >= n + 1 =
     Failed "No more space for groups."
   | otherwise =
-    Ok Factory { factoryGroups = g : factoryGroups, .. }
+    Ok Factory { factoryGroups = activateRuleGroup g : factoryGroups, .. }
 
 factoryUpdateLimit :: (Maybe Int -> Maybe Int) -> Factory -> Factory
 factoryUpdateLimit f Factory { .. } =
@@ -377,7 +301,7 @@ factoryExtendSource m Factory { .. } =
                           }
 
 updateRuleGroup ::
-  Int -> (RuleGroup -> Perhaps (a,RuleGroup)) -> Factory -> Perhaps (a,Factory)
+  Int -> (DynRuleGroup -> Perhaps (a,DynRuleGroup)) -> Factory -> Perhaps (a,Factory)
 updateRuleGroup n f Factory { .. } =
   case splitAt n factoryGroups of
     (as,b:bs) ->
@@ -386,7 +310,7 @@ updateRuleGroup n f Factory { .. } =
     (_,[]) -> Failed "There is no such group."
 
 
-updateRuleGroup_ :: Int -> (RuleGroup -> Perhaps RuleGroup) ->
+updateRuleGroup_ :: Int -> (DynRuleGroup -> Perhaps DynRuleGroup) ->
                            (Factory -> Perhaps Factory)
 updateRuleGroup_ n = discarding (updateRuleGroup n)
 

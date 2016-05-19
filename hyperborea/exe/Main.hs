@@ -12,6 +12,7 @@ import Util.Random
 import Util.History
 import Util.Perhaps
 
+import Hyperborea.Types
 import Hyperborea.Rules
 import Hyperborea.Actions
 import Hyperborea.Protocol

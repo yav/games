@@ -12,6 +12,7 @@ library
   exposed-modules:     Hyperborea.Rules,
                        Hyperborea.Actions,
                        Hyperborea.Terrain,
+                       Hyperborea.Types,
                        Hyperborea.Protocol
 
   build-depends:       base,

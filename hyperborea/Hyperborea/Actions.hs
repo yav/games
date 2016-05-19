@@ -5,7 +5,7 @@ import Prelude hiding ((/),(*),(>),(<))
 import Data.Text(Text)
 import Util.Bag
 
-import Hyperborea.Rules
+import Hyperborea.Types
 
 
 class ToInputs a where
@@ -169,10 +169,12 @@ basic =
       ]
   ]
   where
-  oneOf = ruleGroup 0
+  oneOf xs = RuleGroup { rulesVP = 0, rules = xs }
 
 tech :: Int -> Text -> Rule -> RuleGroup
-tech n nm x  = ruleGroup n [nm > x]
+tech n nm x  = RuleGroup { rulesVP = n
+                         , rules   = [nm > x]
+                         }
 
 group1 :: [RuleGroup]
 group1 =

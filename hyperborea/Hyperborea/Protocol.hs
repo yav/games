@@ -7,6 +7,7 @@ import Util.Bag
 
 import qualified Util.JSON as JS
 
+import Hyperborea.Types
 import Hyperborea.Rules
 
 class Export t where
@@ -89,12 +90,13 @@ instance Export Raw where
                     Yellow  -> "E"
                     Blue    -> "F"
 
-instance Export RuleGroup where
+instance Export DynRuleGroup where
   toJS rg =
+    -- XXX: export whoe static part
     JS.object [ "rules" .= [ if Just (ruleName r) == actName
                                then toJS actR
                                else toJS r
-                           | r <- ruleGroupRules rg ]
+                           | r <- rules (ruleGroupStatic rg) ]
               , "activated" .= isJust actName
               ]
     where actName = (ruleName . activeOriginal) <$> actR
