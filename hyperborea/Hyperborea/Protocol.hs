@@ -30,8 +30,7 @@ instance Export a => Export (Maybe a) where toJS = JS.maybe toJS
 
 instance Export Factory where
   toJS Factory { .. } =
-    JS.object [ "groupLimit"   .= factoryGroupLimit
-              , "groups"       .= factoryGroups
+    JS.object [ "groups"       .= factoryGroups
               , "source"       .= length factorySource
               , "sourceSize"   .= factoryResourceNum Factory { .. }
               , "poolSize"     .= factoryPoolSize

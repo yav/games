@@ -23,8 +23,8 @@ type S = MVar GameState
 test :: Gen Factory
 test =
   do f <- factoryEmpty
-     let Ok f1 = factoryAddGroup g f
-         Ok f2 = factoryAddGroup g f1
+     let f1 = factoryAddGroup g f
+         f2 = factoryAddGroup g f1
      return $ factoryRestock
             $ factoryExtendSource (Raw Green)
             $ factoryExtendSource (Raw Red)

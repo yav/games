@@ -13,7 +13,6 @@ module Hyperborea.Rules
   , factoryChangeSize
   , factoryAddGroup
   , factoryExtendSource
-  , factoryUpdateLimit
 
   , factoryRestock
   , factoryEndPeriod
@@ -245,16 +244,18 @@ ruleGroupStatic DynRuleGroup { .. } = ruleGroup
 --------------------------------------------------------------------------------
 
 data Factory = Factory
-  { factoryGroups     :: ![DynRuleGroup]
-  , factoryGroupLimit :: !(Maybe Int)
+  { factoryGroups     :: ![DynRuleGroup]    -- ^ Static and tech cards
 
+    -- "the bag"
   , factoryRandom     :: !StdGen
   , factorySource     :: ![ Material ]
   , factoryDiscarded  :: !(Bag Material)
 
+    -- Resource to be allocated this turn
   , factoryPoolSize   :: !Int  -- ^ How many to draw by default (e.g. 3)
   , factoryPool       :: ![Material]
 
+    -- Produced actions that may be used
   , factoryProduced   :: !(Bag Action)
   }
 
@@ -263,7 +264,6 @@ factoryEmpty =
   do factoryRandom <- randStdGen
      return Factory
              { factoryGroups      = []
-             , factoryGroupLimit  = Nothing
              , factorySource      = []
              , factoryDiscarded   = bagEmpty
              , factoryPoolSize    = 0
@@ -272,16 +272,9 @@ factoryEmpty =
              , ..
              }
 
-factoryAddGroup :: RuleGroup -> Factory -> Perhaps Factory
-factoryAddGroup g Factory { .. }
-  | Just n <- factoryGroupLimit, length factoryGroups >= n + 1 =
-    Failed "No more space for groups."
-  | otherwise =
-    Ok Factory { factoryGroups = activateRuleGroup g : factoryGroups, .. }
-
-factoryUpdateLimit :: (Maybe Int -> Maybe Int) -> Factory -> Factory
-factoryUpdateLimit f Factory { .. } =
-  Factory { factoryGroupLimit = f factoryGroupLimit, .. }
+factoryAddGroup :: RuleGroup -> Factory -> Factory
+factoryAddGroup g Factory { .. } =
+    Factory { factoryGroups = activateRuleGroup g : factoryGroups, .. }
 
 factoryChangeSize :: Int -> Factory -> Factory
 factoryChangeSize d Factory { .. } =
