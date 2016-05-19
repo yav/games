@@ -16,7 +16,8 @@ library
 
   build-depends:       base,
                        game-utils,
-                       text
+                       text,
+                       containers
 
   default-language:    Haskell2010
 
