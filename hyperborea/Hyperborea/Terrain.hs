@@ -2,13 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Hyperborea.Terrain where
 
+import           Data.Text (Text)
+import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Control.Monad (msum,guard)
+import           Data.Maybe (mapMaybe)
+
 import Util.Perhaps
 import Util.Bag
-import Data.Text(Text)
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Control.Monad(msum,guard)
-import Data.Maybe(mapMaybe)
+
+import Hyperborea.Types
 
 type PlayerId = Text
 type Area     = Map Addr Location
@@ -89,7 +92,13 @@ data Feature = Feature
   , featureGuests :: Maybe PlayerId
   }
 
-data FeatureType = FeatureTypeXXX
+data FeatureType =
+    City RuleGroup
+    -- ^ The rule groupis available to a player, when one of their
+    -- avatrs is a guest.
+
+  | Ruins [RuleGroup]
+    -- ^ Visiting the ruins gains a one-time use rule group.
 
 -- | Find a feature by id.
 getFeature :: Int -> Location -> Perhaps Feature
@@ -115,26 +124,26 @@ exitLocation a l =
      return l { locAvatars = as }
 
 -- | Move an avatar from the the general area to a specific location.
-enterFeature :: PlayerId -> Int -> Location -> Perhaps Location
+-- If the location is a non-empty ruins, return a one-time use group.
+enterFeature ::
+  PlayerId -> Int -> Location -> Perhaps (Maybe RuleGroup, Location)
 enterFeature a fid l =
   do f <- getFeature fid l
      case featureGuests f of
        Nothing ->
          do l1 <- exitLocation a l
             let f1 = f { featureGuests = Just a }
-            return l1 { locFeautres = Map.insert fid f1 (locFeautres l1) }
+                (rwd,f2) =
+                  case featureType f of
+                    Ruins xs
+                      | r : rs <- xs -> (Just r, f1 { featureType = Ruins rs })
+                    _                -> (Nothing, f1)
+            return ( rwd
+                   , l1 { locFeautres = Map.insert fid f2 (locFeautres l1) })
        Just _  -> Failed "This location is already occupied."
 
--- | Move an avatar from a location to the general area.
-exitFeature :: Int -> Location -> Perhaps Location
-exitFeature fid l =
-  do f <- getFeature fid l
-     case featureGuests f of
-       Nothing -> Failed "This location is empty."
-       Just b  ->
-         do l1 <- enterLocation b l
-            let f1 = f { featureGuests = Nothing }
-            return l1 { locFeautres = Map.insert fid f1 (locFeautres l1) }
+
+
 
 -- | Move all avatar for a player to the general area
 resetLocation :: PlayerId -> Location -> Location
