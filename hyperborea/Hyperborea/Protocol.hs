@@ -72,12 +72,12 @@ actionsToJS = JS.object . map mk . bagToListGrouped
 
 instance Export Material where
   toJS m = case m of
-             Waste -> toJS ("waste" :: Text)
+             Waste -> toJS ("X" :: Text)
              Raw r -> toJS r
 
 instance Export AnyMaterial where
   toJS m = case m of
-             AnyRaw     -> JS.text "any"
+             AnyRaw     -> JS.text "?"
              Material a -> toJS a
 
 instance Export Raw where
@@ -119,14 +119,6 @@ ruleFields Rule { .. } =
   , "produce"    .= ruleProduces
   ]
 
-instance Export RuleYield where
-  toJS y =
-    case y of
-      Immediate as ->
-        JS.object [ jsTag "immediate", "outputs" .= as ]
-      LongTerm a ->
-        JS.object [ jsTag "long_term", "outputs" .= a ]
-
 
 
 instance Export (Bag Input) where
@@ -140,6 +132,12 @@ instance Export Input where
                              , "material" .= m ]
       Discard m -> JS.object [ "input"    .= JS.text "discard"
                              , "material" .= m ]
+
+instance Export RuleYield where
+  toJS y =
+    case y of
+      Immediate as -> JS.object [ jsTag "immediate", "outputs" .= as ]
+      LongTerm a   -> JS.object [ jsTag "long_term", "outputs" .= a ]
 
 instance Export AdjEffect where
   toJS a =
