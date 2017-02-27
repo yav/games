@@ -136,9 +136,9 @@ regularUnits =
          , unitSource     = Set.fromList [ FromVillage, FromMonastery ]
          , unitAbilities  =
             [ Green --> 2 *** Healing
-            , produces (2 *** ReadyUnit 1)
-            , produces (2 *** ReadyUnit 2)
-            , produces (2 *** Green)
+            , produces (ChangeUnit One [UnitReadyLevel 1])
+            , produces (ChangeUnit One [UnitReadyLevel 2])
+            , produces Green
             ]
          }
 
@@ -233,8 +233,9 @@ regularUnits =
          , unitAbilities  =
             [ produces (3 *** Attack Melee Physycal)
             , produces (3 *** Block Physycal)
-            , produces (6 *** Attack Melee Physycal, WoundUnit)
-            , produces (6 *** Block Physycal, WoundUnit)
+            , produces (6 *** Attack Melee Physycal,
+                                             ChangeUnit Self [UnitGainWound])
+            , produces (6 *** Block Physycal,ChangeUnit Self [UnitGainWound])
             ]
          }
 
@@ -280,7 +281,8 @@ eliteUnits =
          , unitAbilities  = [ produces (5 *** Attack Melee Physycal)
                             , produces (8 *** SwiftBlock Physycal)
                             , Green --> ChangeUnit All
-                                [ GainResistance r | r <- [Physycal,Fire,Ice] ]
+                                          [ UnitGainResistance r
+                                            | r <- [Physycal,Fire,Ice] ]
                             ]
          }
 

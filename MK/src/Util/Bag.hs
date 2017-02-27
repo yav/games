@@ -22,7 +22,7 @@ import           Data.Set ( Set )
 -- Invariant: the amount of each resource is strictly positive.
 
 newtype Bag a = Bag (Map a Int)
-                deriving Show
+                deriving (Eq,Ord,Show)
 
 bagEmpty :: Bag a
 bagEmpty = Bag Map.empty

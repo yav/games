@@ -11,12 +11,18 @@ module Rule
   , (***)
   , requires
   , produces
+  , onlyIf
 
   , Resource(..)
+  , Target(..)
   , ChangeTerrainCost(..)
-  , ChangeEnemy(..), Target(..)
+  , ChangeEnemy(..), enemyIf, EnemyCondition(..)
   , ChangeAttack(..)
   , ChangeUnit(..)
+
+  , perEnemy
+  , specialMove
+  , EndMove(..)
 
   , ppResource
   , ppResources
@@ -27,6 +33,8 @@ import Util.Bag
 
 import           Data.Text (Text)
 import qualified Data.Text as Text
+import           Data.Set(Set)
+import qualified Data.Set as Set
 import           Control.Monad (foldM)
 import           Text.PrettyPrint
 
@@ -120,6 +128,10 @@ requires rs = rs --> ([] :: [Resource])
 produces :: Resources make => make -> Rule
 produces rs = ([] :: [Resource]) --> rs
 
+-- | This is used to make conditional rules.
+onlyIf :: Resources cond => cond -> Rule
+onlyIf rs = rs --> rs
+
 
 ruleInput :: Rule -> [(Int,Resource)]
 ruleInput Rule { .. } = [ (n,x) | (x,n) <- bagToListGrouped ruleIn ]
@@ -142,13 +154,21 @@ data Resource =
   | Block Element
   | SwiftBlock Element
   | Fame
-  | Healing
   | GainReputation
   | LooseReputation               -- ^ Loose reputation at end of turn
 
+  | Healing
+  | GainWound
 
-  | ReadyUnit Int    -- ^ Ready a unit of this level
-  | WoundUnit        -- ^ Ony for units: wound the unit who took the action
+  | PerEnemy (Bag Resource)       -- ^ One of these per enemy
+
+  | InAttackPhase
+  | EnemyBlocked
+
+  | SpecialMove Int (Set Terrain) EndMove
+    -- ^ Amount, terrains to avoid, what happens at the end
+
+
 
   | ChangeTerrainCost Terrain ChangeTerrainCost
   | ChangeEnemy Target [ChangeEnemy]
@@ -156,12 +176,34 @@ data Resource =
   | ChangeUnit Target [ChangeUnit]
     deriving (Eq,Ord)
 
-data Target = One | All
+perEnemy :: [Resource] -> Resource
+perEnemy rs = PerEnemy (bagFromList rs)
+
+specialMove :: Int -> [Terrain] -> EndMove -> Resource
+specialMove n xs e = SpecialMove n (Set.fromList xs) e
+
+data EndMove = EndMoveAttack | EndMoveSafe
+               deriving (Eq,Ord)
+
+
+data Target = Self | One | All
               deriving (Eq,Ord)
 
 data ChangeEnemy =
     LooseArmor {- amount -} Int {- minimum -} Int
+  | LooseFortifications
+  | LooseResistance Element
   | NoAttack
+  | EnemyDestroy
+  | EnemyIf (Set EnemyCondition) ChangeEnemy
+    deriving (Eq,Ord)
+
+enemyIf :: [EnemyCondition] -> ChangeEnemy -> ChangeEnemy
+enemyIf xs a = EnemyIf (Set.fromList xs) a
+
+data EnemyCondition =
+    EnemyIsForitified
+  | EnemyResists Element Bool
     deriving (Eq,Ord)
 
 data ChangeAttack =
@@ -175,7 +217,9 @@ data ChangeTerrainCost =
     deriving (Eq,Ord,Show)
 
 data ChangeUnit =
-    GainResistance Element
+    UnitGainResistance Element
+  | UnitGainWound
+  | UnitReadyLevel Int       -- ^ Make ready, requires given level
   deriving (Eq,Ord)
 
 
