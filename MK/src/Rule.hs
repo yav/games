@@ -145,11 +145,23 @@ ruleOutput Rule { .. } = [ (n,x) | (x,n) <- bagToListGrouped ruleOut ]
 
 globalRules :: [Rule]
 globalRules =
-  [ (WingsOfNight,Movement) --> (WingsOfNight,ChangeEnemy One NoAttack) ] ++
-  [ ManaCrystal m --> m | m <- anyBasicMana ] ++
-  [ requires (IsTime Day) &&& (Gold --> m) | m <- anyBasicMana ] ++
-  [ n *** Rebirth --> ChangeUnit One [ UnitReadyLevel n ]
-      | n <- [ 1 .. 3 ] ]
+  [ "Wings of Night" ===
+      (WingsOfNight,Movement) --> (WingsOfNight,ChangeEnemy One NoAttack)
+  ] ++
+  [ sh ("Rebirth level " <> int n) ===
+      n *** Rebirth --> ChangeUnit One [ UnitReadyLevel n ]
+  | n <- [ 1 .. 3 ]
+  ] ++
+  [ sh ("Use " <> ppBasicMana m <> " crystal") ===
+        ManaCrystal m --> m
+  | m <- anyBasicMana
+  ] ++
+  [ sh ("Convert gold to " <> ppBasicMana m <> " mana") ===
+    requires (IsTime Day) &&& (Gold --> m)
+  | m <- anyBasicMana ]
+
+  where
+  sh x   = Text.pack (show x)
 
 --------------------------------------------------------------------------------
 
