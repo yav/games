@@ -76,7 +76,7 @@ spellDeed color name basic powerName power =
        , deedName      = name
        , deedType      = Spell color
        , deedBasic     = map (requires color &&&) basic
-       , deedPower     = map (requires (color,Black) &&&) power
+       , deedPower     = map (requires (color,Black,IsTime Night) &&&) power
        }
 
 -- | Make an artifact.

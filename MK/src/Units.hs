@@ -314,7 +314,9 @@ eliteUnits =
          , unitSource     = Set.fromList [ FromKeep, FromCity ]
          , unitAbilities  = [ produces (5 *** Attack Melee Physycal)
                             , Blue --> ChangeEnemy One
-                                              [ LooseArmor 3 1, NoAttack ]
+                                        (EnemyIf [ EnemyResists Ice False ]
+                                           $ EnemyAnd 
+                                              [ LooseArmor 3 1, NoAttack ])
                             ]
          }
 

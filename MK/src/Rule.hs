@@ -1,6 +1,6 @@
 {-# LANGUAGE Safe, RecordWildCards, FlexibleInstances, OverloadedStrings #-}
 module Rule
-  ( Rule
+  ( Rule, globalRules
   , ruleOutput
   , ruleInput
   , useRule
@@ -16,7 +16,7 @@ module Rule
   , Resource(..)
   , Target(..)
   , ChangeTerrainCost(..)
-  , ChangeEnemy(..), enemyIf, EnemyCondition(..)
+  , ChangeEnemy(..), EnemyCondition(..)
   , ChangeAttack(..)
   , ChangeUnit(..)
 
@@ -115,6 +115,9 @@ instance Resources a => Resources [a] where
 instance (Resources a, Resources b) => Resources (a,b) where
   resources (x,y) = resources x ++ resources y
 
+instance (Resources a, Resources b, Resources c) => Resources (a,b, c) where
+  resources (x,y,z) = resources (x,(y,z))
+
 
 (***) :: Resources r => Int -> r -> [Resource]
 x *** y = [ c | r <- resources y, c <- replicate x r ]
@@ -140,6 +143,13 @@ ruleOutput :: Rule -> [(Int,Resource)]
 ruleOutput Rule { .. } = [ (n,x) | (x,n) <- bagToListGrouped ruleOut ]
 
 
+globalRules :: [Rule]
+globalRules =
+  [ (WingsOfNight,Movement) --> (WingsOfNight,ChangeEnemy One NoAttack) ] ++
+  [ ManaCrystal m --> m | m <- anyBasicMana ] ++
+  [ requires (IsTime Day) &&& (Gold --> m) | m <- anyBasicMana ] ++
+  [ n *** Rebirth --> ChangeUnit One [ UnitReadyLevel n ]
+      | n <- [ 1 .. 3 ] ]
 
 --------------------------------------------------------------------------------
 
@@ -163,15 +173,17 @@ data Resource =
   | PerEnemy (Bag Resource)       -- ^ One of these per enemy
 
   | InAttackPhase
-  | EnemyBlocked
+  | IsTime Time
+  | OnTerrain Terrain
 
   | SpecialMove Int (Set Terrain) EndMove
     -- ^ Amount, terrains to avoid, what happens at the end
 
-
+  | WingsOfNight
+  | Rebirth
 
   | ChangeTerrainCost Terrain ChangeTerrainCost
-  | ChangeEnemy Target [ChangeEnemy]
+  | ChangeEnemy Target ChangeEnemy
   | ChangeAttacks ChangeAttack
   | ChangeUnit Target [ChangeUnit]
     deriving (Eq,Ord)
@@ -192,14 +204,14 @@ data Target = Self | One | All
 data ChangeEnemy =
     LooseArmor {- amount -} Int {- minimum -} Int
   | LooseFortifications
+  | LooseCiteFortifications
   | LooseResistance Element
   | NoAttack
   | EnemyDestroy
-  | EnemyIf (Set EnemyCondition) ChangeEnemy
+  | EnemyIf [EnemyCondition] ChangeEnemy
+  | EnemyAnd [ChangeEnemy]
     deriving (Eq,Ord)
 
-enemyIf :: [EnemyCondition] -> ChangeEnemy -> ChangeEnemy
-enemyIf xs a = EnemyIf (Set.fromList xs) a
 
 data EnemyCondition =
     EnemyIsForitified
