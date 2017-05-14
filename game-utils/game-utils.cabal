@@ -19,7 +19,8 @@ library
                        Util.Misc,
                        Util.ResourceQ,
                        Util.Bag,
-                       Util.Q
+                       Util.Q,
+                       Util.Hex
 
   build-depends:       base                 >=4.8 && <4.10,
                        text                 >=1.2 && <1.3,
