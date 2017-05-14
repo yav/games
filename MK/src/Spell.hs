@@ -92,7 +92,7 @@ spells =
     "Underground Attack"
     [ produces (specialMove 3 [Swamp,Lake,Ocean] EndMoveAttack) ]
 
-    -- XXX: Burning shield: how to handlw if "blocked?"
+    -- XXX: Burning shield: how to handle if "blocked?"
 
   , spellDeed Blue
     "Chill"
