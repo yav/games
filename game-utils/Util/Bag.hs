@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 module Util.Bag
   ( Bag
-  , bagEmpty, bagSingleton, bagAdd, bagUnion, bagMap
+  , bagEmpty, bagSingle, bagSingleton, bagAdd, bagUnion, bagMap
 
   , bagRemove, bagRemoveAll
 
@@ -35,8 +35,11 @@ bagAdd q r (Bag m)
   | q > 0     = Bag (Map.insertWith (+) r q m)
   | otherwise = Bag m
 
+bagSingle :: Ord a => Int -> a -> Bag a
+bagSingle n a = bagAdd n a bagEmpty
+
 bagSingleton :: Ord a => a -> Bag a
-bagSingleton a = bagAdd 1 a bagEmpty
+bagSingleton = bagSingle 1
 
 bagUnion :: Ord a => Bag a -> Bag a -> Bag a
 bagUnion (Bag a) (Bag b) = Bag (Map.unionWith (+) a b)
