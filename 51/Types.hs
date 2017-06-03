@@ -13,7 +13,7 @@ data Location = Location
   , locationSpoils      :: [(Int,Resource)]
   , locationType        :: [LocType]
   , locationText        :: Description
-  , locationBuildBonus  :: Maybe Description
+  , locationBuildBonus  :: Description
   , locationDeal        :: Resource
   , locationSet         :: LocationSet
   } deriving (Show)
@@ -37,24 +37,43 @@ data Resource = Brick | Worker | VP | Gun | Ammo | Iron | Fuel
               | NewCard | Shield | Development
   deriving (Show,Eq,Ord,Enum,Bounded)
 
+data Limit = NoLimit | Limit Int
+  deriving (Show)
+
 data Description =
     OneTimeCache [(Int,Resource)]
-  | ForEachLoc LocType Int Resource Int
+    -- ^ This is a location bonus.
+    -- Place the given amounts of resources on the card, they can be
+    -- used during a turn, and do not need to be discarded at the end.
+
+  | ForEachLoc LocType Int Resource Limit
     -- ^ For each location of the given type, gain the given number of
     -- resources, up to the limit
-  | ForEachProduced Resource Int Resource Int
+  | ForEachProduced Resource Int Resource Limit
     -- ^ For each produced resource of the given type, gain the given number of
     -- resources, up to the limit
 
   | IfProducedAtLeast Int Resource' Int Resource
     -- If you produced the required number of the first thing,
     -- get the given number of the seconf thing.
-  | Storage [ (Maybe Int,Resource') ]
+
+  | Storage [ (Limit,Resource') ]
+    -- ^ You may store the given resource, so they persist across turns.
+
+  | Convert [ (Int,Resource') ] [ (Int,Resource) ] Int
+    -- ^ Spend the first resource to gain the second
+    -- The last 'Int' is the number of activations.
+
+  | None
+
+
   | Other [Lexeme]
   deriving Show
 
-data Resource' = AnyBasicResource | ExactResource Resource
+
+data Resource' = AnyOf [Resource]
   deriving Show
+
 
 isBasicResource :: Resource -> Bool
 isBasicResource x = x == Brick || x == Gun || x == Ammo || x == Fuel

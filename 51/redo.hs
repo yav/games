@@ -1,12 +1,11 @@
 {-# Language RecordWildCards, ViewPatterns #-}
-import qualified Types
+import qualified Types as Types
 import Types
 import Cards
 import Text.Show.Pretty(ppShow)
 import Text.Read(readMaybe)
 import Data.List
 import Data.Char
-
 
 main :: IO ()
 main = writeFile "NewCards.hs" $ unlines $
@@ -45,19 +44,20 @@ convertLoc (x,s) = (x,s1)
          , locationSpoils     = Types.locationSpoils s
          , locationType       = Types.locationType s
          , locationText       = convertDecs $ Types.locationText s
-         , locationBuildBonus = fmap convertDecs $ Types.locationBuildBonus s
+         , locationBuildBonus = convertDecs $ Types.locationBuildBonus s
          , locationDeal       = Types.locationDeal s
          , locationSet        = Types.locationSet s
          }
 
 convertDecs :: Types.Description -> Description
-convertDecs x = x
 
-
+convertDecs
+  ( Other [ LexR2 1 (Resource r1) , LexW2 "or" , LexR2 1 (Resource r2) ] )
 
 
 
 oneOf xs x = x `elem` xs
+
 
 
 

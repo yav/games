@@ -7,24 +7,21 @@ connections =
   [ ( 2
     , Connection
         { connectionName = "Junk Train"
-        , connectionText =
-            Other [ LexW2 "gain" , LexR2 3 (Resource ContactBlue) ]
+        , connectionText = Convert [] [ ( 3 , ContactBlue ) ] 1
         , connectionSet = BaseSet
         }
     )
   , ( 4
     , Connection
         { connectionName = "Merchants"
-        , connectionText =
-            Other [ LexW2 "gain" , LexR2 2 (Resource ContactBlue) ]
+        , connectionText = Convert [] [ ( 2 , ContactBlue ) ] 1
         , connectionSet = BaseSet
         }
     )
   , ( 4
     , Connection
         { connectionName = "Punks"
-        , connectionText =
-            Other [ LexW2 "gain" , LexR2 2 (Resource ContactRed) ]
+        , connectionText = Convert [] [ ( 2 , ContactRed ) ] 1
         , connectionSet = BaseSet
         }
     )
@@ -32,13 +29,7 @@ connections =
     , Connection
         { connectionName = "Thugs"
         , connectionText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource ContactRed)
-              ]
+            Convert [ ( 1 , ExactResource Gun ) ] [ ( 3 , ContactRed ) ] 1
         , connectionSet = BaseSet
         }
     )
@@ -55,15 +46,8 @@ locations =
         , locationSpoils = [ ( 3 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 2 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 2 , ExactResource Brick ) ] [ ( 2 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -76,15 +60,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = BaseSet
         }
@@ -97,7 +74,7 @@ locations =
         , locationSpoils = [ ( 3 , Gun ) ]
         , locationType = [ LocGun , LocAmmo ]
         , locationText = ForEachLoc LocGun 1 Gun 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -109,21 +86,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Ammo ) , ( 1 , VP ) ]
         , locationType = [ LocVictory , LocAmmo ]
-        , locationText =
-            Other
-              [ LexW2 "if"
-              , LexW2 "during"
-              , LexW2 "production"
-              , LexW2 "phase"
-              , LexW2 "you"
-              , LexW2 "gain"
-              , LexW2 "min"
-              , LexR2 5 BasicResource
-              , LexW2 "additionally"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+        , locationText = IfProducedAtLeast 5 AnyBasicResource 2 VP
+        , locationBuildBonus = None
         , locationDeal = VP
         , locationSet = Winter
         }
@@ -135,8 +99,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Gun ) ]
         , locationType = [ LocGun , LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Gun) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Gun ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -149,16 +113,11 @@ locations =
         , locationSpoils = [ ( 3 , Iron ) , ( 1 , VP ) ]
         , locationType = [ LocIron , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 2 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 2 , ExactResource Iron ) ]
+              [ ( 3 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -171,16 +130,11 @@ locations =
         , locationSpoils = [ ( 2 , Gun ) , ( 1 , VP ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource Gun ) ]
+              [ ( 2 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -192,10 +146,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 1 , Iron ) , ( 1 , Gun ) ]
         , locationType = [ LocIron , LocGun ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Iron) , LexW2 "and" , LexR2 1 (Resource Gun) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Iron ) , ( 1 , Gun ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = Winter
         }
@@ -208,19 +160,15 @@ locations =
         , locationSpoils = [ ( 3 , Ammo ) ]
         , locationType = [ LocBrick , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 1 (Resource Brick)
-              , LexR2 1 (Resource Iron)
-              , LexW2 "and"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              , ActivatedTwice
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 1 , ExactResource Brick )
+              , ( 1 , ExactResource Iron )
+              , ( 1 , ExactResource Gun )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 3 , VP ) ]
+              2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -233,8 +181,7 @@ locations =
         , locationSpoils = [ ( 2 , ContactBlue ) ]
         , locationType = [ LocContact , LocFuel ]
         , locationText = Storage [ ( Just 3 , ExactResource ContactBlue ) ]
-        , locationBuildBonus =
-            Just (Other [ LexR2 1 (Resource ContactBlue) ])
+        , locationBuildBonus = Convert [] [ ( 1 , ContactBlue ) ] 1
         , locationDeal = ContactBlue
         , locationSet = NewEra
         }
@@ -266,7 +213,7 @@ locations =
               , LexW2 "from"
               , LexW2 "them"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = Winter
         }
@@ -278,8 +225,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , Worker ) ]
         , locationType = [ LocWorker ]
-        , locationText = Other [ LexR2 2 (Resource Worker) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource Worker) ])
+        , locationText = Convert [] [ ( 2 , Worker ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , Worker ) ] 1
         , locationDeal = Worker
         , locationSet = BaseSet
         }
@@ -291,8 +238,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , Worker ) ]
         , locationType = [ LocWorker ]
-        , locationText = Other [ LexR2 2 (Resource Worker) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource Worker) ])
+        , locationText = Convert [] [ ( 2 , Worker ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , Worker ) ] 1
         , locationDeal = Worker
         , locationSet = Winter
         }
@@ -304,8 +251,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Brick ) ]
         , locationType = [ LocBrick ]
-        , locationText = Other []
-        , locationBuildBonus = Just (OneTimeCache [ ( 3 , Brick ) ])
+        , locationText = None
+        , locationBuildBonus = OneTimeCache [ ( 3 , Brick ) ]
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -318,7 +265,7 @@ locations =
         , locationSpoils = [ ( 3 , Brick ) ]
         , locationType = [ LocBrick , LocAmmo ]
         , locationText = ForEachLoc LocBrick 1 Brick 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -331,14 +278,8 @@ locations =
         , locationSpoils = [ ( 2 , Brick ) ]
         , locationType = [ LocBrick ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource Brick)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 2 , Brick ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = NewEra
         }
@@ -351,15 +292,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) , ( 1 , Brick ) ]
         , locationType = [ LocBrick , LocWorker ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Worker)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Brick ) ] [ ( 1 , Worker ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -382,7 +316,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource Worker)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -408,7 +342,7 @@ locations =
               , LexW2 "it"
               , LexW2 "provides"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = Winter
         }
@@ -420,8 +354,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker ]
-        , locationText = Other []
-        , locationBuildBonus = Just (OneTimeCache [ ( 3 , Worker ) ])
+        , locationText = None
+        , locationBuildBonus = OneTimeCache [ ( 3 , Worker ) ]
         , locationDeal = Worker
         , locationSet = BaseSet
         }
@@ -434,8 +368,8 @@ locations =
         , locationSpoils =
             [ ( 1 , ContactRed ) , ( 1 , Gun ) , ( 1 , Worker ) ]
         , locationType = [ LocToxic , LocGun ]
-        , locationText = Other [ LexR2 1 (Resource Shield) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource Shield) ])
+        , locationText = Convert [] [ ( 1 , Shield ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , Shield ) ] 1
         , locationDeal = ContactRed
         , locationSet = NewEra
         }
@@ -461,7 +395,7 @@ locations =
               , LexW2 "they"
               , LexW2 "produce"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -473,8 +407,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (Other [ LexR2 2 (Resource VP) ])
+        , locationText = None
+        , locationBuildBonus = Convert [] [ ( 2 , VP ) ] 1
         , locationDeal = VP
         , locationSet = BaseSet
         }
@@ -486,8 +420,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (Other [ LexR2 2 (Resource VP) ])
+        , locationText = None
+        , locationBuildBonus = Convert [] [ ( 2 , VP ) ] 1
         , locationDeal = VP
         , locationSet = NewEra
         }
@@ -500,7 +434,7 @@ locations =
         , locationSpoils = [ ( 2 , Fuel ) , ( 1 , VP ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText = ForEachProduced Fuel 1 VP 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = Winter
         }
@@ -512,8 +446,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Gun ) ]
         , locationType = [ LocGun ]
-        , locationText = Other []
-        , locationBuildBonus = Just (OneTimeCache [ ( 3 , Gun ) ])
+        , locationText = None
+        , locationBuildBonus = OneTimeCache [ ( 3 , Gun ) ]
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -526,16 +460,11 @@ locations =
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource Brick ) ]
+              [ ( 2 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -548,14 +477,8 @@ locations =
         , locationSpoils = [ ( 3 , Shield ) ]
         , locationType = [ LocGun , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Shield)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 1 , Shield ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Shield
         , locationSet = Winter
         }
@@ -568,14 +491,8 @@ locations =
         , locationSpoils = [ ( 2 , Gun ) ]
         , locationType = [ LocGun ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource Gun)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 2 , Gun ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = NewEra
         }
@@ -588,15 +505,8 @@ locations =
         , locationSpoils = [ ( 3 , Gun ) , ( 1 , VP ) ]
         , locationType = [ LocGun ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 2 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 2 , ExactResource Gun ) ] [ ( 2 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -609,7 +519,7 @@ locations =
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick , LocVictory ]
         , locationText = ForEachProduced Fuel 1 VP 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = Winter
         }
@@ -621,9 +531,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , ContactGrey ) ]
         , locationType = [ LocIron , LocContact ]
-        , locationText = Other [ LexR2 1 (Resource ContactGrey) ]
-        , locationBuildBonus =
-            Just (Other [ LexR2 1 (Resource ContactGrey) ])
+        , locationText = Convert [] [ ( 1 , ContactGrey ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , ContactGrey ) ] 1
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -636,15 +545,8 @@ locations =
         , locationSpoils = [ ( 2 , ContactBlue ) ]
         , locationType = [ LocFuel , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource ContactBlue)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Fuel ) ] [ ( 1 , ContactBlue ) ] 2
+        , locationBuildBonus = None
         , locationDeal = ContactBlue
         , locationSet = BaseSet
         }
@@ -657,17 +559,11 @@ locations =
         , locationSpoils = [ ( 2 , Ammo ) ]
         , locationType = [ LocAmmo , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 BasicResource
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , AnyBasicResource ) ]
+              [ ( 1 , VP ) ]
+              2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = BaseSet
         }
@@ -679,13 +575,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , Ammo ) ]
         , locationType = [ LocBrick , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Brick)
-              , LexW2 "and"
-              , LexR2 1 (Resource Ammo)
-              ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Brick ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = NewEra
         }
@@ -697,13 +588,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , Ammo ) ]
         , locationType = [ LocBrick , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Brick)
-              , LexW2 "and"
-              , LexR2 1 (Resource Ammo)
-              ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Brick ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = Winter
         }
@@ -718,7 +604,7 @@ locations =
         , locationText =
             Other
               [ LexR2 1 (Resource Brick) , LexW2 "or" , LexR2 1 (Resource Iron) ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = Winter
         }
@@ -731,8 +617,7 @@ locations =
         , locationSpoils = [ ( 3 , ContactGrey ) ]
         , locationType = [ LocContact ]
         , locationText = Storage [ ( Just 3 , ExactResource ContactGrey ) ]
-        , locationBuildBonus =
-            Just (Other [ LexR2 4 (Resource ContactGrey) ])
+        , locationBuildBonus = Convert [] [ ( 4 , ContactGrey ) ] 1
         , locationDeal = ContactGrey
         , locationSet = Winter
         }
@@ -744,8 +629,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , NewCard ) ]
         , locationType = [ LocWorker , LocCard ]
-        , locationText = Other []
-        , locationBuildBonus = Just (Other [ LexR2 2 (Resource NewCard) ])
+        , locationText = None
+        , locationBuildBonus = Convert [] [ ( 2 , NewCard ) ] 1
         , locationDeal = NewCard
         , locationSet = BaseSet
         }
@@ -757,8 +642,9 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , ContactRed ) , ( 1 , VP ) ]
         , locationType = [ LocGun , LocContact ]
-        , locationText = IfProduced 1 Gun 1 ContactRed
-        , locationBuildBonus = Nothing
+        , locationText =
+            IfProducedAtLeast 1 (ExactResource Gun) 1 ContactRed
+        , locationBuildBonus = None
         , locationDeal = ContactRed
         , locationSet = Winter
         }
@@ -770,8 +656,9 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 1 , Development ) , ( 1 , Brick ) ]
         , locationType = [ LocBrick , LocContact ]
-        , locationText = IfProduced 1 Brick 1 Development
-        , locationBuildBonus = Nothing
+        , locationText =
+            IfProducedAtLeast 1 (ExactResource Brick) 1 Development
+        , locationBuildBonus = None
         , locationDeal = Development
         , locationSet = Winter
         }
@@ -784,15 +671,8 @@ locations =
         , locationSpoils = [ ( 2 , Ammo ) , ( 1 , VP ) ]
         , locationType = [ LocAmmo ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Ammo)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 1 , Ammo ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = BaseSet
         }
@@ -805,14 +685,8 @@ locations =
         , locationSpoils = [ ( 2 , Iron ) ]
         , locationType = [ LocIron ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource Iron)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 2 , Iron ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = NewEra
         }
@@ -824,8 +698,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Iron ) ]
         , locationType = [ LocIron , LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Iron) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Iron ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -837,8 +711,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , Worker ) ]
         , locationType = [ LocVictory , LocWorker ]
-        , locationText = IfProduced 2 VP 1 Worker
-        , locationBuildBonus = Nothing
+        , locationText = IfProducedAtLeast 2 (ExactResource VP) 1 Worker
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = Winter
         }
@@ -851,19 +725,15 @@ locations =
         , locationSpoils = [ ( 3 , Ammo ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 1 (Resource Fuel)
-              , LexR2 1 (Resource Brick)
-              , LexW2 "and"
-              , LexR2 1 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              , ActivatedTwice
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 1 , ExactResource Fuel )
+              , ( 1 , ExactResource Brick )
+              , ( 1 , ExactResource Iron )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 3 , VP ) ]
+              2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -886,7 +756,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource NewCard)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = NewEra
         }
@@ -898,8 +768,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick , LocContact ]
-        , locationText = Other [ LexR2 1 (Resource Development) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Development ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -911,8 +781,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick , LocContact ]
-        , locationText = Other [ LexR2 1 (Resource Development) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Development ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = NewEra
         }
@@ -924,8 +794,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick , LocContact ]
-        , locationText = Other [ LexR2 1 (Resource Development) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Development ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = Winter
         }
@@ -937,10 +807,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Gun ) , ( 1 , Ammo ) ]
         , locationType = [ LocGun , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Gun) , LexW2 "and" , LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Gun ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = NewEra
         }
@@ -952,10 +820,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Gun ) , ( 1 , Ammo ) ]
         , locationType = [ LocGun , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Gun) , LexW2 "and" , LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Gun ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = Winter
         }
@@ -967,8 +833,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) , ( 1 , Iron ) ]
         , locationType = [ LocIron , LocVictory ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocIron 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocIron 1 VP 5
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -980,8 +846,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , ContactGrey ) ]
         , locationType = []
-        , locationText = Other []
-        , locationBuildBonus = Just (OneTimeCache [ ( 1 , Development ) ])
+        , locationText = None
+        , locationBuildBonus = OneTimeCache [ ( 1 , Development ) ]
         , locationDeal = Brick
         , locationSet = NewEra
         }
@@ -993,8 +859,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Fuel ) ]
         , locationType = [ LocFuel , LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Fuel) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Fuel ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1007,8 +873,7 @@ locations =
         , locationSpoils = [ ( 2 , ContactRed ) ]
         , locationType = [ LocContact , LocFuel ]
         , locationText = Storage [ ( Just 3 , ExactResource ContactRed ) ]
-        , locationBuildBonus =
-            Just (Other [ LexR2 1 (Resource ContactRed) ])
+        , locationBuildBonus = Convert [] [ ( 1 , ContactRed ) ] 1
         , locationDeal = ContactRed
         , locationSet = NewEra
         }
@@ -1022,15 +887,8 @@ locations =
             [ ( 1 , ContactBlue ) , ( 1 , VP ) , ( 1 , NewCard ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource ContactBlue)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource ContactBlue ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1043,15 +901,8 @@ locations =
         , locationSpoils = [ ( 3 , Fuel ) , ( 1 , VP ) ]
         , locationType = [ LocFuel ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 2 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 2 , ExactResource Fuel ) ] [ ( 2 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1064,15 +915,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) , ( 1 , Fuel ) ]
         , locationType = [ LocWorker , LocFuel ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Worker)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Fuel ) ] [ ( 1 , Worker ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -1095,7 +939,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource NewCard)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = NewEra
         }
@@ -1108,16 +952,11 @@ locations =
         , locationSpoils = [ ( 3 , Gun ) , ( 1 , VP ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 2 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 2 , ExactResource Gun ) ]
+              [ ( 3 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -1130,15 +969,8 @@ locations =
         , locationSpoils = [ ( 2 , ContactRed ) ]
         , locationType = [ LocGun , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource ContactRed)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Gun ) ] [ ( 1 , ContactRed ) ] 2
+        , locationBuildBonus = None
         , locationDeal = ContactRed
         , locationSet = BaseSet
         }
@@ -1150,10 +982,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Fuel ) , ( 1 , Ammo ) ]
         , locationType = [ LocFuel , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Fuel) , LexW2 "and" , LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Fuel ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = NewEra
         }
@@ -1165,10 +995,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Fuel ) , ( 1 , Ammo ) ]
         , locationType = [ LocFuel , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Fuel) , LexW2 "and" , LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Fuel ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = Winter
         }
@@ -1180,10 +1008,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Iron ) , ( 1 , Ammo ) ]
         , locationType = [ LocIron , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Iron) , LexW2 "and" , LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Iron ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = NewEra
         }
@@ -1195,10 +1021,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Iron ) , ( 1 , Ammo ) ]
         , locationType = [ LocIron , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Iron) , LexW2 "and" , LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Iron ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = Winter
         }
@@ -1211,7 +1035,7 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker ]
         , locationText = Storage [ ( Nothing , ExactResource Worker ) ]
-        , locationBuildBonus = Just (Other [ LexR2 4 (Resource Worker) ])
+        , locationBuildBonus = Convert [] [ ( 4 , Worker ) ] 1
         , locationDeal = Worker
         , locationSet = Winter
         }
@@ -1223,8 +1047,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocToxic , LocGun ]
-        , locationText = Other [ LexR2 1 (Resource Shield) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Shield ) ] 1
+        , locationBuildBonus = None
         , locationDeal = ContactRed
         , locationSet = NewEra
         }
@@ -1245,7 +1069,7 @@ locations =
               , LexR2 1 (Resource VP)
               , ActivatedTwice
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = VP
         , locationSet = BaseSet
         }
@@ -1258,16 +1082,11 @@ locations =
         , locationSpoils = [ ( 2 , ContactGrey ) ]
         , locationType = [ LocIron , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource ContactGrey)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource Iron ) ]
+              [ ( 3 , ContactGrey ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -1280,14 +1099,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource Worker)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 2 , Worker ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -1299,8 +1112,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , Ammo ) ]
         , locationType = [ LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource Ammo) ])
+        , locationText = Convert [] [ ( 1 , Ammo ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , Ammo ) ] 1
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -1312,8 +1125,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Ammo ) , ( 1 , VP ) ]
         , locationType = [ LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Ammo) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = NewEra
         }
@@ -1326,17 +1139,11 @@ locations =
         , locationSpoils = [ ( 2 , Ammo ) ]
         , locationType = [ LocAmmo , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 2 BasicResource
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 2 , AnyBasicResource ) ]
+              [ ( 2 , VP ) ]
+              2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -1349,17 +1156,14 @@ locations =
         , locationSpoils = [ ( 1 , Iron ) , ( 1 , Fuel ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 2 (Resource Fuel)
-              , LexW2 "and"
-              , LexR2 2 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 4 (Resource VP)
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 2 , ExactResource Fuel )
+              , ( 2 , ExactResource Iron )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 4 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = Winter
         }
@@ -1372,14 +1176,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocAmmo , LocWorker ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 BasicResource
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource Worker)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , AnyBasicResource ) ] [ ( 2 , Worker ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = BaseSet
         }
@@ -1400,7 +1198,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource VP)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = VP
         , locationSet = NewEra
         }
@@ -1412,8 +1210,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Fuel ) ]
         , locationType = [ LocFuel ]
-        , locationText = Other []
-        , locationBuildBonus = Just (OneTimeCache [ ( 3 , Fuel ) ])
+        , locationText = None
+        , locationBuildBonus = OneTimeCache [ ( 3 , Fuel ) ]
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1426,17 +1224,14 @@ locations =
         , locationSpoils = [ ( 1 , Gun ) , ( 1 , Fuel ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 2 (Resource Fuel)
-              , LexW2 "and"
-              , LexR2 2 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 4 (Resource VP)
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 2 , ExactResource Fuel )
+              , ( 2 , ExactResource Gun )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 4 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = Winter
         }
@@ -1449,19 +1244,15 @@ locations =
         , locationSpoils = [ ( 3 , Ammo ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 1 (Resource Brick)
-              , LexR2 1 (Resource Fuel)
-              , LexW2 "and"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              , ActivatedTwice
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 1 , ExactResource Brick )
+              , ( 1 , ExactResource Fuel )
+              , ( 1 , ExactResource Gun )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 3 , VP ) ]
+              2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -1474,15 +1265,8 @@ locations =
         , locationSpoils = [ ( 2 , NewCard ) , ( 1 , VP ) ]
         , locationType = [ LocCard ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource NewCard)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 1 , NewCard ) ] 2
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = BaseSet
         }
@@ -1494,8 +1278,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) , ( 1 , Gun ) ]
         , locationType = [ LocGun , LocVictory ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocGun 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocGun 1 VP 5
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -1507,8 +1291,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 1 , VP ) , ( 1 , NewCard ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocLiberty 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocLiberty 1 VP 5
         , locationDeal = VP
         , locationSet = BaseSet
         }
@@ -1520,13 +1304,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Worker ) , ( 1 , Ammo ) ]
         , locationType = [ LocWorker , LocAmmo ]
-        , locationText =
-            Other
-              [ LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Ammo)
-              ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Worker ) , ( 1 , Ammo ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -1549,7 +1328,7 @@ locations =
               , LexW2 "gain"
               , LexR2 2 (Resource VP)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = BaseSet
         }
@@ -1563,16 +1342,11 @@ locations =
             [ ( 1 , Fuel ) , ( 1 , ContactBlue ) , ( 1 , Worker ) ]
         , locationType = [ LocFuel , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource ContactBlue)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource Fuel ) ]
+              [ ( 3 , ContactBlue ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = ContactBlue
         , locationSet = NewEra
         }
@@ -1585,7 +1359,7 @@ locations =
         , locationSpoils = [ ( 3 , Fuel ) ]
         , locationType = [ LocFuel , LocAmmo ]
         , locationText = ForEachLoc LocFuel 1 Fuel 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1598,15 +1372,8 @@ locations =
         , locationSpoils = [ ( 2 , Fuel ) , ( 1 , NewCard ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Fuel ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1619,14 +1386,8 @@ locations =
         , locationSpoils = [ ( 2 , Fuel ) ]
         , locationType = [ LocFuel ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource Fuel)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 2 , Fuel ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = NewEra
         }
@@ -1638,8 +1399,9 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , ContactBlue ) ]
         , locationType = [ LocFuel , LocContact ]
-        , locationText = IfProduced 1 Fuel 1 ContactBlue
-        , locationBuildBonus = Nothing
+        , locationText =
+            IfProducedAtLeast 1 (ExactResource Fuel) 1 ContactBlue
+        , locationBuildBonus = None
         , locationDeal = ContactBlue
         , locationSet = Winter
         }
@@ -1652,16 +1414,11 @@ locations =
         , locationSpoils = [ ( 3 , Fuel ) , ( 1 , VP ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 2 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 2 , ExactResource Fuel ) ]
+              [ ( 3 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -1673,8 +1430,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 1 , VP ) , ( 1 , NewCard ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource VP) ])
+        , locationText = None
+        , locationBuildBonus = Convert [] [ ( 1 , VP ) ] 1
         , locationDeal = VP
         , locationSet = BaseSet
         }
@@ -1686,8 +1443,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 1 , VP ) , ( 1 , NewCard ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource VP) ])
+        , locationText = None
+        , locationBuildBonus = Convert [] [ ( 1 , VP ) ] 1
         , locationDeal = VP
         , locationSet = Winter
         }
@@ -1700,15 +1457,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) , ( 1 , Iron ) ]
         , locationType = [ LocIron , LocWorker ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Worker)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Iron ) ] [ ( 1 , Worker ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -1726,7 +1476,7 @@ locations =
               , LexW2 "or"
               , LexR2 1 (Resource ContactBlue)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -1739,7 +1489,7 @@ locations =
         , locationSpoils = [ ( 3 , Iron ) ]
         , locationType = [ LocIron , LocAmmo ]
         , locationText = ForEachLoc LocIron 1 Iron 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -1751,8 +1501,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Worker ) , ( 1 , VP ) ]
         , locationType = [ LocVictory , LocWorker ]
-        , locationText = IfProduced 5 Worker 2 VP
-        , locationBuildBonus = Nothing
+        , locationText = IfProducedAtLeast 5 (ExactResource Worker) 2 VP
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = Winter
         }
@@ -1775,7 +1525,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource VP)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = VP
         , locationSet = NewEra
         }
@@ -1788,14 +1538,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource ContactBlue)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Worker)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource ContactBlue ) ] [ ( 1 , Worker ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -1808,15 +1552,8 @@ locations =
         , locationSpoils = [ ( 2 , ContactBlue ) , ( 1 , NewCard ) ]
         , locationType = [ LocContact , LocFuel ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource ContactBlue)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 1 , ContactBlue ) ] 2
+        , locationBuildBonus = None
         , locationDeal = ContactBlue
         , locationSet = NewEra
         }
@@ -1844,7 +1581,7 @@ locations =
               , LexW2 "it"
               , LexW2 "produces"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -1858,15 +1595,9 @@ locations =
             [ ( 1 , Gun ) , ( 1 , ContactRed ) , ( 1 , NewCard ) ]
         , locationType = [ LocFuel , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource ContactBlue)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource ContactRed)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource ContactBlue ) ] [ ( 1 , ContactRed ) ] 2
+        , locationBuildBonus = None
         , locationDeal = ContactRed
         , locationSet = NewEra
         }
@@ -1890,7 +1621,7 @@ locations =
               , LexW2 "production"
               , LexW2 "location"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = NewEra
         }
@@ -1903,17 +1634,11 @@ locations =
         , locationSpoils = [ ( 3 , NewCard ) ]
         , locationType = [ LocCard ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexW2 "discard"
-              , LexR2 1 (Resource NewCard)
-              , LexW2 "to"
-              , LexW2 "draw"
-              , LexR2 2 (Resource NewCard)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource NewCard ) ]
+              [ ( 2 , NewCard ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = Winter
         }
@@ -1925,8 +1650,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , NewCard ) ]
         , locationType = [ LocCard ]
-        , locationText = Other [ LexR2 1 (Resource NewCard) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource NewCard) ])
+        , locationText = Convert [] [ ( 1 , NewCard ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , NewCard ) ] 1
         , locationDeal = NewCard
         , locationSet = BaseSet
         }
@@ -1938,8 +1663,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 3 , NewCard ) ]
         , locationType = [ LocCard ]
-        , locationText = Other [ LexR2 1 (Resource NewCard) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource NewCard) ])
+        , locationText = Convert [] [ ( 1 , NewCard ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , NewCard ) ] 1
         , locationDeal = NewCard
         , locationSet = Winter
         }
@@ -1951,8 +1676,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Brick ) ]
         , locationType = [ LocBrick , LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Brick) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , Brick ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -1964,14 +1689,14 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , Ammo ) , ( 1 , Worker ) ]
         , locationType = []
-        , locationText =
+        , locationText = None
+        , locationBuildBonus =
             OneTimeCache
               [ ( 1 , Worker )
               , ( 2 , Ammo )
               , ( 1 , ContactBlue )
               , ( 1 , ContactRed )
               ]
-        , locationBuildBonus = Nothing
         , locationDeal = Ammo
         , locationSet = NewEra
         }
@@ -1984,16 +1709,11 @@ locations =
         , locationSpoils = [ ( 2 , Fuel ) , ( 1 , VP ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Fuel)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource Fuel ) ]
+              [ ( 2 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -2005,8 +1725,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) , ( 1 , Fuel ) ]
         , locationType = [ LocFuel , LocVictory ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocFuel 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocFuel 1 VP 5
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -2019,14 +1739,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource ContactRed)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Worker)
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource ContactRed ) ] [ ( 1 , Worker ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -2038,8 +1752,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 1 , Fuel ) , ( 1 , Worker ) ]
         , locationType = [ LocFuel , LocContact ]
-        , locationText = Other [ LexR2 1 (Resource ContactBlue) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , ContactBlue ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = NewEra
         }
@@ -2060,7 +1774,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource NewCard)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = NewEra
         }
@@ -2072,8 +1786,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) , ( 1 , Brick ) ]
         , locationType = [ LocBrick , LocVictory ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocBrick 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocBrick 1 VP 5
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -2086,15 +1800,8 @@ locations =
         , locationSpoils = [ ( 2 , Brick ) , ( 1 , NewCard ) ]
         , locationType = [ LocBrick , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Brick ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -2107,7 +1814,7 @@ locations =
         , locationSpoils = [ ( 1 , Gun ) , ( 1 , NewCard ) ]
         , locationType = [ LocGun , LocAmmo ]
         , locationText = Storage [ ( Just 3 , AnyBasicResource ) ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -2120,17 +1827,14 @@ locations =
         , locationSpoils = [ ( 1 , Brick ) , ( 1 , Iron ) ]
         , locationType = [ LocIron , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 2 (Resource Iron)
-              , LexW2 "and"
-              , LexR2 2 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 4 (Resource VP)
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 2 , ExactResource Iron )
+              , ( 2 , ExactResource Brick )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 4 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = Winter
         }
@@ -2142,8 +1846,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Worker ) ]
         , locationType = [ LocWorker , LocAmmo ]
-        , locationText = Other [ LexR2 1 (Resource Worker) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource Worker) ])
+        , locationText = Convert [] [ ( 1 , Worker ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , Worker ) ] 1
         , locationDeal = Worker
         , locationSet = BaseSet
         }
@@ -2155,8 +1859,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , Iron ) ]
         , locationType = [ LocIron ]
-        , locationText = Other []
-        , locationBuildBonus = Just (OneTimeCache [ ( 3 , Iron ) ])
+        , locationText = None
+        , locationBuildBonus = OneTimeCache [ ( 3 , Iron ) ]
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -2169,15 +1873,8 @@ locations =
         , locationSpoils = [ ( 2 , Iron ) , ( 1 , NewCard ) ]
         , locationType = [ LocIron , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Iron ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -2190,15 +1887,8 @@ locations =
         , locationSpoils = [ ( 2 , Worker ) , ( 1 , Gun ) ]
         , locationType = [ LocWorker , LocGun ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource Worker)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Gun ) ] [ ( 1 , Worker ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -2212,15 +1902,8 @@ locations =
             [ ( 1 , ContactRed ) , ( 1 , VP ) , ( 1 , NewCard ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource ContactRed)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource ContactRed ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -2232,9 +1915,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 2 , ContactUniversal ) ]
         , locationType = [ LocContact ]
-        , locationText = Other [ LexR2 1 (Resource ContactUniversal) ]
-        , locationBuildBonus =
-            Just (Other [ LexR2 1 (Resource ContactUniversal) ])
+        , locationText = Convert [] [ ( 1 , ContactUniversal ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , ContactUniversal ) ] 1
         , locationDeal = ContactUniversal
         , locationSet = BaseSet
         }
@@ -2247,15 +1929,8 @@ locations =
         , locationSpoils = [ ( 3 , Iron ) , ( 1 , VP ) ]
         , locationType = [ LocIron ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 2 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 2 , ExactResource Iron ) ] [ ( 2 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -2268,7 +1943,7 @@ locations =
         , locationSpoils = [ ( 2 , Gun ) , ( 1 , VP ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText = ForEachProduced Gun 1 VP 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = Winter
         }
@@ -2281,16 +1956,11 @@ locations =
         , locationSpoils = [ ( 2 , Iron ) , ( 1 , VP ) ]
         , locationType = [ LocIron , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , ExactResource Iron ) ]
+              [ ( 2 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = BaseSet
         }
@@ -2303,16 +1973,11 @@ locations =
         , locationSpoils = [ ( 3 , Brick ) , ( 1 , VP ) ]
         , locationType = [ LocBrick , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 2 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 2 , ExactResource Brick ) ]
+              [ ( 3 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = BaseSet
         }
@@ -2333,7 +1998,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource Worker)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -2356,7 +2021,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource Worker)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = NewEra
         }
@@ -2369,7 +2034,7 @@ locations =
         , locationSpoils = [ ( 2 , Iron ) , ( 1 , VP ) ]
         , locationType = [ LocIron , LocVictory ]
         , locationText = ForEachProduced Iron 1 VP 3
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = Winter
         }
@@ -2382,20 +2047,16 @@ locations =
         , locationSpoils = [ ( 3 , Ammo ) , ( 1 , VP ) ]
         , locationType = [ LocFuel , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 1 (Resource Brick)
-              , LexR2 1 (Resource Fuel)
-              , LexR2 1 (Resource Gun)
-              , LexW2 "and"
-              , LexR2 1 (Resource Iron)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource VP)
-              , ActivatedTwice
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 1 , ExactResource Brick )
+              , ( 1 , ExactResource Fuel )
+              , ( 1 , ExactResource Gun )
+              , ( 1 , ExactResource Iron )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 3 , VP ) ]
+              2
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -2407,8 +2068,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) ]
         , locationType = [ LocLiberty , LocVictory ]
-        , locationText = Other [ LexR2 1 (Resource VP) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 1 , VP ) ] 1
+        , locationBuildBonus = None
         , locationDeal = VP
         , locationSet = Winter
         }
@@ -2423,7 +2084,7 @@ locations =
         , locationText =
             Other
               [ LexR2 1 (Resource Fuel) , LexW2 "or" , LexR2 1 (Resource Gun) ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = Winter
         }
@@ -2453,20 +2114,19 @@ locations =
               , LexW2 "them"
               ]
         , locationBuildBonus =
-            Just
-              (Other
-                 [ LexW2 "choose"
-                 , LexW2 "another"
-                 , LexW2 "players"
-                 , LexW2 "production"
-                 , LexW2 "location"
-                 , LexW2 "and"
-                 , LexW2 "gain"
-                 , LexW2 "the"
-                 , LexW2 "goods"
-                 , LexW2 "it"
-                 , LexW2 "produces"
-                 ])
+            Other
+              [ LexW2 "choose"
+              , LexW2 "another"
+              , LexW2 "players"
+              , LexW2 "production"
+              , LexW2 "location"
+              , LexW2 "and"
+              , LexW2 "gain"
+              , LexW2 "the"
+              , LexW2 "goods"
+              , LexW2 "it"
+              , LexW2 "produces"
+              ]
         , locationDeal = Ammo
         , locationSet = Winter
         }
@@ -2481,7 +2141,7 @@ locations =
         , locationText =
             Other
               [ LexR2 1 (Resource Brick) , LexW2 "or" , LexR2 1 (Resource Fuel) ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = Winter
         }
@@ -2494,16 +2154,11 @@ locations =
         , locationSpoils = [ ( 2 , ContactGrey ) ]
         , locationType = [ LocIron , LocContact ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 BasicResource
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource ContactGrey)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , AnyBasicResource ) ]
+              [ ( 2 , ContactGrey ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = Winter
         }
@@ -2517,16 +2172,11 @@ locations =
             [ ( 1 , Gun ) , ( 1 , ContactRed ) , ( 1 , NewCard ) ]
         , locationType = [ LocContact , LocGun ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 3 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 3 (Resource ContactRed)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 3 , ExactResource Worker ) , ( 1 , ExactResource Gun ) ]
+              [ ( 3 , ContactRed ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = ContactRed
         , locationSet = NewEra
         }
@@ -2539,17 +2189,14 @@ locations =
         , locationSpoils = [ ( 1 , Gun ) , ( 1 , Brick ) ]
         , locationType = [ LocBrick , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexR2 2 (Resource Gun)
-              , LexW2 "and"
-              , LexR2 2 (Resource Brick)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 4 (Resource VP)
+            Convert
+              [ ( 1 , ExactResource Worker )
+              , ( 2 , ExactResource Gun )
+              , ( 2 , ExactResource Brick )
               ]
-        , locationBuildBonus = Nothing
+              [ ( 4 , VP ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = Brick
         , locationSet = Winter
         }
@@ -2561,8 +2208,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 1 , Gun ) , ( 1 , Worker ) ]
         , locationType = [ LocGun , LocContact ]
-        , locationText = Other [ LexR2 3 (Resource ContactRed) ]
-        , locationBuildBonus = Nothing
+        , locationText = Convert [] [ ( 3 , ContactRed ) ] 1
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = NewEra
         }
@@ -2586,7 +2233,7 @@ locations =
               , LexW2 "player"
               , ActivatedTwice
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = BaseSet
         }
@@ -2603,7 +2250,7 @@ locations =
               [ ( Just 2 , AnyBasicResource )
               , ( Just 2 , ExactResource Worker )
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = BaseSet
         }
@@ -2617,15 +2264,8 @@ locations =
             [ ( 1 , ContactRed ) , ( 1 , Worker ) , ( 1 , NewCard ) ]
         , locationType = [ LocContact , LocGun ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource ContactRed)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Worker ) ] [ ( 1 , ContactRed ) ] 2
+        , locationBuildBonus = None
         , locationDeal = ContactRed
         , locationSet = NewEra
         }
@@ -2638,16 +2278,11 @@ locations =
         , locationSpoils = [ ( 2 , NewCard ) , ( 1 , VP ) ]
         , locationType = [ LocCard ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Worker)
-              , LexW2 "and"
-              , LexR2 1 BasicResource
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 2 (Resource NewCard)
-              ]
-        , locationBuildBonus = Nothing
+            Convert
+              [ ( 1 , ExactResource Worker ) , ( 1 , AnyBasicResource ) ]
+              [ ( 2 , NewCard ) ]
+              1
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = Winter
         }
@@ -2672,7 +2307,7 @@ locations =
               , LexW2 "gain"
               , LexR2 1 (Resource Ammo)
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = NewEra
         }
@@ -2685,7 +2320,7 @@ locations =
         , locationSpoils = [ ( 1 , Fuel ) , ( 1 , NewCard ) ]
         , locationType = [ LocFuel , LocAmmo ]
         , locationText = Storage [ ( Just 3 , AnyBasicResource ) ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Fuel
         , locationSet = BaseSet
         }
@@ -2698,15 +2333,8 @@ locations =
         , locationSpoils = [ ( 2 , Gun ) , ( 1 , NewCard ) ]
         , locationType = [ LocGun , LocVictory ]
         , locationText =
-            Other
-              [ LexW2 "spend"
-              , LexR2 1 (Resource Gun)
-              , LexW2 "to"
-              , LexW2 "gain"
-              , LexR2 1 (Resource VP)
-              , ActivatedTwice
-              ]
-        , locationBuildBonus = Nothing
+            Convert [ ( 1 , ExactResource Gun ) ] [ ( 1 , VP ) ] 2
+        , locationBuildBonus = None
         , locationDeal = Gun
         , locationSet = BaseSet
         }
@@ -2718,8 +2346,8 @@ locations =
         , locationDistance = 1
         , locationSpoils = [ ( 3 , Shield ) ]
         , locationType = [ LocGun ]
-        , locationText = Other [ LexR2 1 (Resource Shield) ]
-        , locationBuildBonus = Just (Other [ LexR2 1 (Resource Shield) ])
+        , locationText = Convert [] [ ( 1 , Shield ) ] 1
+        , locationBuildBonus = Convert [] [ ( 1 , Shield ) ] 1
         , locationDeal = Shield
         , locationSet = Winter
         }
@@ -2731,8 +2359,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocLiberty 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocLiberty 1 VP 5
         , locationDeal = VP
         , locationSet = BaseSet
         }
@@ -2744,8 +2372,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocLiberty 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocLiberty 1 VP 5
         , locationDeal = VP
         , locationSet = Winter
         }
@@ -2757,8 +2385,9 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , ContactGrey ) ]
         , locationType = [ LocIron , LocContact ]
-        , locationText = IfProduced 1 Iron 1 ContactGrey
-        , locationBuildBonus = Nothing
+        , locationText =
+            IfProducedAtLeast 1 (ExactResource Iron) 1 ContactGrey
+        , locationBuildBonus = None
         , locationDeal = Iron
         , locationSet = Winter
         }
@@ -2782,7 +2411,7 @@ locations =
               , LexW2 "producation"
               , LexW2 "location"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = PromoSet1
         }
@@ -2819,7 +2448,7 @@ locations =
               , LexW2 "them"
               , LexW2 "instead"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Ammo
         , locationSet = PromoSet1
         }
@@ -2845,7 +2474,7 @@ locations =
               , LexW2 "the"
               , LexW2 "other"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = NewCard
         , locationSet = PromoSet1
         }
@@ -2857,8 +2486,8 @@ locations =
         , locationDistance = 2
         , locationSpoils = [ ( 2 , VP ) ]
         , locationType = [ LocLiberty ]
-        , locationText = Other []
-        , locationBuildBonus = Just (ForEachLoc LocLiberty 1 VP 5)
+        , locationText = None
+        , locationBuildBonus = ForEachLoc LocLiberty 1 VP 5
         , locationDeal = VP
         , locationSet = PromoSet1
         }
@@ -2889,7 +2518,7 @@ locations =
               , LexW2 "than"
               , LexW2 "normal"
               ]
-        , locationBuildBonus = Nothing
+        , locationBuildBonus = None
         , locationDeal = Worker
         , locationSet = PromoSet1
         }
