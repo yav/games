@@ -50,13 +50,9 @@ convertLoc (x,s) = (x,s1)
          }
 
 convertDecs :: Types.Description -> Description
+convertDecs (Act [] a (Limit 1)) = Do a
 
-convertDecs
-  ( Other [ LexR2 1 (Resource r1) , LexW2 "or" , LexR2 1 (Resource r2) ] )
-
-
-
-oneOf xs x = x `elem` xs
+convertDecs x = x
 
 
 

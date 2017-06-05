@@ -34,11 +34,11 @@ data LocType = LocBrick | LocWorker | LocVictory
 
 data Resource = Brick | Worker | VP | Gun | Ammo | Iron | Fuel
               | ContactRed | ContactBlue | ContactGrey | ContactUniversal
-              | NewCard | Shield | Development
+              | NewCard | Deal | Shield | Development
   deriving (Show,Eq,Ord,Enum,Bounded)
 
 data Limit = NoLimit | Limit Int
-  deriving (Show)
+  deriving (Show,Eq)
 
 data Description =
     OneTimeCache [(Int,Resource)]
@@ -53,40 +53,54 @@ data Description =
     -- ^ For each produced resource of the given type, gain the given number of
     -- resources, up to the limit
 
-  | IfProducedAtLeast Int Resource' Int Resource
-    -- If you produced the required number of the first thing,
-    -- get the given number of the seconf thing.
+  | EachTime Event Int Resource
 
   | Storage [ (Limit,Resource') ]
     -- ^ You may store the given resource, so they persist across turns.
 
-  | Convert [ (Int,Resource') ] [ (Int,Resource) ] Int
-    -- ^ Spend the first resource to gain the second
-    -- The last 'Int' is the number of activations.
+  | Do Action
+
+  | Act [ (Int,Resource') ] Action Limit
+    -- ^ Pay the cost to do the actions.
+    -- The limit indicates how many times can you use this.
+
+  | SecretStock
+    -- ^ each time you spend 2 workers to gain a resource of the type
+    -- produced by your faction board gain two of them instead
+
+  | DecreaseDefence Int
 
   | None
 
-
-  | Other [Lexeme]
   deriving Show
 
-
-data Resource' = AnyOf [Resource]
+data Event = MadeADeal
+           | RazedSomething
+           | Produced Int Resource'
+           | Either Event Event
   deriving Show
+
+data Action = Gain Int Resource
+            | GainBasic Int
+            | StealBasic Int
+            | ResetLocations Int
+            | UseDeal Owner Int
+            | ActivateProduction Owner Int
+            | UseBlockedOpenProduction
+            | Draw2Keep1
+            | Choose Action Action
+            | Action `AndAlso` Action
+  deriving Show
+
+data Owner = Yours | Others
+  deriving Show
+
+data Resource' = A Resource | AnyBasicResource
+  deriving (Eq,Show)
 
 
 isBasicResource :: Resource -> Bool
 isBasicResource x = x == Brick || x == Gun || x == Ammo || x == Fuel
 
-data Lexeme  = LexR2 Int What
-             | LexL2 LocType
-             | LexW2 String
-             | ActivatedTwice
-               deriving Show
-
-data What = YourLocation | BasicResource | Resource Resource
-          | YourDeals
-          | AnothersDeals
-               deriving Show
 
 
