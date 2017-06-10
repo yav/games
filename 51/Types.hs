@@ -1,17 +1,21 @@
 module Types where
 
+import Data.Text(Text)
+import Data.Set(Set)
+import Util.Bag(Bag)
+
 data Connection = Connection
-  { connectionName    :: String
+  { connectionName    :: Text
   , connectionText    :: Description
   , connectionSet     :: LocationSet
   } deriving (Show)
 
 data Location = Location
-  { locationName        :: String
+  { locationName        :: Text
   , locationClass       :: LocationClass
   , locationDistance    :: Int
-  , locationSpoils      :: [(Int,Resource)]
-  , locationType        :: [LocType]
+  , locationSpoils      :: Bag Resource
+  , locationType        :: Set LocType
   , locationText        :: Description
   , locationBuildBonus  :: Description
   , locationDeal        :: Resource
@@ -95,9 +99,9 @@ data Action = Gain Int Resource
 data Owner = Yours | Others
   deriving Show
 
-data Resource' = A Resource | AnyBasicResource
+data Resource' = A Resource
+               | AnyBasicResource
   deriving (Eq,Show)
-
 
 isBasicResource :: Resource -> Bool
 isBasicResource x = x == Brick || x == Gun || x == Ammo || x == Fuel
