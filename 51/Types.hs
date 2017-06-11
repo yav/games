@@ -4,46 +4,55 @@ import Data.Text(Text)
 import Data.Set(Set)
 import Util.Bag(Bag)
 
+-- | Connection cards
 data Connection = Connection
-  { connectionName    :: Text
-  , connectionText    :: Description
-  , connectionSet     :: LocationSet
+  { connectionName    :: Text           -- ^ Identifies a connection
+  , connectionText    :: Description    -- ^ What does it do
+  , connectionSet     :: LocationSet    -- ^ Where did it come from
   } deriving (Show)
 
+-- | All other cards
 data Location = Location
-  { locationName        :: Text
-  , locationClass       :: LocationClass
-  , locationDistance    :: Int
-  , locationSpoils      :: Bag Resource
-  , locationType        :: Set LocType
-  , locationText        :: Description
-  , locationBuildBonus  :: Description
-  , locationDeal        :: Resource
-  , locationSet         :: LocationSet
+  { locationName        :: Text           -- ^ Identifies a location
+  , locationClass       :: LocationClass  -- ^ Classifies the location
+  , locationDistance    :: Int            -- ^ Cost to use from hand
+  , locationSpoils      :: Bag Resource   -- ^ Gains if raized from hand
+  , locationType        :: Set LocType    -- ^ Location type (e.g., for upgrade)
+  , locationText        :: Description    -- ^ What does it do
+  , locationBuildBonus  :: Description    -- ^ Happens once, when built
+  , locationDeal        :: Resource       -- ^ If used as a deal
+  , locationSet         :: LocationSet    -- ^ Where did it come from
   } deriving (Show)
 
+-- | Sets of cards
 data LocationSet = BaseSet | Winter | NewEra | PromoSet1
   deriving (Show,Eq,Ord,Enum,Bounded)
 
+-- | Different location classes
 data LocationClass = Action | Feature | Production ProductionType
   deriving (Show,Eq,Ord)
 
+-- | Type of production
 data ProductionType = Closed | Open
   deriving (Show,Eq,Ord)
 
+-- | Location types for upgrade etc
 data LocType = LocBrick | LocWorker | LocVictory
              | LocGun | LocAmmo | LocIron | LocFuel | LocContact
              | LocToxic | LocLiberty | LocCard
   deriving (Show,Eq,Ord,Enum,Bounded)
 
+-- | Resources.  NewCard and Deal perhaps should not be here
 data Resource = Brick | Worker | VP | Gun | Ammo | Iron | Fuel
               | ContactRed | ContactBlue | ContactGrey | ContactUniversal
               | NewCard | Deal | Shield | Development
   deriving (Show,Eq,Ord,Enum,Bounded)
 
+-- | Used to limit thing, or not.
 data Limit = NoLimit | Limit Int
   deriving (Show,Eq)
 
+-- | Various things done by locations.
 data Description =
     OneTimeCache [(Int,Resource)]
     -- ^ This is a location bonus.
@@ -73,17 +82,21 @@ data Description =
     -- produced by your faction board gain two of them instead
 
   | DecreaseDefence Int
+    -- ^ Decrease the defence of foreign locations when we attack them
 
   | None
+    -- ^ Does nothing
 
   deriving Show
 
+-- | Various events used in cards
 data Event = MadeADeal
            | RazedSomething
            | Produced Int Resource'
            | Either Event Event
   deriving Show
 
+-- | Something that can be done.
 data Action = Gain Int Resource
             | GainBasic Int
             | StealBasic Int
