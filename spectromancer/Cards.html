@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="jquery.js"></script>
+<script src="cards.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+<script>
+
+
+$(document).ready(function() {
+  var b = $('body')
+  var newcards = {}
+  jQuery.each(cards, function(cat,cs) {
+    newcards[cat] = cs.sort(function(a,b) { return a.cost - b.cost })
+    b.append($('<h3/>').text(cat))
+    jQuery.each(cs,function(ix,c) {
+      if (c.descritpion !== undefined) {
+        c.description = c.descritpion
+        c.descritpion = undefined
+      }
+      b.append(drawCard(c))
+    })
+  })
+  // b.empty().append($('<pre/>').text(JSON.stringify(newcards,null,' ')))
+})
+</script>
+<head>
+<body>
+</body>
+</html>
