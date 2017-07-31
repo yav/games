@@ -20,7 +20,7 @@ function stat(x,t,l,c) {
          .css('width','10px')
          .css('height','16px')
          .css('text-align','center')
-         .text(x)
+         .text(x == null ? '?' : x)
 
 }
 

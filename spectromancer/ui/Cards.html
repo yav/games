@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="jquery.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+<script>
+
+
+$(document).ready(function() {
+  var b = $('body')
+  var cards
+
+  jQuery.getJSON('getCards',null,function(cards) {
+    console.log(cards)
+    jQuery.each(cards, function(cat,cs) {
+      b.append($('<h3/>').text(cat))
+      jQuery.each(cs,function(ix,c) {
+        b.append(drawCard(c))
+      })
+    })
+  })
+
+})
+</script>
+<head>
+<body>
+</body>
+</html>
