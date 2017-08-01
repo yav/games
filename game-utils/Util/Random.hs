@@ -16,6 +16,9 @@ import Control.Monad(ap,liftM)
 
 newtype StdGen = StdGen Rand.StdGen
 
+instance Show StdGen where
+  show _ = "StdGen"
+
 randSourceIO :: IO StdGen
 randSourceIO = StdGen <$> Rand.newStdGen
 

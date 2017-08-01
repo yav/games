@@ -57,3 +57,41 @@ function drawCard(c) {
          .css('display','inline-block')
          .append($('<span/>').text(c.name),$('<br/>'),grp)
 }
+
+function drawDeckRow(p,row) {
+  var dom = $('<tr/>')
+  var pow = $('<td/>').text(row + ': ' + p.power[row])
+  dom.append(pow)
+  jQuery.each(p.deck[row], function(ix,card) {
+    dom.append($('<td/>').append(drawCard(card)))
+  })
+  return dom
+}
+
+function drawPlayer(p) {
+  var dom = $('<div/>')
+  var name = $('<div/>').text(p.name + ' (' + p.life + ')')
+  dom.append(name)
+
+  var active = $('<div/>')
+  jQuery.each(p.active, function(ix,c) {
+    // active.append(drawCard(c))
+  })
+  dom.append(active)
+
+  var deckTable = $('<table/>')
+  jQuery.each(["Fire","Water","Air","Earth","Special"], function(ix,w) {
+    deckTable.append(drawDeckRow(p,w))
+  })
+
+  dom.append(deckTable)
+
+  return dom
+}
+
+function drawGame(g) {
+  return $('<div/>')
+         .append(drawPlayer(g.current),drawPlayer(g.other))
+}
+
+

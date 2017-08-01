@@ -6,11 +6,8 @@
 <script src="ui.js"></script>
 <script>
 
-
-$(document).ready(function() {
+function dumpAllCards() {
   var b = $('body')
-  var cards
-
   jQuery.getJSON('getCards',null,function(cards) {
     console.log(cards)
     jQuery.each(cards, function(cat,cs) {
@@ -20,6 +17,20 @@ $(document).ready(function() {
       })
     })
   })
+}
+
+function newGame() {
+  var b = $('body').empty()
+  b.append($('<button>').text('New game').click(newGame))
+  jQuery.getJSON('newGame',null,function(game) {
+    b.append(drawGame(game))
+  })
+
+
+}
+
+$(document).ready(function() {
+  dumpAllCards()
 
 })
 </script>
