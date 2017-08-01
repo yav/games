@@ -6,17 +6,22 @@ import Control.Applicative ((<|>))
 
 import Util.Snap(sendJSON)
 
-import Types(cardsToJSON)
+import CardTypes(cardsToJSON)
 import Cards(allCards)
 
 main :: IO ()
 main = quickHttpServe $
           route
             [ ("getCards", snapGetCards)
+            , ("getState", snapGetState)
             ]
            <|> serveDirectory "ui"
 
 
 snapGetCards :: Snap ()
 snapGetCards = sendJSON (cardsToJSON allCards)
+
+snapGetState :: Snap ()
+snapGetState = return ()
+
 

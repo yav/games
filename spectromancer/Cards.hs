@@ -2,7 +2,7 @@
 module Cards where
 
 import qualified Data.Map as Map
-import Types
+import CardTypes
 
 allCards :: Cards
 allCards =

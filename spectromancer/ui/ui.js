@@ -27,6 +27,7 @@ function stat(x,t,l,c) {
 function drawCard(c) {
   var grp = $('<div/>')
             .css('position','relative')
+            .css('overflow','hidden')
             .css('display','inline-block')
             .css('width', '96px')
             .css('height','96px')
@@ -52,5 +53,7 @@ function drawCard(c) {
     grp.append(stat(c.attack,76,10,'red'))
   }
 
-  return grp
+  return $('<div/>')
+         .css('display','inline-block')
+         .append($('<span/>').text(c.name),$('<br/>'),grp)
 }
