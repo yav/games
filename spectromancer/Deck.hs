@@ -10,12 +10,13 @@ import Util.Random(Gen,shuffle,randSourceIO,genRand)
 
 import CardTypes(Card(..))
 import Cards(allCards)
+import CardIds
 
 import Text.Show.Pretty
 
 test =
   do g <- randSourceIO
-     let ((d1,d2),_) = genRand g (pickDecks "VAMPIRIC CARDS" "SORCERY CARDS")
+     let ((d1,d2),_) = genRand g (pickDecks vampiric_cards sorcery_cards)
      pPrint $ fmap (map cardName) d1
      putStrLn "========================="
      pPrint $ fmap (map cardName) d2
@@ -32,10 +33,10 @@ allElements = [minBound .. maxBound]
 
 pickDecks :: Class -> Class -> Gen (Deck,Deck)
 pickDecks special1 special2 =
-  do (f1,f2) <- pickCategory "FIRE CARDS"
-     (a1,a2) <- pickCategory "AIR CARDS"
-     (e1,e2) <- pickCategory "EARTH CARDS"
-     (w1,w2) <- pickCategory "WATER CARDS"
+  do (f1,f2) <- pickCategory fire_cards
+     (a1,a2) <- pickCategory air_cards
+     (e1,e2) <- pickCategory earth_cards
+     (w1,w2) <- pickCategory water_cards
      (s1,s2) <- if special1 == special2
                    then pickCategory special1
                    else -- XXX: In this case can we pick them separately
@@ -78,33 +79,33 @@ pickFrom grp = fmap unzip (mapM fromChunk (chunks sz grp))
 
 
 validDeck :: [Card] -> Bool
-validDeck ds = and [ ban "Orc Chieftain" "Forest Sprite"
-                   , ban "Meditation"    "Stone Rain"
-                   , ban "Inferno"       "Armageddon"
-                   , ban "Elf Hermit"    "Nature's Fury"
-                   , if has "Phoenix"
-                       then atMostOne [ "Armageddon"
-                                      , "Acidic Rain"
-                                      , "Stone Rain"
-                                      , "Drain Souls" ]
+validDeck ds = and [ ban fire_orc_chieftain earth_forest_sprite
+                   , ban water_meditation    earth_stone_rain
+                   , ban fire_inferno       fire_armageddon
+                   , ban earth_elf_hermit    earth_natures_fury
+                   , if has air_phoenix
+                       then atMostOne [ fire_armageddon
+                                      , water_acidic_rain
+                                      , earth_stone_rain
+                                      , death_drain_souls ]
                         else True
-                   , ban "Greater Demon" "Armageddon"
-                   , ban "Armageddon" "Wall of Reflection"
-                   , ban "Nature's Ritual" " Wall of Reflection"
-                   , ban "Meditation" "Cursed Fog"
-                   , ban "Ice Golem" "Cursed Fog"
-                   , ban "Nature's Ritual" "Chrono Engine"
-                   , ban "Ice Golem" "army of Rats"
-                   , ban "Elf Hermit" "Rescue Operation"
-                   , ban "Orc Chieftain" "Forest Wolf"
-                   , ban "Orc Chieftain" "Devoted Servant"
-                   , ban "Sea Sprite" "Chastiser"
-                   , ban "Giant Spider" "Vampire Mystic"
-                   , ban "Ice Golem" "Greater Bargul"
-                   , ban "Nature's Fury" "Greater Bargul"
-                   , ban "Astral Guard" "Reaver"
-                   , ban "Ice Golem" "Stone Rain"
-                   , ban "Ice Golem" "Armageddon"
+                   , ban demonic_greater_demon fire_armageddon
+                   , ban fire_armageddon illusion_wall_of_reflection
+                   , ban earth_natures_ritual illusion_wall_of_reflection
+                   , ban water_meditation death_cursed_fog
+                   , ban water_ice_golem death_cursed_fog
+                   , ban earth_natures_ritual time_chrono_engine
+                   , ban water_ice_golem goblin's_army_of_rats
+                   , ban earth_elf_hermit goblin's_rescue_operation
+                   , ban fire_orc_chieftain forest_forest_wolf
+                   , ban fire_orc_chieftain vampiric_devoted_servant
+                   , ban water_sea_sprite vampiric_chastiser
+                   , ban earth_giant_spider vampiric_vampire_mystic
+                   , ban water_ice_golem cult_greater_bargul
+                   , ban earth_natures_fury cult_greater_bargul
+                   , ban water_astral_guard cult_reaver
+                   , ban water_ice_golem earth_stone_rain
+                   , ban water_ice_golem fire_armageddon
                    ]
   where
   has x = case find ((x ==) . cardName) ds of

@@ -1,8 +1,41 @@
-{-# Language OverloadedStrings #-}
+{-# Language OverloadedStrings, TemplateHaskell #-}
 module Cards where
+
+import Language.Haskell.TH
+import Data.Text(Text)
+import qualified Data.Text as Text
+import Data.Char(isSpace,isAlpha,toLower)
+import Data.Maybe(mapMaybe)
 
 import qualified Data.Map as Map
 import CardTypes
+
+toIdent :: Maybe String -> Text -> Name
+toIdent p = mkName . addPref . mapMaybe cvt . Text.unpack
+  where
+  cvt c | isAlpha c = Just (toLower c)
+        | isSpace c = Just '_'
+        | otherwise = Nothing
+  addPref x = case p of
+                Nothing -> x
+                Just q  -> q ++ "_" ++ x
+
+
+decl :: Maybe String -> Text -> DecsQ
+decl p x = do let i = toIdent p x
+              sig <- sigD i [t| Text |]
+              def <- valD (varP i) (normalB (litE (stringL (Text.unpack x)))) []
+              return [sig,def]
+
+card_name_decls :: DecsQ
+card_name_decls = concat <$> mapM cat (Map.toList allCards)
+  where
+  cat (c,cs) = do ds1 <- decl Nothing c
+                  let pref = Text.unpack (Text.toLower (Text.words c !! 0))
+                  dss <- mapM (decl (Just pref) . cardName) cs
+                  return (ds1 ++ concat dss)
+
+
 
 allCards :: Cards
 allCards =
