@@ -108,7 +108,7 @@ function drawGame(g) {
          .append($('<tr/>')
                 .append( $('<td/>').append(drawPlayer(g.current))
                        , $('<td/>').append(drawArena(g.current,g.other))
-                       , $('<td/>').append(drawPlayer(g.current))
+                       , $('<td/>').append(drawPlayer(g.other))
                        ))
 }
 
