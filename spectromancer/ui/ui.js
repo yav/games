@@ -31,8 +31,13 @@ function drawCard(c) {
             .css('display','inline-block')
             .css('width', '96px')
             .css('height','96px')
-            .attr('title',c.name + '\n' + c.description)
 
+  if (c == null) {
+    grp.css('border','1px solid black')
+    return grp
+  }
+
+  grp.attr('title', c.name + '\n' + c.description)
   if (c.type == 'spell') {
     grp.append(img(c.image)
                .css('height','112')
@@ -41,8 +46,6 @@ function drawCard(c) {
     grp.append(img('ramka2.png')
               .css('z-index','2'))
     grp.append(stat(c.cost,4,80,'black'))
-
-
 
   } else {
     grp.append(img(c.image))
@@ -53,9 +56,7 @@ function drawCard(c) {
     grp.append(stat(c.attack,76,10,'red'))
   }
 
-  return $('<div/>')
-         .css('display','inline-block')
-         .append($('<span/>').text(c.name),$('<br/>'),grp)
+  return grp
 }
 
 function drawDeckRow(p,row) {
@@ -70,14 +71,12 @@ function drawDeckRow(p,row) {
 
 function drawPlayer(p) {
   var dom = $('<div/>')
-  var name = $('<div/>').text(p.name + ' (' + p.life + ')')
+            .css('display','inline-block')
+            .css('margin', '20px')
+  var name = $('<h3/>')
+             .css('text-align','center')
+             .text(p.name + ' (' + p.life + ')')
   dom.append(name)
-
-  var active = $('<div/>')
-  jQuery.each(p.active, function(ix,c) {
-    // active.append(drawCard(c))
-  })
-  dom.append(active)
 
   var deckTable = $('<table/>')
   jQuery.each(["Fire","Water","Air","Earth","Special"], function(ix,w) {
@@ -89,9 +88,28 @@ function drawPlayer(p) {
   return dom
 }
 
+function drawArena(p1,p2) {
+  var dom = $('<table/>').css('display','inline-block')
+                         .css('valign','bottom')
+  var act1 = p1.active
+  var act2 = p2.active
+  for (var i = 0; i < 6; ++i) {
+    var row = $('<tr/>')
+    row.append($('<td/>').append(drawCard(act1[i]))
+              ,$('<td/>').append(drawCard(act2[i]))
+              )
+    dom.append(row)
+  }
+  return dom
+}
+
 function drawGame(g) {
-  return $('<div/>')
-         .append(drawPlayer(g.current),drawPlayer(g.other))
+  return $('<table/>')
+         .append($('<tr/>')
+                .append( $('<td/>').append(drawPlayer(g.current))
+                       , $('<td/>').append(drawArena(g.current,g.other))
+                       , $('<td/>').append(drawPlayer(g.current))
+                       ))
 }
 
 
