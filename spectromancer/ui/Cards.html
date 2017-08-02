@@ -19,19 +19,19 @@ function dumpAllCards() {
   })
 }
 
-function newGame() {
+function newGame(m) {
   var b = $('body').empty()
-  b.append($('<button>').text('New game').click(newGame))
-  jQuery.getJSON('newGame',null,function(game) {
+  b.append($('<button>').text('New game')
+                        .click(function() { newGame('newGame') }))
+  jQuery.getJSON(m,null,function(game) {
     b.append(drawGame(game))
   })
-
-
 }
+
 
 $(document).ready(function() {
   // dumpAllCards()
-  newGame()
+  newGame('getState')
 
 })
 </script>
