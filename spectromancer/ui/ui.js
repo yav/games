@@ -1,3 +1,17 @@
+var selected = null
+
+function setSelected(x,row,ix) {
+  return function() {
+    if (selected !== null) {
+      selected.dom.removeClass('selected')
+    }
+    selected = { dom: x, row: row, ix: ix }
+    x.addClass('selected')
+  }
+}
+
+
+
 function img(x) {
   return $('<img/>')
          .attr('src','img/' + x)
@@ -59,17 +73,19 @@ function drawCard(c) {
   return grp
 }
 
-function drawDeckRow(p,row) {
+function drawDeckRow(p,row,cur) {
   var dom = $('<tr/>')
   var pow = $('<td/>').text(row + ': ' + p.power[row])
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
-    dom.append($('<td/>').append(drawCard(card)))
+    var x = drawCard(card)
+    if (cur) { x.click(setSelected(x,row,ix)) }
+    dom.append($('<td/>').append(x))
   })
   return dom
 }
 
-function drawPlayer(p) {
+function drawPlayer(p,cur) {
   var dom = $('<div/>')
             .css('display','inline-block')
             .css('margin', '20px')
@@ -80,7 +96,7 @@ function drawPlayer(p) {
 
   var deckTable = $('<table/>')
   jQuery.each(["Fire","Water","Air","Earth","Special"], function(ix,w) {
-    deckTable.append(drawDeckRow(p,w))
+    deckTable.append(drawDeckRow(p,w,cur))
   })
 
   dom.append(deckTable)
@@ -93,22 +109,35 @@ function drawArena(p1,p2) {
                          .css('valign','bottom')
   var act1 = p1.active
   var act2 = p2.active
-  for (var i = 0; i < 6; ++i) {
+  jQuery.each([0,1,2,3,4,5], function(i,num) {
     var row = $('<tr/>')
-    row.append($('<td/>').append(drawCard(act1[i]))
+    var actL = act1[i]
+    var x = drawCard(actL)
+    if (actL === null) {
+      x.click(function(ev) {
+        if (selected === null) return
+        jQuery.post('/playCard',{ element: selected.row.toLowerCase()
+                                , card: selected.ix
+                                , loc: i
+                                }, function(g) {
+          $('body').fadeOut('slow').empty().append(drawGame(g)).fadeIn()
+        })
+      })
+    }
+    row.append($('<td/>').append(x)
               ,$('<td/>').append(drawCard(act2[i]))
               )
     dom.append(row)
-  }
+  })
   return dom
 }
 
 function drawGame(g) {
   return $('<table/>')
          .append($('<tr/>')
-                .append( $('<td/>').append(drawPlayer(g.current))
+                .append( $('<td/>').append(drawPlayer(g.current,true))
                        , $('<td/>').append(drawArena(g.current,g.other))
-                       , $('<td/>').append(drawPlayer(g.other))
+                       , $('<td/>').append(drawPlayer(g.other,false))
                        ))
 }
 

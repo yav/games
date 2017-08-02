@@ -50,6 +50,28 @@ newGame rng (name1,class1) (name2,class2) =
        otherPlayer <- newPlayer name2 deck2
        return $ \gameRNG -> Game { .. }
 
+playCard :: Element -> Int -> Int -> Game -> Either Text Game
+playCard e n l g
+  | l >= 0 && l < slotNum =
+  case c of
+    Nothing -> Left "Unknown card"
+    Just c  ->
+      Right g
+        { curPlayer = otherPlayer g
+        , otherPlayer = p { playerActive = Map.insert l c (playerActive p) }
+        }
+
+  | otherwise = Left "Invalid location"
+  where
+  p = curPlayer g
+  d = playerDeck p
+  c = do cs <- Map.lookup e d
+         case splitAt n cs of
+           (_,x:_) -> Just x
+           _ -> Nothing
+
+
+
 newGameIO :: (Text,Class) -> (Text,Class) -> IO Game
 newGameIO p1 p2 =
   do gen <- randSourceIO
