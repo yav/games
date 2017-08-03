@@ -113,5 +113,11 @@ snapParamSimpleEnum = snapParamCases (map mk [ minBound .. maxBound ])
   mk x = (Text.pack (map toLower (show x)), x)
 
 
+snapOptParam :: SnapParam a => Text -> Snap (Maybe a)
+snapOptParam txt =
+  do mb <- Snap.getParam (encodeUtf8 p)
+     case mb of
+       Nothing -> return Nothing
+       Just _  -> snapParam txt
 
 

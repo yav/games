@@ -4,14 +4,8 @@ module CardTypes where
 import           Data.Text(Text)
 import           Data.Map(Map)
 import qualified Data.Map as Map
-import           Text.Read(readMaybe)
 import qualified Data.Aeson as JS
-import           Data.Aeson (ToJSON(..),FromJSON(..), Object, (.:), (.=))
-import           Data.Aeson.Types(Parser)
-import qualified Data.HashMap.Lazy as HashMap
-import           Control.Monad(guard,forM)
-import qualified Data.ByteString.Lazy as LBS
-import           Text.Show.Pretty(ppShow)
+import           Data.Aeson (ToJSON(..), (.=))
 
 type Category = Text
 type Cards    = Map Category [Card]
@@ -23,6 +17,12 @@ data Card = Card
   , cardCost        :: Int
   , cardEffect      :: CardEffect
   } deriving Show
+
+cardTarget :: Card -> Target
+cardTarget c =
+  case cardEffect c of
+    Creature {} -> TargetCasterBlank
+    Spell tgt -> tgt
 
 data CardEffect = Spell Target | Creature CreatureCard
   deriving Show
@@ -66,10 +66,12 @@ instance ToJSON Target where
   toJSON t =
     toJSON $
     case t of
-      NoTarget         -> "none" :: Text
-      TargetOpponent's -> "opponent_creature"
-      TargetCaster's   -> "catser_creature"
-      TargetCreature   -> "any_creature"
+      NoTarget                -> "none" :: Text
+      TargetOpponent's        -> "opponent_creature"
+      TargetOpponent'sNormal  -> "opponent_normal_creature"
+      TargetCaster's          -> "catser_creature"
+      TargetCasterBlank       -> "catser_blank"
+      TargetCreature          -> "any_creature"
 
 cardsToJSON :: Cards -> JS.Value
 cardsToJSON cs = JS.object [ k .= v | (k,v) <- Map.toList cs ]

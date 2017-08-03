@@ -24,23 +24,26 @@ data Player = Player
 -- | A card in a player's deck.
 data DeckCard = DeckCard
   { deckCardOrig      :: Card      -- ^ Unmodified deck card
+  , deckCardElement   :: Element   -- ^ Card's element
   , deckCard          :: Card      -- ^ Current version of the card
   , deckCardEnabled   :: Bool      -- ^ Is it currently playable
   } deriving Show
 
 
-inactiveCard :: Card -> DeckCard
-inactiveCard deckCardOrig = DeckCard { deckCard = deckCardOrig
-                                     , deckCardEnabled = False
-                                     , ..
-                                     }
+inactiveCard :: Element -> Card -> DeckCard
+inactiveCard deckCardElement deckCardOrig =
+  DeckCard { deckCard = deckCardOrig
+           , deckCardEnabled = False
+           , ..
+           }
 
 newPlayer :: Text -> Deck -> Gen Player
 newPlayer playerName deck =
   do let playerPower = Map.fromList [ (e,3) | e <- allElements ]
+         dc e cs = map (inactiveCard e) cs
      return Player { playerLife = startLife
                    , playerActive = Map.empty
-                   , playerDeck = Map.map (map inactiveCard) deck
+                   , playerDeck = Map.mapWithKey dc deck
                    , .. }
 
 type Slot = Int
@@ -67,7 +70,7 @@ newGame rng (name1,class1) (name2,class2) =
        otherPlayer <- newPlayer name2 deck2
        return $ \gameRNG -> activateCards Game { .. }
 
-playCard :: Element -> Int -> Int -> Game -> Either Text Game
+playCard :: Element -> Int -> Maybe Int -> Game -> Either Text Game
 playCard e n l g
   | l >= 0 && l < slotNum =
   case mbC of
@@ -116,7 +119,21 @@ activateCards g =
                                               | DeckCard { .. } <- cards ]
     where
     have = Map.findWithDefault 0 el (playerPower c)
-    active card = cardCost card <= have
+    active card = cardCost card <= have && hasTarget (cardTarget card)
+    hasTarget tgt =
+      case tgt of
+        NoTarget -> True
+        TargetCasterBlank ->
+          Map.size (playerActive c) < slotNum
+        TargetCaster's ->
+          not (Map.null (playerActive c))
+        TargetOpponent's ->
+          not (Map.null (playerActive o))
+        TargetOpponent'sNormal ->
+          any ((/= Special) . deckCardElement) (Map.elems (playerActive o))
+        TargetCreature ->
+          not (Map.null (playerActive c) && Map.null (playerActive o))
+
 
 
   deactivate cards = [ d { deckCardEnabled = False } | d <- cards ]
@@ -140,6 +157,8 @@ instance ToJSON DeckCard where
   toJSON DeckCard { .. } =
     JS.object [ "card"    .= deckCard -- XXX: add stats from original in desc.
               , "enabled" .= deckCardEnabled
+              , "element" .= deckCardElement
+              , "target"  .= cardTarget deckCard
               ]
 
 instance ToJSON Player where

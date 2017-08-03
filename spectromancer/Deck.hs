@@ -7,20 +7,11 @@ import qualified Data.Map as Map
 import Data.Text(Text)
 import Data.Aeson(ToJSON(..))
 
-import Util.Random(Gen,shuffle,randSourceIO,genRand)
+import Util.Random(Gen,shuffle)
 
 import CardTypes(Card(..))
 import Cards(allCards)
 import CardIds
-
-import Text.Show.Pretty
-
-test =
-  do g <- randSourceIO
-     let ((d1,d2),_) = genRand g (pickDecks vampiric_cards sorcery_cards)
-     pPrint $ fmap (map cardName) d1
-     putStrLn "========================="
-     pPrint $ fmap (map cardName) d2
 
 type Deck = Map Element [ Card ]
 type Class = Text

@@ -1,12 +1,60 @@
 var selected = null
 
-function setSelected(x,row,ix) {
+function makeTurn(info) {
+  jQuery.post('/playCard', info, function(g) {
+    $('body').fadeOut('slow').empty().append(drawGame(g)).fadeIn()
+  })
+}
+
+function setSource(x,row,ix,cd) {
+
   return function() {
+    if (cd.target === 'none') {
+      makeTurn({ element: row.toLowerCase(), card: ix })
+      return
+    }
+
     if (selected !== null) {
       selected.dom.removeClass('selected')
     }
-    selected = { dom: x, row: row, ix: ix }
+    selected = { dom: x, row: row, ix: ix, card: cd}
     x.addClass('selected')
+  }
+}
+
+function setTarget(card,who,i) {
+  return function(ev) {
+    if (selected === null) return
+    var matched = false;
+    switch(selected.card.target) {
+
+      case 'opponent_creature':
+        matched = card !== null && who === 'opponent'
+        break
+
+      case 'opponent_normal_creature':
+        matched = card !== null && who === 'opponent'
+                  && card.element !== 'Special'
+        break
+
+      case 'catser_creature':
+        matched = card !== null && who === 'caster'
+        break
+
+      case 'catser_blank':
+        matched = card === null && who === 'caster'
+        break
+
+      case 'any_creature':
+        matched = card !== null
+        break
+    }
+    console.log(selected.card.target,matched)
+    if (matched) {
+      makeTurn({ element: selected.row.toLowerCase()
+               , card: selected.ix, loc: i })
+      return
+    }
   }
 }
 
@@ -88,7 +136,7 @@ function drawDeckRow(p,row) {
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
     var x = drawDeckCard(card)
-    if (card.enabled) x.click(setSelected(x,row,ix))
+    if (card.enabled) x.click(setSource(x,row,ix,card))
     dom.append($('<td/>').append(x))
   })
   return dom
@@ -122,21 +170,10 @@ function drawArena(p1,p2) {
   jQuery.each([0,1,2,3,4,5], function(i,num) {
     var row = $('<tr/>')
     var actL = act1[i]
-    var x = drawDeckCard(actL)
-    if (actL === null) {
-      x.click(function(ev) {
-        if (selected === null) return
-        jQuery.post('/playCard',{ element: selected.row.toLowerCase()
-                                , card: selected.ix
-                                , loc: i
-                                }, function(g) {
-          $('body').fadeOut('slow').empty().append(drawGame(g)).fadeIn()
-        })
-      })
-    }
-    row.append($('<td/>').append(x)
-              ,$('<td/>').append(drawDeckCard(act2[i]))
-              )
+    var actR = act2[i]
+    var x = drawDeckCard(actL).click(setTarget(actL, 'caster', i))
+    var y = drawDeckCard(actR).click(setTarget(actR, 'opponent', i))
+    row.append($('<td/>').append(x),$('<td/>').append(y))
     dom.append(row)
   })
   return dom
