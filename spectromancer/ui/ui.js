@@ -39,6 +39,7 @@ function stat(x,t,l,c) {
 }
 
 function drawCard(c) {
+
   var grp = $('<div/>')
             .css('position','relative')
             .css('overflow','hidden')
@@ -79,7 +80,8 @@ function drawDeckRow(p,row,cur) {
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
     var x = drawCard(card)
-    if (cur) { x.click(setSelected(x,row,ix)) }
+    if (cur && !card.disabled) { x.click(setSelected(x,row,ix)) }
+    else x.addClass('disabled')
     dom.append($('<td/>').append(x))
   })
   return dom
@@ -103,6 +105,7 @@ function drawPlayer(p,cur) {
 
   return dom
 }
+
 
 function drawArena(p1,p2) {
   var dom = $('<table/>').css('display','inline-block')

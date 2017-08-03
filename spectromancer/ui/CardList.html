@@ -13,31 +13,18 @@ function dumpAllCards() {
     jQuery.each(cards, function(cat,cs) {
       b.append($('<h3/>').text(cat))
       jQuery.each(cs,function(ix,c) {
-        b.append(drawCard(c))
+        b.append($('<div/>').text(c.name),drawCard(c))
       })
     })
   })
 }
 
-function newGame(m) {
-  var b = $('body').empty()
-  b.append($('<button>').text('New game')
-                        .click(function() { newGame('newGame') }))
-  jQuery.getJSON(m,null,function(game) {
-    b.append(drawGame(game))
-  })
-}
-
-
 $(document).ready(function() {
-  // dumpAllCards()
-  newGame('getState')
-
+  dumpAllCards()
 })
 </script>
 <style>
 .selected { border: 2px solid red; }
-.disabled { opacity: 0.5; }
 </style>
 <head>
 <body>

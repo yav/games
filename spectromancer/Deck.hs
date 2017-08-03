@@ -5,6 +5,7 @@ import Data.List(find)
 import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Text(Text)
+import Data.Aeson(ToJSON(..))
 
 import Util.Random(Gen,shuffle,randSourceIO,genRand)
 
@@ -26,6 +27,9 @@ type Class = Text
 
 data Element = Fire | Water | Air | Earth | Special
                 deriving (Show,Eq,Ord,Enum,Bounded)
+
+instance ToJSON Element where
+  toJSON el = toJSON (show el)
 
 allElements :: [Element]
 allElements = [minBound .. maxBound]

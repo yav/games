@@ -77,6 +77,19 @@ newGameIO p1 p2 =
   do gen <- randSourceIO
      return (newGame gen p1 p2)
 
+getActiveDeck :: Game -> Map Element [Int]
+getActiveDeck g = Map.fromListWith (++)
+                    [ (el,[ix]) | (el,cards) <- Map.toList d
+                                , (ix,c) <- zip [ 0 .. ] cards
+                                , hasPower el c
+                                ]
+  where
+  p = curPlayer g
+  d = playerDeck p
+  hasPower el c = case Map.lookup el (playerPower p) of
+                    Nothing -> False
+                    Just n  -> n >= cardCost c
+
 --------------------------------------------------------------------------------
 -- JSON Serialization
 
@@ -94,8 +107,9 @@ instance ToJSON Player where
     ]
 
 instance ToJSON Game where
-  toJSON Game { .. } = JS.object
-    [ "current" .= curPlayer
-    , "other"   .= otherPlayer
+  toJSON g@Game { .. } = JS.object
+    [ "current"    .= curPlayer
+    , "other"      .= otherPlayer
+    , "activeDeck" .= jsElementMap (getActiveDeck g)
     ]
 
