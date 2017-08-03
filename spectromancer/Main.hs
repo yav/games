@@ -69,7 +69,7 @@ snapPlayCard :: ServerState -> Snap ()
 snapPlayCard s =
   do e <- snapParamSimpleEnum "element"
      c <- snapParam "card"
-     l <- snapOptParam "loc"
+     l <- snapParam "loc" -- snapOptParam "loc"
      g1 <- modifyState s $ playCard e c l
      sendJSON (toJSON g1)
 

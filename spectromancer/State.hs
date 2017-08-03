@@ -70,7 +70,7 @@ newGame rng (name1,class1) (name2,class2) =
        otherPlayer <- newPlayer name2 deck2
        return $ \gameRNG -> activateCards Game { .. }
 
-playCard :: Element -> Int -> Maybe Int -> Game -> Either Text Game
+playCard :: Element -> Int -> Int -> Game -> Either Text Game
 playCard e n l g
   | l >= 0 && l < slotNum =
   case mbC of
