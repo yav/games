@@ -67,7 +67,7 @@ allCards =
                 "Call to Thunder deals 6 damage to target opponent's creature and 6 damage to the opponent. "
             , cardImage = "CalltoThunderBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         , Card
             { cardName = "Faerie Sage"
@@ -95,7 +95,7 @@ allCards =
                 "Lightning Bolt deals (5+its caster's Air power) damage to the opponent. "
             , cardImage = "LightningBoltBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Phoenix"
@@ -113,7 +113,7 @@ allCards =
                 "Chain Lightning deals 9 damage to the opponent and to each of the opponent's creatures. "
             , cardImage = "ChainLightningBig.jpg"
             , cardCost = 8
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Lightning Cloud"
@@ -131,7 +131,7 @@ allCards =
                 "Air spell, cost 10 Destroy target opponent's creature. "
             , cardImage = "TornadoBig.jpg"
             , cardCost = 10
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         , Card
             { cardName = "Air Elemental"
@@ -245,7 +245,7 @@ allCards =
                 "Elephant's ability, cost 0 White Elephant increases its owner's Beast power by 1. "
             , cardImage = "TrumpetBig.jpg"
             , cardCost = 0
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Gaze"
@@ -253,7 +253,7 @@ allCards =
                 "Basilisk's ability, cost 0 Deals 6 damage to target creature. "
             , cardImage = "GazeBig.jpg"
             , cardCost = 0
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCreature
             }
         , Card
             { cardName = "Pump Energy"
@@ -261,7 +261,7 @@ allCards =
                 "Energy Beast increases its owner's Fire, Water, Air and Earth powers by 1. "
             , cardImage = "PumpEnergyBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Move Falcon"
@@ -269,7 +269,7 @@ allCards =
                 "Death Falcon moves to target empty slot and deals 4 damage to each of the opponent's creatures. "
             , cardImage = "MoveFalconBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCasterBlank
             }
         , Card
             { cardName = "Poison"
@@ -277,7 +277,7 @@ allCards =
                 "Scorpions's ability, cost 2 Scorpion deals 14 damage to target opponent's creature. "
             , cardImage = "PoisonBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         , Card
             { cardName = "Enrage"
@@ -285,7 +285,7 @@ allCards =
                 "Wolverine completely heals itself and its attack is increased by 2 permanently. "
             , cardImage = "EnrageBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Natural Healing"
@@ -293,7 +293,7 @@ allCards =
                 "Magic Hamster heals 18 life to all of its owner's creatures. "
             , cardImage = "NaturalHealingBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Breathe Fire"
@@ -301,7 +301,7 @@ allCards =
                 "Ancient Dragon deals 10 damage to the opponent and to each of the opponent's creatures. "
             , cardImage = "BreatheFireBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         ]
       )
@@ -332,7 +332,7 @@ allCards =
                 "Chaos spell, cost 3 Doom Bolt deals 25 damage to a random opponent's creature. "
             , cardImage = "DoomBoltBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Chaotic Wave"
@@ -340,7 +340,7 @@ allCards =
                 "Chaotic Wave deals 2-12 damage to each of the opponent's creatures, then heals 2-12 life to each of its caster's creatures. "
             , cardImage = "ChaoticWaveBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Insanian Shaman"
@@ -401,7 +401,7 @@ allCards =
                 "Weakness decreases each of the opponent's powers by 1, then deals 3 damage to the opponent. "
             , cardImage = "WeaknessBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Damping Tower"
@@ -429,7 +429,7 @@ allCards =
                 "Poisonous Cloud decreases all of the opponent's powers by 1, then deals damage to each of the opponent's creatures equal to half of its life (rounded up). "
             , cardImage = "PoisonousCloudBig.jpg"
             , cardCost = 5
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Ancient Witch"
@@ -480,7 +480,7 @@ allCards =
                 "Call to Ancient Spirits deals 10 damage to each of the opponent's creatures, then deals 5 damage to each of its caster's creatures. "
             , cardImage = "CalltoAncientSpiritsBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Zealot"
@@ -551,7 +551,7 @@ allCards =
                 "Dark Ritual deals 3 damage to the opponent's creatures, then heals 3 life to each of its caster's creatures. "
             , cardImage = "DarkRitualBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         , Card
             { cardName = "Cursed Fog"
@@ -559,7 +559,7 @@ allCards =
                 "Cursed Fog deals 12 damage to each creature and 3 damage to the opponent. "
             , cardImage = "CursedFogBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Banshee"
@@ -587,7 +587,7 @@ allCards =
                 "Destroy target caster's creature. Blood Ritual deals X damage to each of the opponent's creatures, where X is equal to the life of the destroyed creature, but not more than 32. "
             , cardImage = "BloodRitualBig.jpg"
             , cardCost = 5
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Keeper of Death"
@@ -605,7 +605,7 @@ allCards =
                 "Kill all creatures. Drain Souls heals an amount of life to its caster equal to twice the number of creatures killed by this spell. When Drain Souls is cast it is replaced by the Rage of Souls spell card. "
             , cardImage = "DrainSoulsBig.jpg"
             , cardCost = 7
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Master Lich"
@@ -636,7 +636,7 @@ allCards =
                 "Destroy target caster's creature. Explosion deals 28 damage to the creature in the opposing slot. "
             , cardImage = "ExplosionBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Power Chains"
@@ -644,7 +644,7 @@ allCards =
                 "Power Chains deals 12 damage to target opponent's Fire, Water, Air or Earth Creature, then decreases that opponent's power by 3. "
             , cardImage = "PowerChainsBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent'sNormal
             }
         , Card
             { cardName = "Ergodemon"
@@ -672,7 +672,7 @@ allCards =
                 "Hellfire deals 13 damage to each of the opponent's creatures, then increases its caster's Fire power by 1 for each creature killed by this spell. "
             , cardImage = "HellFireBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Three-headed demon"
@@ -713,7 +713,7 @@ allCards =
                 "Nature's Ritual heals 8 life to target caster's creature and to its caster. "
             , cardImage = "NaturesRitualBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Forest Sprite"
@@ -731,7 +731,7 @@ allCards =
                 "Rejuvenation heals an amount of life to its caster equal to twice its caster's Earth power. "
             , cardImage = "RejuvenationBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Elf Hermit"
@@ -749,7 +749,7 @@ allCards =
                 "Nature's Fury deals an amount of damage to the opponent equal to the total attack of its caster's two creatures with the highest attack. "
             , cardImage = "NaturesFuryBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Giant Spider"
@@ -777,7 +777,7 @@ allCards =
                 "Earth spell, cost 9 Stone Rain deals 25 damage to each creature. "
             , cardImage = "StoneRainBig.jpg"
             , cardCost = 9
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Earth Elemental"
@@ -867,7 +867,7 @@ allCards =
                 "Fire spell, cost 6 Flame Wave deals 9 damage to each of the opponent's creatures. "
             , cardImage = "FlameWaveBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Minotaur Commander"
@@ -895,7 +895,7 @@ allCards =
                 "Inferno deals 18 damage to target opponent's creature and 10 damage to each of the opponent's other creatures. "
             , cardImage = "InfernoBig.jpg"
             , cardCost = 9
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         , Card
             { cardName = "Fire Elemental"
@@ -913,7 +913,7 @@ allCards =
                 "Armageddon deals (8 + its caster's Fire power) damage to the opponent and to each creature. "
             , cardImage = "ArmageddonBig.jpg"
             , cardCost = 11
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Dragon"
@@ -974,7 +974,7 @@ allCards =
                 "Ritual of the Forest heals X+5 life to its caster and to each of its caster's creatures where X is equal to the attack of Magic Rabbit. "
             , cardImage = "RitualoftheForestBig.jpg"
             , cardCost = 5
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Treefolk Protector"
@@ -1015,7 +1015,7 @@ allCards =
                 "Move target creature to a random empty slot. If that creature is owned by this spell's caster, Rescue Operation heals 5 life to it. "
             , cardImage = "RescueoperationBig.jpg"
             , cardCost = 0
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCreature
             }
         , Card
             { cardName = "Goblin Hero"
@@ -1043,7 +1043,7 @@ allCards =
                 "Army of Rats deals 12 damage to each of the opponent's creatures, then deals 12 damage to a random caster's creature. "
             , cardImage = "ArmyofRatsBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Portal Jumper"
@@ -1094,7 +1094,7 @@ allCards =
                 "Golem's Frenzy deals 3 damage to each of the opponent's creatures. For each creature killed by this spell, Golem's attack is increased by 3 until end of turn. "
             , cardImage = "GolemsFrenzyBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Guardian Statue"
@@ -1112,7 +1112,7 @@ allCards =
                 "Golem's Justice deals 4 damage to each of the opponent's creatures, then heals 4 life to Golem's neighbours. "
             , cardImage = "GolemsJusticeBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Army Upgrade"
@@ -1120,7 +1120,7 @@ allCards =
                 "Army Upgrade heals 3 life to each of its caster's creatures. Golem's attack is increased by 2 permanently; this bonus remains even after Golem is killed. "
             , cardImage = "ArmyUpgradeBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Golem Instructor"
@@ -1201,7 +1201,7 @@ allCards =
                 "Divine Justice heals 12 life to target caster's creature and deals 12 damage to each other creature. "
             , cardImage = "DivineJusticeBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Divine Intervention"
@@ -1209,7 +1209,7 @@ allCards =
                 "Divine Intervention increases its caster's Fire, Water, Air and Earth powers by 2, then heals 10 life to its caster. "
             , cardImage = "DivineInterventionBig.jpg"
             , cardCost = 5
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Wrath of God"
@@ -1217,7 +1217,7 @@ allCards =
                 "Wrath of God deals 12 damage to each of the opponent's creatures, then increases its caster's Holy power by 1 for each of the opponent's creatures that did not die. "
             , cardImage = "WrathofGodBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Angel"
@@ -1248,7 +1248,7 @@ allCards =
                 "Madness deals damage to each of the opponent's creatures equal to the attack of that creature. "
             , cardImage = "MadnessBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Phantom Warrior"
@@ -1266,7 +1266,7 @@ allCards =
                 "The two opponent's creatures with the highest attack immediately attack the opponent. "
             , cardImage = "HypnosisBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Wall of Reflection"
@@ -1327,7 +1327,7 @@ allCards =
                 "Mechanical spell, cost 0 Overtime increases its caster's Mechanics power by 1. "
             , cardImage = "OvertimeBig.jpg"
             , cardCost = 0
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Dwarven Rifleman"
@@ -1385,7 +1385,7 @@ allCards =
                 "Cannonade deals 19 damage to each of the opponent's creatures. "
             , cardImage = "CannonadeBig.jpg"
             , cardCost = 7
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Steam Tank"
@@ -1474,7 +1474,7 @@ allCards =
                 "Deals (9 + caster's Death power) damage to each of opponent's creatures. Caster gains 2 life for each creature killed by this spell. "
             , cardImage = "RageofSoulsBig.jpg"
             , cardCost = 7
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         ]
       )
@@ -1485,7 +1485,7 @@ allCards =
                 "Healing Spray heals 9 life to target caster's creature and 6 life to its neighboring creatures. "
             , cardImage = "HealingSprayBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Fireball"
@@ -1493,7 +1493,7 @@ allCards =
                 "Fireball deals 9 damage to target opponent's creature and 6 damage to its neighboring creatures. "
             , cardImage = "FireballBig.jpg"
             , cardCost = 2
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         , Card
             { cardName = "Steal Essence"
@@ -1501,7 +1501,7 @@ allCards =
                 "Steal Essence deals 5 damage to target creature. If the creature is killed by this spell, its caster's Sorcery power is increased by 4. "
             , cardImage = "StealEssenceBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCreature
             }
         , Card
             { cardName = "Sacrifice"
@@ -1509,7 +1509,7 @@ allCards =
                 "Destroy target caster's creature. Sacrifice increases its caster's Fire, Water, Air and Earth powers by 3. "
             , cardImage = "SacrificeBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Ritual of Glory"
@@ -1517,7 +1517,7 @@ allCards =
                 "Ritual of Glory completely heals each of its caster's creatures, then increases their attack by 3 until end of turn (except walls). "
             , cardImage = "RitualofGloryBig.jpg"
             , cardCost = 5
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Mana Burn"
@@ -1525,7 +1525,7 @@ allCards =
                 "Mana Burn deals an amount of damage to each of the opponent's creatures equal to the opponent's highest power type, then decreases that opponent's power by 3. "
             , cardImage = "ManaBurnBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Sonic Boom"
@@ -1533,7 +1533,7 @@ allCards =
                 "Sonic Boom deals 11 damage to the opponent and to each of the opponent's creatures. Those creatures skip their attack next turn. "
             , cardImage = "SonicBoomBig.jpg"
             , cardCost = 7
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Disintegrate"
@@ -1541,7 +1541,7 @@ allCards =
                 "Destroy target opponent's creature. Disintegrate deals 11 damage to each of the opponent's other creatures. "
             , cardImage = "DisintegrateBig.jpg"
             , cardCost = 8
-            , cardEffect = Spell
+            , cardEffect = Spell TargetOpponent's
             }
         ]
       )
@@ -1582,7 +1582,7 @@ allCards =
                 "Divine Justice heals 12 life to target caster's creature and deals 12 damage to each other creature. "
             , cardImage = "DivineJusticeBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Divine Meddling"
@@ -1590,7 +1590,7 @@ allCards =
                 "Divine Meddling increases its caster's Fire, Water, Air and Earth powers by 2, then deals 10 damage to the opponent. "
             , cardImage = "DivineMeddlingBig.jpg"
             , cardCost = 5
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Rage of God"
@@ -1598,7 +1598,7 @@ allCards =
                 "Rage of God deals 12 damage to each of the opponent's creatures, then deals 3 damage to the opponent for each of the opponent's creatures that did not die. "
             , cardImage = "RageofGodBig.jpg"
             , cardCost = 6
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Angel"
@@ -1649,7 +1649,7 @@ allCards =
                 "Target caster's creature with attack 9 or less immediately attacks the opponent and all the opponent's creatures. "
             , cardImage = "HastenBig.jpg"
             , cardCost = 3
-            , cardEffect = Spell
+            , cardEffect = Spell TargetCaster's
             }
         , Card
             { cardName = "Time Stop"
@@ -1657,7 +1657,7 @@ allCards =
                 "Time Stop deals 4 damage to each of the opponent's creatures and forces the opponent to skip their next turn. "
             , cardImage = "TimeStopBig.jpg"
             , cardCost = 4
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Timeweaver"
@@ -1708,7 +1708,7 @@ allCards =
                 "Blood Boil deals 4 damage to each of the opponent's creatures, then increases its owner's Blood power by 1 for each creature killed by this spell. "
             , cardImage = "BloodBoilBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Ghoul"
@@ -1789,7 +1789,7 @@ allCards =
                 "Meditation increases its caster's Fire, Air and Earth powers by 1. "
             , cardImage = "MeditationBig.jpg"
             , cardCost = 1
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Sea Sprite"
@@ -1857,7 +1857,7 @@ allCards =
                 "Acidic Rain deals 15 damage to each creature, then decreases each of the opponent's powers by 1. "
             , cardImage = "AcidicRainBig.jpg"
             , cardCost = 8
-            , cardEffect = Spell
+            , cardEffect = Spell NoTarget
             }
         , Card
             { cardName = "Merfolk Overlord"

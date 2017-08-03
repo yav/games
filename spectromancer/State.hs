@@ -97,7 +97,8 @@ newGameIO p1 p2 =
 
 switchPlayers :: Game -> Game
 switchPlayers Game { .. } = Game { curPlayer = otherPlayer
-                                 , otherPlayer = curPlayer }
+                                 , otherPlayer = curPlayer
+                                 , .. }
 
 
 -- | Compute which cards in the deck are playable this turn and

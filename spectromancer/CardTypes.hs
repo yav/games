@@ -24,7 +24,18 @@ data Card = Card
   , cardEffect      :: CardEffect
   } deriving Show
 
-data CardEffect = Spell | Creature CreatureCard
+data CardEffect = Spell Target | Creature CreatureCard
+  deriving Show
+
+data Target = NoTarget          -- ^ Spell has no target
+            | TargetOpponent's  -- ^ Spell needs an opponent's creature
+            | TargetOpponent'sNormal
+              -- ^ Spell needs an opponent's creature,
+              -- which belongs to Air, Fair, Water, or Earth
+
+            | TargetCaster's    -- ^ Spell needs a caster's creature
+            | TargetCreature    -- ^ Spell needs someone's creature
+            | TargetCasterBlank -- ^ Spell needs a caster's blank slot
   deriving Show
 
 data CreatureCard = CreatureCard
@@ -42,61 +53,27 @@ instance ToJSON Card where
              , "cost" .= cardCost
              ]
     special = case cardEffect of
-                Spell -> [ "type" .= ("spell" :: Text) ]
+                Spell tgt -> [ "type" .= ("spell" :: Text)
+                             , "target" .= tgt
+                             ]
                 Creature CreatureCard { .. } ->
                   [ "type" .= ("creature" :: Text)
                   , "attack" .= creatureAttack
                   , "life"   .=  creatureLife
                   ]
 
-
-instance FromJSON Card where
-  parseJSON = JS.withObject "card object" $ \o ->
-                do cardName        <- o .: "name"
-                   cardDescription <- o .: "description"
-                   cardImage       <- o .: "image"
-                   cardCost        <- parseNumField o "cost"
-                   tag             <- o .: "type"
-                   cardEffect <- case tag :: Text of
-                                   "creature" -> do c <- parseCreature o
-                                                    return (Creature c)
-                                   "spell"    -> return Spell
-                                   _ -> fail ("Unknown card tag: " ++ show tag)
-                   return Card { .. }
-
-parseFromFile :: FilePath -> IO ()
-parseFromFile file =
-  do bytes <- LBS.readFile file
-     case JS.eitherDecode bytes of
-       Left err -> fail err
-       Right cs -> writeFile "Cards.hs" (ppShow (cs :: Cards))
-
+instance ToJSON Target where
+  toJSON t =
+    toJSON $
+    case t of
+      NoTarget         -> "none" :: Text
+      TargetOpponent's -> "opponent_creature"
+      TargetCaster's   -> "catser_creature"
+      TargetCreature   -> "any_creature"
 
 cardsToJSON :: Cards -> JS.Value
 cardsToJSON cs = JS.object [ k .= v | (k,v) <- Map.toList cs ]
 
-parseCards :: JS.Value -> Parser Cards
-parseCards = JS.withObject "categories" $ \o ->
-  do parsedPairs <- forM (HashMap.toList o) $ \(cat,v) ->
-                      do cs <- parseJSON v
-                         return (cat, cs)
-     return (Map.fromList parsedPairs)
-
-parseNumField :: Object -> Text -> Parser Int
-parseNumField o f =
-  do txt <- o .: f
-     case readMaybe txt of
-       Just r  -> return r
-       Nothing -> fail ("Failed to parse nuber in field: " ++ show f)
-
-parseCreature :: Object -> Parser CreatureCard
-parseCreature o =
-  do creatureLife        <- parseNumField o "life"
-     creatureAttackTxt   <- o .: "attack"
-     let creatureAttack = do r <- readMaybe creatureAttackTxt
-                             guard (r >= 0)
-                             return r
-     return CreatureCard { .. }
 
 
 
