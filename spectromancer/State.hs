@@ -15,16 +15,33 @@ import Deck
 
 data Player = Player
   { playerLife    :: Int
-  , playerDeck    :: Deck
+  , playerDeck    :: Map Element [DeckCard]
   , playerPower   :: Map Element Int
-  , playerActive  :: Map Slot Card
+  , playerActive  :: Map Slot DeckCard
   , playerName    :: Text
   } deriving Show
 
+-- | A card in a player's deck.
+data DeckCard = DeckCard
+  { deckCardOrig      :: Card      -- ^ Unmodified deck card
+  , deckCard          :: Card      -- ^ Current version of the card
+  , deckCardEnabled   :: Bool      -- ^ Is it currently playable
+  } deriving Show
+
+
+inactiveCard :: Card -> DeckCard
+inactiveCard deckCardOrig = DeckCard { deckCard = deckCardOrig
+                                     , deckCardEnabled = False
+                                     , ..
+                                     }
+
 newPlayer :: Text -> Deck -> Gen Player
-newPlayer playerName playerDeck =
+newPlayer playerName deck =
   do let playerPower = Map.fromList [ (e,3) | e <- allElements ]
-     return Player { playerLife = startLife, playerActive = Map.empty, .. }
+     return Player { playerLife = startLife
+                   , playerActive = Map.empty
+                   , playerDeck = Map.map (map inactiveCard) deck
+                   , .. }
 
 type Slot = Int
 
@@ -48,27 +65,27 @@ newGame rng (name1,class1) (name2,class2) =
     do (deck1, deck2) <- pickDecks class1 class2
        curPlayer   <- newPlayer name1 deck1
        otherPlayer <- newPlayer name2 deck2
-       return $ \gameRNG -> Game { .. }
+       return $ \gameRNG -> activateCards Game { .. }
 
 playCard :: Element -> Int -> Int -> Game -> Either Text Game
 playCard e n l g
   | l >= 0 && l < slotNum =
-  case c of
+  case mbC of
     Nothing -> Left "Unknown card"
-    Just c  ->
-      Right g
-        { curPlayer = otherPlayer g
-        , otherPlayer = p { playerActive = Map.insert l c (playerActive p) }
-        }
+    Just c  -> Right $ activateCards
+                     $ startTurn
+                     $ switchPlayers
+                       g { curPlayer = p { playerActive =
+                                           Map.insert l c (playerActive p) } }
 
   | otherwise = Left "Invalid location"
   where
   p = curPlayer g
   d = playerDeck p
-  c = do cs <- Map.lookup e d
-         case splitAt n cs of
-           (_,x:_) -> Just x
-           _ -> Nothing
+  mbC = do cs <- Map.lookup e d
+           case splitAt n cs of
+             (_,x:_) -> Just x
+             _ -> Nothing
 
 
 
@@ -77,18 +94,39 @@ newGameIO p1 p2 =
   do gen <- randSourceIO
      return (newGame gen p1 p2)
 
-getActiveDeck :: Game -> Map Element [Int]
-getActiveDeck g = Map.fromListWith (++)
-                    [ (el,[ix]) | (el,cards) <- Map.toList d
-                                , (ix,c) <- zip [ 0 .. ] cards
-                                , hasPower el c
-                                ]
+
+switchPlayers :: Game -> Game
+switchPlayers Game { .. } = Game { curPlayer = otherPlayer
+                                 , otherPlayer = curPlayer }
+
+
+-- | Compute which cards in the deck are playable this turn and
+-- disable opponents cards
+activateCards :: Game -> Game
+activateCards g =
+  g { curPlayer   = c { playerDeck = Map.mapWithKey activate (playerDeck c) }
+    , otherPlayer = o { playerDeck = Map.map      deactivate (playerDeck o) }
+    }
+  where
+  c = curPlayer g
+  o = otherPlayer g
+
+  activate el cards = [ DeckCard { deckCardEnabled = active deckCard, .. }
+                                              | DeckCard { .. } <- cards ]
+    where
+    have = Map.findWithDefault 0 el (playerPower c)
+    active card = cardCost card <= have
+
+
+  deactivate cards = [ d { deckCardEnabled = False } | d <- cards ]
+
+startTurn :: Game -> Game
+startTurn g = g { curPlayer = p1 }
   where
   p = curPlayer g
-  d = playerDeck p
-  hasPower el c = case Map.lookup el (playerPower p) of
-                    Nothing -> False
-                    Just n  -> n >= cardCost c
+  p1 = p { playerPower = fmap (+1) (playerPower p) }
+
+
 
 --------------------------------------------------------------------------------
 -- JSON Serialization
@@ -96,6 +134,12 @@ getActiveDeck g = Map.fromListWith (++)
 jsElementMap :: ToJSON a => Map Element a -> JS.Value
 jsElementMap = JS.object . map toField . Map.toList
   where toField (e,x) = Text.pack (show e) .= x
+
+instance ToJSON DeckCard where
+  toJSON DeckCard { .. } =
+    JS.object [ "card"    .= deckCard -- XXX: add stats from original in desc.
+              , "enabled" .= deckCardEnabled
+              ]
 
 instance ToJSON Player where
   toJSON Player { .. } = JS.object
@@ -107,9 +151,8 @@ instance ToJSON Player where
     ]
 
 instance ToJSON Game where
-  toJSON g@Game { .. } = JS.object
+  toJSON Game { .. } = JS.object
     [ "current"    .= curPlayer
     , "other"      .= otherPlayer
-    , "activeDeck" .= jsElementMap (getActiveDeck g)
     ]
 

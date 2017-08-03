@@ -74,20 +74,27 @@ function drawCard(c) {
   return grp
 }
 
-function drawDeckRow(p,row,cur) {
+function drawDeckCard(c) {
+  if (c === null) return drawCard(null)
+
+  var dom = drawCard(c.card)
+  if (!c.enabled) dom.addClass('disabled')
+  return dom
+}
+
+function drawDeckRow(p,row) {
   var dom = $('<tr/>')
   var pow = $('<td/>').text(row + ': ' + p.power[row])
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
-    var x = drawCard(card)
-    if (cur && !card.disabled) { x.click(setSelected(x,row,ix)) }
-    else x.addClass('disabled')
+    var x = drawDeckCard(card)
+    if (card.enabled) x.click(setSelected(x,row,ix))
     dom.append($('<td/>').append(x))
   })
   return dom
 }
 
-function drawPlayer(p,cur) {
+function drawPlayer(p) {
   var dom = $('<div/>')
             .css('display','inline-block')
             .css('margin', '20px')
@@ -98,7 +105,7 @@ function drawPlayer(p,cur) {
 
   var deckTable = $('<table/>')
   jQuery.each(["Fire","Water","Air","Earth","Special"], function(ix,w) {
-    deckTable.append(drawDeckRow(p,w,cur))
+    deckTable.append(drawDeckRow(p,w))
   })
 
   dom.append(deckTable)
@@ -115,7 +122,7 @@ function drawArena(p1,p2) {
   jQuery.each([0,1,2,3,4,5], function(i,num) {
     var row = $('<tr/>')
     var actL = act1[i]
-    var x = drawCard(actL)
+    var x = drawDeckCard(actL)
     if (actL === null) {
       x.click(function(ev) {
         if (selected === null) return
@@ -128,7 +135,7 @@ function drawArena(p1,p2) {
       })
     }
     row.append($('<td/>').append(x)
-              ,$('<td/>').append(drawCard(act2[i]))
+              ,$('<td/>').append(drawDeckCard(act2[i]))
               )
     dom.append(row)
   })
