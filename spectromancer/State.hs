@@ -1,6 +1,7 @@
 {-# Language OverloadedStrings, RecordWildCards #-}
 module State where
 
+import Data.List(foldl')
 import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Text(Text)
@@ -11,6 +12,7 @@ import qualified Data.Aeson as JS
 import Util.Random(Gen,StdGen, genRandFun, randSourceIO)
 
 import CardTypes
+import CardIds
 import Deck
 
 data Player = Player
@@ -29,6 +31,8 @@ data DeckCard = DeckCard
   , deckCardEnabled   :: Bool      -- ^ Is it currently playable
   } deriving Show
 
+deckCardName :: DeckCard -> Text
+deckCardName = cardName . deckCardOrig 
 
 inactiveCard :: Element -> Card -> DeckCard
 inactiveCard deckCardElement deckCardOrig =
@@ -112,9 +116,9 @@ playCard e n mbL g =
 
           TargetCasterBlank ->
             locWho == Caster &&
-            locWhich >= 0 &&
+            0 >= locWhich &&
             locWhich < slotNum &&
-            not (locWhich `Map.member` playerActive p)
+            not (n `Map.member` playerActive p)
 
           TargetCaster's ->
             locWho == Caster && locWhich `Map.member` playerActive p
@@ -188,6 +192,33 @@ startTurn g = g { curPlayer = p1 }
   p1 = p { playerPower = fmap (+1) (playerPower p) }
 
 
+playerForLocation :: Game -> Location -> Player
+playerForLocation game loc =
+  case locWho loc of
+    Caster   -> curPlayer game
+    Opponent -> otherPlayer game
+
+creatureAt :: Game -> Location -> Maybe DeckCard
+creatureAt game loc = Map.lookup (locWhich loc) $
+                        playerActive (playerForLocation game loc)
+
+creatureLocList :: Game -> [(DeckCard, Location)]
+creatureLocList game = extractSide Caster curPlayer ++ extractSide Opponent otherPlayer
+  where extractSide locWho player = [(cre,Location { .. })  | (locWhich, cre) <- Map.toList (playerActive (player game))]
+
+class HandleEvent event where
+  handleEvent :: Game -> (DeckCard, Location) -> event -> event
+
+
+broadcast :: HandleEvent event => Game -> event -> event
+broadcast game evt =
+  foldl' (\e creature -> handleEvent game creature e) evt (creatureLocList game)
+
+data DetermineCost = DetermineCost DeckCard Integer
+instance HandleEvent DetermineCost where
+  handleEvent _ (c, _) evt@(DetermineCost card currentCost) 
+    | deckCardName c == control_damping_tower = (DetermineCost card (currentCost+1))
+    | otherwise = evt
 
 --------------------------------------------------------------------------------
 -- JSON Serialization
