@@ -1,7 +1,7 @@
 var selected = null
 
-function makeTurn(info) {
-  jQuery.post('/playCard', info, function(g) {
+function makeTurn(url,info) {
+  jQuery.post(url, info, function(g) {
     $('body').fadeOut('slow').empty().append(drawGame(g)).fadeIn()
   })
 }
@@ -10,7 +10,7 @@ function setSource(x,row,ix,cd) {
 
   return function() {
     if (cd.target === 'none') {
-      makeTurn({ element: row.toLowerCase(), card: ix })
+      makeTurn('/playCard', { element: row.toLowerCase(), card: ix })
       return
     }
 
@@ -51,8 +51,9 @@ function setTarget(card,who,i) {
     }
     console.log(selected.card.target,matched)
     if (matched) {
-      makeTurn({ element: selected.row.toLowerCase()
-               , card: selected.ix, loc: i })
+      makeTurn( '/playTargetedCard'
+              , { element: selected.row.toLowerCase()
+               , card: selected.ix, loc: i, who: who })
       return
     }
   }

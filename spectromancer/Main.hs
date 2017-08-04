@@ -9,7 +9,7 @@ import Data.Text(Text)
 
 import Util.Snap(sendJSON, snapIO, badInput, snapParam, snapParamSimpleEnum)
 
-import CardTypes(cardsToJSON)
+import CardTypes(cardsToJSON,Location(..))
 import CardIds
 import Cards(allCards)
 import State
@@ -46,6 +46,7 @@ main =
             , ("getState", snapGetState s)
             , ("newGame",  snapNewGame s)
             , ("playCard", snapPlayCard s)
+            , ("playTargetedCard", snapPlayTargetedCard s)
             ]
            <|> serveDirectory "ui"
 
@@ -67,10 +68,19 @@ snapNewGame s =
 
 snapPlayCard :: ServerState -> Snap ()
 snapPlayCard s =
+  do e  <- snapParamSimpleEnum "element"
+     c  <- snapParam "card"
+     g1 <- modifyState s $ playCard e c Nothing
+     sendJSON (toJSON g1)
+
+snapPlayTargetedCard :: ServerState -> Snap ()
+snapPlayTargetedCard s =
   do e <- snapParamSimpleEnum "element"
      c <- snapParam "card"
-     l <- snapParam "loc" -- snapOptParam "loc"
-     g1 <- modifyState s $ playCard e c l
+     l <- snapParam "loc"
+     w <- snapParamSimpleEnum "who"
+     g1 <- modifyState s $ playCard e c
+                         $ Just Location { locWho = w, locWhich = l }
      sendJSON (toJSON g1)
 
 

@@ -18,6 +18,22 @@ data Card = Card
   , cardEffect      :: CardEffect
   } deriving Show
 
+isCreature :: Card -> Bool
+isCreature c = case cardEffect c of
+                 Creature {} -> True
+                 Spell {}    -> False
+
+isSpell :: Card -> Bool
+isSpell = not . isCreature
+
+
+data Who      = Caster | Opponent
+                deriving (Eq,Ord,Show,Enum,Bounded)
+
+data Location = Location { locWho :: Who, locWhich :: Int }
+                deriving (Eq,Ord,Show)
+
+
 cardTarget :: Card -> Target
 cardTarget c =
   case cardEffect c of

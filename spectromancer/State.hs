@@ -70,18 +70,25 @@ newGame rng (name1,class1) (name2,class2) =
        otherPlayer <- newPlayer name2 deck2
        return $ \gameRNG -> activateCards Game { .. }
 
-playCard :: Element -> Int -> Int -> Game -> Either Text Game
-playCard e n l g
-  | l >= 0 && l < slotNum =
+playCard :: Element -> Int -> Maybe Location -> Game -> Either Text Game
+playCard e n mbL g =
   case mbC of
     Nothing -> Left "Unknown card"
-    Just c  -> Right $ activateCards
-                     $ startTurn
-                     $ switchPlayers
-                       g { curPlayer = p { playerActive =
-                                           Map.insert l c (playerActive p) } }
+    Just c
+      | not (targetOk (cardTarget (deckCard c))) -> Left "Invalid target"
+      | otherwise ->
+        Right $ activateCards
+              $ startTurn
+              $ switchPlayers
+              $ (if isSpell (deckCard c)
+                   then g
+                   else case mbL of
+                          Just l ->
+                           g { curPlayer =
+                             p { playerActive =
+                                  Map.insert (locWhich l) c (playerActive p) } }
+                          _ -> g)
 
-  | otherwise = Left "Invalid location"
   where
   p = curPlayer g
   d = playerDeck p
@@ -89,6 +96,42 @@ playCard e n l g
            case splitAt n cs of
              (_,x:_) -> Just x
              _ -> Nothing
+
+  otherActive = playerActive (otherPlayer g)
+
+  targetOk tgt =
+    case mbL of
+      Nothing ->
+        case tgt of
+          NoTarget -> True
+          _        -> False
+      Just Location { .. } ->
+        case tgt of
+
+          NoTarget -> False
+
+          TargetCasterBlank ->
+            locWho == Caster &&
+            0 >= locWhich &&
+            locWhich < slotNum &&
+            not (n `Map.member` playerActive p)
+
+          TargetCaster's ->
+            locWho == Caster && locWhich `Map.member` playerActive p
+
+          TargetOpponent's ->
+            locWho == Opponent && locWhich `Map.member` otherActive
+
+          TargetOpponent'sNormal ->
+            locWho == Opponent &&
+            (case Map.lookup n otherActive of
+               Just x -> deckCardElement x /= Special
+               _      -> False)
+
+          TargetCreature ->
+            case locWho of
+              Caster   -> locWhich `Map.member` playerActive p
+              Opponent -> locWhich `Map.member` otherActive
 
 
 
