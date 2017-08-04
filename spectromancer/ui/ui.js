@@ -2,7 +2,7 @@ var selected = null
 
 function makeTurn(url,info) {
   jQuery.post(url, info, function(g) {
-    $('body').fadeOut('slow').empty().append(drawGame(g)).fadeIn()
+    $('body').empty().append(drawGame(g))
   })
 }
 
@@ -143,13 +143,16 @@ function drawDeckRow(p,row) {
   return dom
 }
 
-function drawPlayer(p) {
+function drawPlayer(p,r) {
   var dom = $('<div/>')
             .css('display','inline-block')
             .css('margin', '20px')
+
+  var pref = r === 'caster' ? '> ' : ''
+
   var name = $('<h3/>')
              .css('text-align','center')
-             .text(p.name + ' (' + p.life + ')')
+             .text(pref + p.name + ' (' + p.life + ')')
   dom.append(name)
 
   var deckTable = $('<table/>')
@@ -163,7 +166,7 @@ function drawPlayer(p) {
 }
 
 
-function drawArena(p1,p2) {
+function drawArena(p1,p2,r1,r2) {
   var dom = $('<table/>').css('display','inline-block')
                          .css('valign','bottom')
   var act1 = p1.active
@@ -172,8 +175,8 @@ function drawArena(p1,p2) {
     var row = $('<tr/>')
     var actL = act1[i]
     var actR = act2[i]
-    var x = drawDeckCard(actL).click(setTarget(actL, 'caster', i))
-    var y = drawDeckCard(actR).click(setTarget(actR, 'opponent', i))
+    var x = drawDeckCard(actL).click(setTarget(actL, r1, i))
+    var y = drawDeckCard(actR).click(setTarget(actR, r2, i))
     row.append($('<td/>').append(x),$('<td/>').append(y))
     dom.append(row)
   })
@@ -181,11 +184,22 @@ function drawArena(p1,p2) {
 }
 
 function drawGame(g) {
+  var left = g.current
+  var right = g.other
+  var leftR = 'caster'
+  var rightR = 'opponent'
+  if (left.name.localeCompare(right.name) > 0) {
+    left = g.other
+    right = g.current
+    leftR = 'opponent'
+    rightR = 'caster'
+  }
+
   return $('<table/>')
          .append($('<tr/>')
-                .append( $('<td/>').append(drawPlayer(g.current,true))
-                       , $('<td/>').append(drawArena(g.current,g.other))
-                       , $('<td/>').append(drawPlayer(g.other,false))
+                .append( $('<td/>').append(drawPlayer(left,leftR))
+                       , $('<td/>').append(drawArena(left,right,leftR,rightR))
+                       , $('<td/>').append(drawPlayer(right, rightR))
                        ))
 }
 
