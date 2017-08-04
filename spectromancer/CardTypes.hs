@@ -33,6 +33,11 @@ data Who      = Caster | Opponent
 data Location = Location { locWho :: Who, locWhich :: Int }
                 deriving (Eq,Ord,Show)
 
+isNeighbor :: Location -> Location -> Bool
+isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 && abs (locWhich loc1 - locWhich loc2) == 1
+
+isOpposing :: Location -> Location -> Bool
+isOpposing loc1 loc2 = locWho loc1 /= locWho loc2 && locWhich loc1 == locWhich loc2
 
 cardTarget :: Card -> Target
 cardTarget c =
