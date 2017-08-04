@@ -112,9 +112,9 @@ playCard e n mbL g =
 
           TargetCasterBlank ->
             locWho == Caster &&
-            0 >= locWhich &&
+            locWhich >= 0 &&
             locWhich < slotNum &&
-            not (n `Map.member` playerActive p)
+            not (locWhich `Map.member` playerActive p)
 
           TargetCaster's ->
             locWho == Caster && locWhich `Map.member` playerActive p
