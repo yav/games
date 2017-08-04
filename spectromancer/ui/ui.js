@@ -1,9 +1,29 @@
 var selected = null
 
-function makeTurn(url,info) {
+function makeTurn(url,info,tgt) {
+  var newG = null
+  var animFinished = false
+
+  function draw() { $('body').empty().append(drawGame(newG)) }
+
+  if (tgt !== undefined) {
+    finished = false
+    var loc = $(tgt).offset()
+    selected.dom
+      .css('position','absolute')
+      .css('z-index','100')
+      .animate({ left: loc.left, top: loc.top }, 'slow', 'swing', function() {
+         if (newG !== null) draw()
+         else animFinished = true
+      })
+  } else animFinished = true
+
   jQuery.post(url, info, function(g) {
-    $('body').empty().append(drawGame(g))
+    newG = g
+    if (animFinished) draw()
   })
+
+
 }
 
 function setSource(x,row,ix,cd) {
@@ -49,11 +69,12 @@ function setTarget(card,who,i) {
         matched = card !== null
         break
     }
-    console.log(selected.card.target,matched)
     if (matched) {
       makeTurn( '/playTargetedCard'
               , { element: selected.row.toLowerCase()
-               , card: selected.ix, loc: i, who: who })
+               , card: selected.ix, loc: i, who: who }
+              , this
+              )
       return
     }
   }
