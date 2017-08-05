@@ -108,6 +108,15 @@ function stat(x,t,l,c) {
 
 }
 
+function drawCardWithExplanation(c) {
+  return $('<table/>')
+         .append( $('<tr/>')
+                  .append($('<td/>').attr('colspan','2').text(c.name))
+                , $('<tr/>')
+                 .append($('<td/>').append(drawCard(c))
+                        ,$('<td/>').text(c.description)))
+}
+
 function drawCard(c) {
 
   var grp = $('<div/>')
@@ -137,7 +146,7 @@ function drawCard(c) {
     grp.append(img('ramka1.png')
               .css('z-index','2'))
     grp.append(stat(c.cost,7,76,'black'))
-    grp.append(stat(c.life,77,76,'green'))
+    grp.append(stat(c.life,77,75,'green'))
     grp.append(stat(c.attack,76,10,'red'))
   }
 
