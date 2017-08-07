@@ -1,7 +1,8 @@
 {-# Language TemplateHaskell #-}
 module Game where
 
-import Control.Lens(makeLenses, (^.), (.~), (%~))
+import Control.Lens(makeLenses, (^.), (.~), (%~), (%%~), failover)
+import Control.Monad((<=<))
 
 import Util.Bag
 
@@ -99,9 +100,15 @@ gameSelectPawn l p g =
 
 -- | Boost the power of the current player.
 gameBoostPawn :: Game -> Maybe Game
-gameBoostPawn = gamePlayerCur
-                  $ (curPlayer . playerTokens) (bagRemove 1 PowerBoost)
-                  . (curPlayerPawn %~ fmap (curPawnPowerBoost %~ (+1)))
+gameBoostPawn =
+  gamePlayerCur %%~ (
+    curPlayer . playerTokens %%~ bagRemove 1 PowerBoost
+     <=<
+    failover (curPlayerPawn . traverse . curPawnPowerBoost) (+1)
+  )
+
+
+
 
 
 
