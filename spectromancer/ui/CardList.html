@@ -24,6 +24,7 @@ function dumpAllCards() {
                  .css('width','48%')
                  .append(drawCardWithExplanation(c)))
       })
+      if (r !== null) tab.append(r)
       b.append(tab)
     })
   })
