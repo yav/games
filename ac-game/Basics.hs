@@ -47,7 +47,7 @@ data Token =
     PowerBoost
   | SpeedBoost
   | ShareSpace
-    deriving (Eq,Ord)
+    deriving (Eq,Ord,Show)
 
 data Tile =
     UpgradePower
@@ -59,5 +59,4 @@ data Tile =
   | InvsetInPower
   | InverstInSpeed
   | InvestInSharing
-
-
+    deriving Show

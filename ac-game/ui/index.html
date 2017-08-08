@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="jquery.js"></script>
+<script src="draw.js"></script>
+<script>
+$(document).ready(function() {
+  jQuery.post('/getState',{},function(g) {
+    $('body').empty().append(drawGame(g))
+  })
+})
+</script>
+</head>
+<body></body>
+</html>
+
