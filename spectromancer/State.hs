@@ -54,9 +54,9 @@ type Slot = Int
 
 
 data Game = Game
-  { curPlayer   :: Player
-  , otherPlayer :: Player
-  , gameRNG     :: StdGen
+  { curPlayer     :: Player
+  , otherPlayer   :: Player
+  , gameRNG       :: StdGen
   } deriving Show
 
 
@@ -73,6 +73,15 @@ newGame rng (name1,class1) (name2,class2) =
        curPlayer   <- newPlayer name1 deck1
        otherPlayer <- newPlayer name2 deck2
        return $ \gameRNG -> activateCards Game { .. }
+
+removeCreature :: Location -> Game -> Game
+removeCreature l g =
+  case locWho l of
+    Caster   -> g { curPlayer = rm (curPlayer g) }
+    Opponent -> g { otherPlayer = rm (otherPlayer g) }
+  where
+  rm p = p { playerActive = Map.delete (locWhich l) (playerActive p) }
+
 
 playCard :: Element -> Int -> Maybe Location -> Game -> Either Text Game
 playCard e n mbL g =
@@ -203,8 +212,12 @@ creatureAt game loc = Map.lookup (locWhich loc) $
                         playerActive (playerForLocation game loc)
 
 creatureLocList :: Game -> [(DeckCard, Location)]
-creatureLocList game = extractSide Caster curPlayer ++ extractSide Opponent otherPlayer
-  where extractSide locWho player = [(cre,Location { .. })  | (locWhich, cre) <- Map.toList (playerActive (player game))]
+creatureLocList game = extractSide Caster   curPlayer ++
+                       extractSide Opponent otherPlayer
+  where
+  extractSide locWho player =
+    [(cre,Location { .. })
+        | (locWhich, cre) <- Map.toList (playerActive (player game))]
 
 class HandleEvent event where
   handleEvent :: Game -> (DeckCard, Location) -> event -> event
@@ -214,10 +227,26 @@ broadcast :: HandleEvent event => Game -> event -> event
 broadcast game evt =
   foldl' (\e creature -> handleEvent game creature e) evt (creatureLocList game)
 
-data DetermineCost = DetermineCost DeckCard Integer
+getCost :: Game -> Who -> Int
+getCost g who = detCost (broadcast g start)
+  where
+  start = DetermineCost { detCostOwner = who, detCost = 0 }
+
+data DetermineCost = DetermineCost
+  { detCostOwner :: Who
+  , detCost      :: Int
+  }
+
+isOurs :: Location -> DetermineCost -> Bool
+isOurs loc evt = detCostOwner evt == locWho loc
+
+
 instance HandleEvent DetermineCost where
-  handleEvent _ (c, _) evt@(DetermineCost card currentCost) 
-    | deckCardName c == control_damping_tower = (DetermineCost card (currentCost+1))
+  handleEvent _ (c, loc) evt
+    | isOurs loc evt = evt -- we do not modify our own cards
+    | deckCardName c == control_damping_tower =
+       evt { detCost = detCost evt + 1 }
+
     | otherwise = evt
 
 --------------------------------------------------------------------------------
