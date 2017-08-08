@@ -6,7 +6,7 @@
 <script>
 $(document).ready(function() {
   jQuery.post('/getState',{},function(g) {
-    $('body').empty().append(drawGame(g))
+    $('body').append(drawBoard(g.board.tiles))
   })
 })
 </script>
