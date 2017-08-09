@@ -2,7 +2,9 @@
 module Effects where
 
 import qualified Data.Map as Map
+import           Data.Text (Text)
 import qualified Data.Text as Text
+import Control.Monad(when)
 
 import CardTypes
 import CardIds
@@ -77,8 +79,11 @@ checkDeath =
   checkCreature l =
     do mb <- getCreatureAt l
        case mb of
-         Just c | creatureLife (creatureCard c) <= 0 -> creatureDie (l,c)
-         _                                           -> return ()
+         Just c | creatureLife (creatureCard c) <= 0 ->
+            do updPlayer_ (locWho l) (playerRemoveSlot (locWhich l))
+               creatureDie (l,c)
+               mapM_ (`creatureDied` l) (slotsFor Caster ++ slotsFor Opponent)
+         _  -> return ()
 
 
 
@@ -88,13 +93,49 @@ checkDeath =
 -- Things that can happen to summoned creatures
 
 
+creatureReact ::
+  [(Text, (Location,DeckCard) -> Location -> GameM ())]
+                                              {- ^ Special abilities -} ->
+  Location {- ^ Creature that is reacting -} ->
+  Location {- ^ Location of the arget causing the reaction -} ->
+  GameM ()
+creatureReact ab = \cl tgtl ->
+  do mb <- getCreatureAt cl
+     case mb of
+       Nothing -> return ()
+       Just c ->
+         case Map.lookup (deckCardName c) abilities of
+           Nothing  -> return ()
+           Just act -> act (cl,c) tgtl
+  where
+  abilities = Map.fromList ab
+
+
+
 -- | Actions take by another creature, when a creature is summoned.
 -- (e.g., "Dwarven Riflemen")
 creatureSummoned ::
   Location {- ^ actor -} ->
   Location {- ^ summoned creature -} ->
-  Game -> Game
-creatureSummoned = undefined
+  GameM ()
+creatureSummoned = creatureReact
+    [ (mechanical_dwarven_rifleman,
+       \_ sl -> creatureTakeDamage Effect 4 sl
+      )
+    ]
+
+
+creatureDied ::
+  Location {- ^ actor -} ->
+  Location {- ^ where the killed creature was (it is not there anymore) -} ->
+  GameM ()
+creatureDied = creatureReact
+  [ (death_keeper_of_death, \(cl,_) dl ->
+       do let owner = locWho cl
+          when (owner /= locWho dl) $    -- opponents creature died
+            updPlayer_ owner (playerPowerUpdate Special (+1))
+    )
+  ]
 
 data DamageSource = Attack | Effect
 
@@ -106,29 +147,48 @@ creatureTakeDamage dmg amt l =
      case mb of
        Nothing -> return ()
        Just c ->
+        -- XXX: Neighbours could affect how much damage we shoudl actualy
+        -- take...
          case Map.lookup (deckCardName c) abilities of
-           Just act -> act
-           Nothing ->
-              let cre   = creatureCard c
-                  cre'  = cre { creatureLife = creatureLife cre - amt }
-                  c'    = c { deckCard = (deckCard c)
-                                            { cardEffect = Creature cre' } }
-                  upd p = p { playerActive =
-                                Map.insert (locWhich l) c' (playerActive p) }
-              in updPlayer_ (locWho l) upd
-
-
+           Just act -> act c
+           Nothing  -> doDamage c amt
   where
   abilities = Map.fromList
-    [
+    [ (water_giant_turtle, \c -> doDamage c (amt - 5))
+    , (water_ice_golem, \c -> case dmg of
+                                Attack -> doDamage c amt
+                                _      -> return ())
     ]
+
+  doDamage c am = doDamage' c am >> return ()
+
+  doDamage' c am =
+    do let cre   = creatureCard c
+           dmgDone = min (creatureLife cre) (max 0 am)
+           cre'  = cre { creatureLife = creatureLife cre - dmgDone }
+           c'    = c { deckCard = (deckCard c) { cardEffect = Creature cre' } }
+           upd p = p { playerActive =
+                      Map.insert (locWhich l) c' (playerActive p) }
+       updPlayer_ (locWho l) upd -- XXX: Log something
+       return dmgDone
 
 
 -- | Effects that happen when a creature dies.
 -- The location is where the crature used to be, but it would have
 -- already been removed by the time we call this function.
 creatureDie :: (Location,DeckCard) -> GameM ()
-creatureDie = undefined
+creatureDie (l,c) =
+  case Map.lookup (deckCardName c) abilities of
+    Nothing  -> return ()
+    Just act -> act
+  where
+  abilities = Map.fromList
+    [ (air_phoenix, updPlayer_ (locWho l) $ \p ->
+                      if playerPowerAt p Fire >= 10
+                         then let newCard = c { deckCard = deckCardOrig c }
+                              in playerSetSlot (locWhich l) newCard p
+                         else p)
+    ]
 
 -- | The creature at the given location performs its attack, if any.
 creatureAttack :: Location -> Game -> Game

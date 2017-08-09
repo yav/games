@@ -8,6 +8,7 @@ import Data.Text(Text)
 import qualified Data.Text as Text
 import Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
+import Data.Maybe(fromMaybe)
 
 import Util.Random(Gen,StdGen, genRandFun, randSourceIO)
 
@@ -22,6 +23,24 @@ data Player = Player
   , playerActive  :: Map Slot DeckCard
   , playerName    :: Text
   } deriving Show
+
+playerPowerAt :: Player -> Element -> Int
+playerPowerAt p e = Map.findWithDefault 0 e (playerPower p)
+
+playerPowerUpdate :: Element -> (Int -> Int) -> Player -> Player
+playerPowerUpdate e f p = p { playerPower = Map.alter upd e (playerPower p) }
+  where upd = Just . f . fromMaybe 0
+
+playerAlterSlot ::
+  Slot -> (Maybe DeckCard -> Maybe DeckCard) -> Player -> Player
+playerAlterSlot slot f p = p { playerActive = Map.alter f slot (playerActive p)}
+
+playerRemoveSlot :: Slot -> Player -> Player
+playerRemoveSlot s = playerAlterSlot s (const Nothing)
+
+playerSetSlot :: Slot -> DeckCard -> Player -> Player
+playerSetSlot s d = playerAlterSlot s (const (Just d))
+
 
 -- | A card in a player's deck.
 data DeckCard = DeckCard
@@ -63,6 +82,11 @@ data Game = Game
   , otherPlayer   :: Player
   , gameRNG       :: StdGen
   } deriving Show
+
+gamePlayer :: Who -> Game -> Player
+gamePlayer w g = case w of
+                   Caster   -> curPlayer g
+                   Opponent -> otherPlayer g
 
 gameUpdatePlayer :: Who -> (Player -> Player) -> Game -> Game
 gameUpdatePlayer w f g =

@@ -99,8 +99,6 @@ getCreaturesFor w =
   addSlot _ Nothing  = Nothing
   addSlot l (Just x) = Just (l,x)
 
-
-
 updPlayer_ :: Who -> (Player -> Player) -> GameM ()
 updPlayer_ w f = updGame_ (gameUpdatePlayer w f)
 
