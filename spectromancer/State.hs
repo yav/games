@@ -32,7 +32,12 @@ data DeckCard = DeckCard
   } deriving Show
 
 deckCardName :: DeckCard -> Text
-deckCardName = cardName . deckCardOrig 
+deckCardName = cardName . deckCardOrig
+
+creatureCard :: DeckCard -> CreatureCard
+creatureCard dc = case cardEffect (deckCard dc) of
+                    Creature c -> c
+                    _          -> error "[bug]: not a creature"
 
 inactiveCard :: Element -> Card -> DeckCard
 inactiveCard deckCardElement deckCardOrig =
@@ -59,9 +64,12 @@ data Game = Game
   , gameRNG       :: StdGen
   } deriving Show
 
+gameUpdatePlayer :: Who -> (Player -> Player) -> Game -> Game
+gameUpdatePlayer w f g =
+  case w of
+    Caster   -> g { curPlayer   = f (curPlayer g) }
+    Opponent -> g { otherPlayer = f (otherPlayer g) }
 
-slotNum :: Int
-slotNum = 6
 
 startLife :: Int
 startLife = 60

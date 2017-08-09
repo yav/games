@@ -30,8 +30,32 @@ isSpell = not . isCreature
 data Who      = Caster | Opponent
                 deriving (Eq,Ord,Show,Enum,Bounded)
 
+theOtherOne :: Who -> Who
+theOtherOne w =
+  case w of
+    Caster   -> Opponent
+    Opponent -> Caster
+
 data Location = Location { locWho :: Who, locWhich :: Int }
                 deriving (Eq,Ord,Show)
+
+-- | Note that this might return a location outside the board.
+leftOf :: Location -> Location
+leftOf l = l { locWhich = locWhich l - 1 }
+
+-- | Note that this might return a location outside the board.
+rightOf :: Location -> Location
+rightOf l = l { locWhich = locWhich l + 1 }
+
+oppositeOf :: Location -> Location
+oppositeOf l = l { locWho = theOtherOne (locWho l) }
+
+slotNum :: Int
+slotNum = 6
+
+slotsFor :: Who -> [ Location ]
+slotsFor locWho = map mk (take slotNum [ 0 .. ])
+  where mk locWhich = Location { .. }
 
 isNeighbor :: Location -> Location -> Bool
 isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 && abs (locWhich loc1 - locWhich loc2) == 1
