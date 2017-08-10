@@ -5,6 +5,7 @@ module Board
   , boardTiles
   , boardPawns
   , boardLocOwner
+  , boardHasLoc
 
   , Pawns
   , newPawn
@@ -28,6 +29,7 @@ module Board
 import Data.Map(Map)
 import qualified Data.Map as Map
 import Control.Lens(makeLenses, (^.), (^?), ix)
+import qualified Data.Text as Text
 
 import Util.Perhaps
 
@@ -36,7 +38,7 @@ import Basics
 type TileLoc = (Int,Int)
 
 data PawnLoc = PawnLoc Int Int
-  deriving (Eq,Ord)
+  deriving (Eq,Ord,Show)
 
 
 
@@ -69,11 +71,15 @@ testLayout = Map.fromList
 boardNew :: Map TileLoc Tile -> Board
 boardNew ts = Board { _boardTiles = ts, _boardPawns = Map.empty }
 
+boardHasLoc :: Board -> PawnLoc -> Bool
+boardHasLoc b l = any present (pawnTiles l)
+  where present x = Map.member x (b ^. boardTiles)
+
 -- | Get the player who owns a particular location, if any.
-boardLocOwner :: PawnLoc -> Board -> Perhaps (Maybe PlayerId)
+boardLocOwner :: PawnLoc -> Board -> Maybe PlayerId
 boardLocOwner l b =
-  do ps <- perhaps "Location not on the board." (b ^? boardPawns . ix l)
-     return (ps ^? ix 0 . pawnPlayer)
+  do ps <- b ^? boardPawns . ix l
+     ps ^? ix 0 . pawnPlayer
 
 
 -- | Remove a specific pawn from a location.
@@ -133,7 +139,7 @@ pawnTiles (PawnLoc x y) = (x',y') : more
 
   left      = (x' - 1, y')
   below     = (x', y' - 1)
-  leftBelow = (x' - 1, y - 1)
+  leftBelow = (x' - 1, y' - 1)
 
   more =
     case (xr == 0, yr == 0) of

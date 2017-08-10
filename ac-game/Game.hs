@@ -120,17 +120,17 @@ gameSelectPawn l p g =
 
 -- | Place one of the unallocated workers on the board.
 gamePlaceNewWorker :: PawnLoc -> Game -> Perhaps Game
-gamePlaceNewWorker l g = g & gamePlayerCur %%~ upd
+gamePlaceNewWorker l g = g & (gamePlayerCur %%~ upd)
+                           . (gameBoard . boardPawns %~ newPawn l pid)
   where
+  pid = g ^. gamePlayerCur . curPlayer . playerId
   upd cp =
-    case cp ^. curPlayerPawn of
-      Just _  -> fail "A pawn is already selected."
-      Nothing ->
-        do let decWorker n = guard (n > 0) >> return (n - 1)
-           cp1 <- perhaps "Insufficient workers"
+    do let decWorker n = guard (n > 0) >> return (n - 1)
+       cp1 <- perhaps "Insufficient workers"
                 $ cp & curPlayer . playerWorkers %%~ decWorker
 
-           gameEnterLocation g l cp1
+       gameEnterLocation g l cp1
+
 
 
 
@@ -167,20 +167,22 @@ gameMove l g = g & gamePlayerCur %%~ upd
               else let pawn1 = pawn & curPawnMovement %~ subtract 1
                    in return $ cp & curPlayerPawn .~ Just pawn1
 
-       gameEnterLocation g l cp1
+       cp2 <- gameEnterLocation g l cp1
+       return (cp2 & curPlayerPawn . mapped . curPawnLoc .~ l)
 
 -- | Place a pawn on the given location.
 -- Checks that the space is on the board, and if it is occupied, that
 -- the player can pay the necessary cost.
 gameEnterLocation :: Game -> PawnLoc -> CurPlayer -> Perhaps CurPlayer
 gameEnterLocation g l cp =
-  do owner <- boardLocOwner l (g ^. gameBoard)
-     let blocked = maybe False (/= cp ^. curPlayer . playerId) owner
-     cp1 <- if blocked
-              then perhaps "The space is occupied" $
+  do checkThat (boardHasLoc (g ^. gameBoard) l)
+        "The location is outside the board."
+     let owner = boardLocOwner l (g ^. gameBoard)
+         blocked = maybe False (/= cp ^. curPlayer . playerId) owner
+     if blocked
+       then perhaps "The space is occupied" $
                      cp & curPlayer . playerTokens %%~ bagRemove 1 ShareSpace
-              else return cp
-     return (cp1 & curPlayerPawn . mapped . curPawnLoc .~ l)
+       else return cp
 
 
 

@@ -11,12 +11,13 @@ import Util.Snap(sendJSON, snapIO, badInput, snapParam, snapParamSimpleEnum)
 import Util.Perhaps(Perhaps(..))
 
 import Game
+import Board
 import Board(testLayout)
 import JSON()
 
 data ServerState = ServerState
   { readState :: Snap Game
-  , modifyState :: (Game -> Either Text Game) -> Snap Game
+  , modifyState :: (Game -> Perhaps Game) -> Snap Game
   }
 
 newServerState :: Game -> IO ServerState
@@ -25,12 +26,13 @@ newServerState g0 =
      let readState = snapIO $ readIORef s
          modifyState f =
            do r <- snapIO $ atomicModifyIORef' s $ \g ->
-                            case f g of
-                              Left err -> (g,Left err)
-                              Right g1 -> (g1, Right g1)
+                             let it = f g
+                             in case f g of
+                                  Failed err -> (g,it)
+                                  Ok g1 -> (g1,it)
               case r of
-                Left err -> badInput err
-                Right g  -> return g
+                Failed err -> badInput err
+                Ok g     -> return g
      return ServerState { .. }
 
 main :: IO ()
@@ -42,6 +44,7 @@ main =
      quickHttpServe $
           route
             [ ("getState", snapGetState s)
+            , ("newWorker", snapNewWorker s)
             ]
            <|> serveDirectory "ui"
 
@@ -50,4 +53,16 @@ snapGetState :: ServerState -> Snap ()
 snapGetState s =
   do game <- readState s
      sendJSON (toJSON game)
+
+snapNewWorker :: ServerState -> Snap ()
+snapNewWorker s =
+  do l <- getLoc
+     g <- modifyState s (gamePlaceNewWorker l)
+     sendJSON (toJSON g)
+
+getLoc :: Snap PawnLoc
+getLoc =
+  do x <- snapParam "x"
+     y <- snapParam "y"
+     return (PawnLoc x y)
 

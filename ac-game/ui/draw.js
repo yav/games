@@ -1,191 +1,287 @@
-function drawPawnLoc(tiles,x,y) {
-  var sz = 64
-  var sm = sz / 2
-  var smaller = 4
-  var sm1 = sm - smaller
+var pawn_spot_sz = 64
+var tile_size = 3 * pawn_spot_sz
+var action = null
+var selected = false
 
-  var evx = x % 2 === 0
-  var evy = y % 2 === 0
+function pawnCoordToTiles(x,y) {
+  var tx = Math.floor(x/2)
+  var ty = Math.floor(y/2)
+  var ex = x % 2 == 0
+  var ey = y % 2 == 0
 
-  function color(a,b) {
-    return (a >= 0 && b >= 0 && tiles[a] && tiles[a][b]) ?
-                      '#090' : 'rgba(0,0,0,0)'
-  }
+  var t = [tx, ty]
+  var l = [tx - 1, ty]
+  var b = [tx, ty - 1]
+  var bl = [ tx - 1, ty - 1 ]
 
+  return ex? (ey? [ t, b, bl, l ] : [ t, l ] )
+           : (ey? [ t, b ]        : [ t ])
+}
 
-  var qw = evx ? sm1 : sm
-  var qh = evy ? sm1 : sm
-
-  var tx = Math.floor(x / 2)
-  var ty = Math.floor(y / 2)
-
-  var bl
-  var br
-  var tl
-  var tr
-
-  if (evx) {
-    if (evy) {
-      bl = color(tx - 1, ty - 1)
-      br = color(tx, ty - 1)
-      tl = color(tx - 1, ty)
-      tr = color(tx, ty)
-    } else {
-      bl = tl = color(tx - 1, ty)
-      br = tr = color(tx,ty)
-    }
-  } else {
-    if (evy) {
-      bl = br = color(tx, ty - 1)
-      tl = tr = color(tx, ty)
-    } else {
-      bl = br = tl = tr = color(tx,ty)
-    }
-
-  }
-
-
-  function quad(c,hor,ver) { return $('<div/>')
-                           .css('position','absolute')
-                           .css('width', qw + 'px')
-                           .css('height', qh + 'px')
-                           .css('background-color', c)
-                           .css(hor,0)
-                           .css(ver,0)
-
-  }
-
-
-
-  return $('<td/>')
-          .append($('<div/>')
-                  .attr('id', x + '_' + y)
-                  .css('position','relative')
-                  .css('width', sz + 'px')
-                  .css('height', sz + 'px')
-                  .append( quad(bl,'left','bottom')
-                         , quad(br,'right','bottom')
-                         , quad(tl,'left','top')
-                         , quad(tr,'right','top')
-                         ))
-          .click(function() { console.log(x,y) })
+function getTile(tiles,a) {
+  var row = tiles[a[1]]
+  return row && row[a[0]]
 }
 
 
 
-function drawBoard(tiles) {
+function addPawnLoc(board, tiles, x, y) {
+  var ts = pawnCoordToTiles(x,y)
+  var have = false
+  jQuery.each(ts, function(ix,t) {
+    have = getTile(tiles,t)
+    if (have) return false
+  })
+  if (!have) return
 
-  tiles[1][1] = null
-  var w = 3
-  var h = 3
 
-  var ph = 2 * h
-  var pw = 2 * w
-
-  var table = $('<table/>')
-              .css('border-spacing', '0px')
-              .css('border-collapse', 'true')
-  for (var y = ph; y >= 0; --y) {
-    var tr = $('<tr>')
-    for (var x = 0; x <= pw; ++x) {
-      tr.append(drawPawnLoc(tiles,x,y))
-    }
-    table.append(tr)
-  }
-
-  return table
+  var sz = pawn_spot_sz
+  board.append($('<div/>')
+               .css('width', sz + 'px')
+               .css('height', sz + 'px')
+               .css('background-color', 'rgba(0,0,0,0.25)')
+               .css('border-radius', sz/6)
+               .css('position', 'absolute')
+               .css('left', realPawnLoc(x) + 'px')
+               .css('bottom', realPawnLoc(y) + 'px')
+               .css('z-index', '2')
+               .click(function() {
+                console.log(x,y)
+                  if (action) {
+                    toServer({x:x,y:y})
+                  }
+               })
+              )
 }
 
-function drawPawn(x,y) {
-  var dom = $('<div/>')
-            .css('width','46px')
-            .css('height','46px')
-            .css('border-radius','24px')
-            .css('border', '2px solid black')
-            .css('background-color','#fc6')
-            .css('position','absolute')
-            .css('left','8px')
-            .css('top','8px')
-            .css('z-index','10')
-  $('#' + x + '_' + y).append(dom)
+function realPawnLoc(d) { return (1.5 * d - 0.5) * pawn_spot_sz }
+
+function addTile(board,tiles,x,y) {
+  var lab = getTile(tiles,[x,y])
+  if (!lab) return
+
+  var border = 2
+
+  var sz = tile_size - 2 * border
+
+  var left = x * tile_size
+  var bot  = y * tile_size
+
+  var l = $('<div/>')
+          .css('background-color','rgba(255,255,255,0.5)')
+          .css('border-radius','3px')
+          .css('position','absolute')
+          .css('left', (left + 0.5 * pawn_spot_sz) + 'px')
+          .css('bottom',  (bot + 2.1 * pawn_spot_sz) + 'px')
+          .css('padding','2px')
+          .text(lab)
+
+  board.append(
+      $('<div/>')
+      .css('width',  sz + 'px')
+      .css('height', sz + 'px')
+      .css('position','absolute')
+      .css('left',    left + 'px')
+      .css('bottom',  bot + 'px')
+      .css('border',border + 'px ' + 'solid black')
+      .css('background-color','#090')
+  , l
+  )
 }
 
 
-function drawGame(g) {
-  console.log(g)
-  var dom = $('<div/>')
+function addPawn(b,p,x,y,ix) {
+  console.log(p)
+  var sz = 0.75 * pawn_spot_sz
+  var off = (pawn_spot_sz - sz) / 2
+  var ssh = 0.80 * sz
+  var ssw = ssh/2
 
-  var tiles = g.board.tiles
-  var boardDom = $('<table/>')
-  jQuery.each(tiles, function(ixY,row) {
-    var tr = $('<tr/>')
-    var y = tiles.length - ixY - 1
-    jQuery.each(row, function(x, t) {
-      tr.append(drawTile(x,y,t))
+  var xx = realPawnLoc(x)
+  var yy = realPawnLoc(y)
+
+  var pow = $('<div/>')
+            .css('width', ssw + 'px')
+            .css('height', ssh + 'px')
+            .css('color','white')
+            .css('background-color','rgba(0,0,0,0.5)')
+            .css('display', 'inline-block')
+            .css('border-top-left-radius',ssh + 'px')
+            .css('border-bottom-left-radius',ssh + 'px')
+            .css('position','relative')
+            .css('top','50%')
+            .css('transform','translateY(-50%)')
+            .css('line-height',ssh + 'px')
+            .text(p.power)
+
+  var mov = $('<div/>')
+            .css('width', ssw + 'px')
+            .css('height', ssh + 'px')
+            .css('color','black')
+            .css('background-color','rgba(255,255,255,0.5)')
+            .css('display', 'inline-block')
+            .css('border-top-right-radius',ssh + 'px')
+            .css('border-bottom-right-radius',ssh + 'px')
+            .css('position','relative')
+            .css('top','50%')
+            .css('transform','translateY(-50%)')
+            .css('line-height',ssh + 'px')
+            .text(p.speed)
+
+
+  var d = $('<div/>')
+          .css('width',sz + 'px')
+          .css('height',sz + 'px')
+          .css('border-radius', sz + 'px')
+          .css('background-color', playerColor(p.player))
+          .css('color', playerFgColor(p.player))
+          .css('position','absolute')
+          .css('border', '1px solid black')
+          .css('left', (xx+off) + 'px')
+          .css('bottom', (yy+off - (ix * 5)) + 'px')
+          .css('text-align','center')
+          .css('z-index', 40 - ix)
+
+  b.append(d.append(pow, mov))
+}
+
+
+function drawBoard(b) {
+  var ts = b.tiles
+  var h = ts.length
+  var w = ts[0].length  // assumes non-empty rows
+
+  var board = $('<div/>')
+              .css('position','relative')
+              .css('display','inline-block')
+              .css('vertical-align','top')
+              .css('width',  tile_size * w + 'px')
+              .css('height', tile_size * h + 'px')
+              .css('margin', pawn_spot_sz + 'px')
+              .css('border', '1px solid black')
+
+  for (var x = 0; x < w; ++ x)
+    for (var y = 0; y < h; ++ y)
+      addTile(board,ts,x,y)
+
+
+  for (var x = 0; x <= 2 * w; ++ x)
+    for (var y = 0; y <= 2 * h; ++ y)
+      addPawnLoc(board,ts,x,y)
+
+  jQuery.each(b.pawns, function(ix,p) {
+    jQuery.each(p.pawns, function(pix,pa) {
+      addPawn(board,pa,p.loc.x,p.loc.y,pix)
     })
-    boardDom.append(tr)
   })
 
-  dom.append(boardDom)
+  return board
 
-  return dom
 }
 
-function drawTile(x,y,lab) {
+function playerColor(x) {
+  if (x == 0) return 'orange'
+  if (x == 1) return 'purple'
+  if (x == 2) return 'yellow'
+  if (x == 3) return 'green'
+}
 
-  var dom = $('<td/>').css('text-align','center')
-  if (lab === null || x == 1 && y == 1) return dom
+function playerFgColor(x) {
+  if (x == 1) return 'white'
+  return 'black'
 
+}
 
-  var sz = 200
+function drawPlayerShell(p) {
+  var s = $('<div/>')
+          .css('display','inline-block')
+          .css('color',playerFgColor(p.id))
+          .css('background-color',playerColor(p.id))
+          .css('border-radius','5px')
+          .css('margin','1em')
+          .css('padding','0.3em')
+  return s
+}
 
-  var div = $('<div/>')
-            .css('width', sz + 'px')
-            .css('height', sz + 'px')
-            .css('background-color','#090')
-            .css('position','relative')
-            .css('overflow', 'hidden')
-            .css('border', '3px solid black')
+function drawPlayerStat(l,a) {
+    return $('<tr/>')
+           .append( $('<td/>').css('font-weight','bold').text(l)
+                  , $('<td/>').text(a)
+                  )
+}
 
-  var txt = $('<div/>').text(lab)
-            .css('position','absolute')
-            .css('top',  1.2 * (sz/6) + 'px')
-            .css('left', 1.2 * (sz/6) + 'px')
-            .css('font-weight','bold')
-  div.append(txt)
+function toServer(i) {
+  jQuery.post(action,i,drawGame)
+        .fail(function(x) {
+            console.log(x)
+            $('#message').empty().text(x.statusText)
+        })
+}
 
-  for (var r = 0; r < 3; ++r) {
-    for (var c = 0; c < 3; ++c) {
-      div.append(drawBasicPawnLoc(sz,x,y,r,c))
-    }
+function clickable(x,f) {
+  x.css('cursor','pointer')
+   .click(f)
+}
+
+function drawPlayer(p) {
+  var sh = drawPlayerShell(p)
+  var t = $('<table>')
+  sh.append(t)
+  t.append( drawPlayerStat('workers',p.workers)
+          , drawPlayerStat('power',p.powerBoost)
+          , drawPlayerStat('move',p.speedBoost)
+          , drawPlayerStat('share',p.shareSpace)
+          )
+
+  return sh
+}
+
+function drawCurPlayer(b,cp) {
+  console.log(cp)
+  var p = cp.player
+  var sh = drawPlayerShell(p)
+  var t = $('<table>')
+  sh.append(t)
+  var ws = drawPlayerStat('workers',p.workers)
+
+  if (p.workers > 0) clickable(ws,function() {
+    console.log('new worker')
+    action = '/newWorker'
+  })
+
+  var pow = drawPlayerStat('power',p.powerBoost)
+
+  if (p.power > 0 && cp.pawn) {
+    console.log('boost')
   }
 
-  return dom.append(div)
+  if (cp.pawn) {
+    action = '/move'
+    selected = true
+  }
+
+
+  t.append( ws
+          , pow
+          , drawPlayerStat('move',p.speedBoost)
+          , drawPlayerStat('share',p.shareSpace)
+          )
+
+  return sh
 }
 
+function drawGame(g) {
+  var d = $('<div/>')
+  var b = drawBoard(g.board)
 
-function drawBasicPawnLoc(sz,x,y,r,c) {
-  var dom = $('<dom/>')
+  d.append( b
+          , drawCurPlayer(b,g.player)
+          )
 
-  var half = sz / 6
+  jQuery.each(g.players, function(ix,p) {
+    d.append(drawPlayer(p))
+  })
 
-  var xx = 2*x + c
-  var yy = 2*y + r
 
-  var nm = xx + '_' + yy
-
-  if (r < 2 && c < 2) { dom.attr('id',nm) }
-
-  dom.addClass(nm)
-     .css('background-color', 'rgba(255,255,255,0.25)')
-     .css('width', (2 * half) + 'px')
-     .css('height', (2 * half) + 'px')
-    // .css('border-radius',half + 'px')
-     .css('position','absolute')
-     .css('left', ((3*c - 1) * half) + 'px')
-     .css('bottom', ((3*r - 1) * half) + 'px')
-     .click(function() { console.log(xx,yy) })
-
-  return dom
+  $('#game').empty().append(d)
 }
-

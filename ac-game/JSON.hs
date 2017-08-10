@@ -43,10 +43,11 @@ instance ToJSON Tile where
   toJSON = toJSON . show  -- XXX?
 
 jsPawns :: Pawns -> JS.Value
-jsPawns m = JS.object [ jsPawnLoc l .= ps | (l,ps) <- Map.toList m ]
+jsPawns m = toJSON [ JS.object [ "loc" .= l, "pawns" .= ps ]
+                                            | (l,ps) <- Map.toList m ]
 
-jsPawnLoc :: PawnLoc -> Text
-jsPawnLoc (PawnLoc x y) = Text.pack (show x ++ "_" ++ show y)
+instance ToJSON PawnLoc where
+  toJSON (PawnLoc x y) = JS.object [ "x" .= x, "y" .= y ]
 
 instance ToJSON Player where
   toJSON p = JS.object [ "id"         .= (p ^. playerId)
@@ -59,7 +60,7 @@ instance ToJSON Player where
 
 instance ToJSON CurPawn where
   toJSON cp = JS.object [ "pawn"  .= (cp ^. curPawn)
-                        , "loc"   .= jsPawnLoc (cp ^. curPawnLoc)
+                        , "loc"   .= (cp ^. curPawnLoc)
                         , "boost" .= (cp ^. curPawnPowerBoost)
                         , "move"  .= (cp ^. curPawnMovement)
                         ]

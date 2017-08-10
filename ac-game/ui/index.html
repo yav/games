@@ -6,11 +6,14 @@
 <script>
 $(document).ready(function() {
   jQuery.post('/getState',{},function(g) {
-    $('body').append(drawBoard(g.board.tiles))
+    drawGame(g)
   })
 })
 </script>
 </head>
-<body></body>
+<body>
+<div id="message"></div>
+<div id="game"></div>
+</body>
 </html>
 
