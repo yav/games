@@ -120,7 +120,8 @@ creatureSummoned ::
   GameM ()
 creatureSummoned = creatureReact
     [ (mechanical_dwarven_rifleman,
-       \_ sl -> creatureTakeDamage Effect 4 sl
+       \(cl,_) sl -> when (locWho cl /= locWho sl)
+                       $ creatureTakeDamage Effect 4 sl
       )
     ]
 
