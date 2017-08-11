@@ -5,10 +5,11 @@ import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import Control.Monad(when)
+import Control.Lens((&), to, (^.),(.~),(%~))
 
 import CardTypes
 import CardIds
-import State
+import Game
 import GameMonad
 import Deck(Element(..),allElements)
 
@@ -40,8 +41,7 @@ generatePower =
          theirEffect = concatMap (creatureModifyPowerGrowth Opponent) theirs
          changes     = Map.fromListWith (+)
                           (baseGrowth ++ ourEffects ++ theirEffect)
-         addPower p  = p { playerPower = Map.unionWith (+)
-                                            changes (playerPower p) }
+         addPower p  = p & playerPower %~ Map.unionWith (+) changes
 
      updPlayer_ Caster addPower
 
@@ -63,9 +63,9 @@ creaturesAttack = undefined
 checkGameWon :: GameM ()
 checkGameWon =
   do g <- getGame
-     if | playerLife (otherPlayer g) <= 0 -> winGame Caster
-        | playerLife (curPlayer   g) <= 0 -> winGame Opponent
-        | otherwise                       -> return ()
+     if | g ^. otherPlayer . playerLife <= 0 -> winGame Caster
+        | g ^. curPlayer   . playerLife <= 0 -> winGame Opponent
+        | otherwise                          -> return ()
 
 
 
@@ -79,8 +79,8 @@ checkDeath =
   checkCreature l =
     do mb <- getCreatureAt l
        case mb of
-         Just c | creatureLife (creatureCard c) <= 0 ->
-            do updPlayer_ (locWho l) (playerRemoveSlot (locWhich l))
+         Just c | creatureLife (c ^. deckCard . to creatureCard) <= 0 ->
+            do updPlayer_ (locWho l) (creatureInSlot (locWhich l) .~ Nothing)
                creatureDie (l,c)
                mapM_ (`creatureDied` l) (slotsFor Caster ++ slotsFor Opponent)
          _  -> return ()
@@ -134,7 +134,7 @@ creatureDied = creatureReact
   [ (death_keeper_of_death, \(cl,_) dl ->
        do let owner = locWho cl
           when (owner /= locWho dl) $    -- opponents creature died
-            updPlayer_ owner (playerPowerUpdate Special (+1))
+            updPlayer_ owner (elementPower Special %~ (+1))
     )
   ]
 
@@ -164,12 +164,13 @@ creatureTakeDamage dmg amt l =
   doDamage c am = doDamage' c am >> return ()
 
   doDamage' c am =
-    do let cre   = creatureCard c
+    do let cre     = c ^. deckCard . to creatureCard
            dmgDone = min (creatureLife cre) (max 0 am)
            cre'  = cre { creatureLife = creatureLife cre - dmgDone }
-           c'    = c { deckCard = (deckCard c) { cardEffect = Creature cre' } }
-           upd p = p { playerActive =
-                      Map.insert (locWhich l) c' (playerActive p) }
+           c'    = c & deckCard %~ (\x -> x { cardEffect = Creature cre' })
+
+           upd p = p & creatureInSlot (locWhich l) .~ Just c'
+
        updPlayer_ (locWho l) upd -- XXX: Log something
        return dmgDone
 
@@ -185,9 +186,9 @@ creatureDie (l,c) =
   where
   abilities = Map.fromList
     [ (air_phoenix, updPlayer_ (locWho l) $ \p ->
-                      if playerPowerAt p Fire >= 10
-                         then let newCard = c { deckCard = deckCardOrig c }
-                              in playerSetSlot (locWhich l) newCard p
+                      if p ^. elementPower Fire >= 10
+                         then let newCard = c & deckCard .~ (c ^. deckCardOrig)
+                              in p & creatureInSlot (locWhich l) .~ Just newCard
                          else p)
     ]
 

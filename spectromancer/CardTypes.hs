@@ -18,6 +18,12 @@ data Card = Card
   , cardEffect      :: CardEffect
   } deriving Show
 
+creatureCard :: Card -> CreatureCard
+creatureCard c =
+  case cardEffect c of
+    Creature d -> d
+    _ -> error "creatureCard: not a creature"
+
 isCreature :: Card -> Bool
 isCreature c = case cardEffect c of
                  Creature {} -> True

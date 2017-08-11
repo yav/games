@@ -1,4 +1,5 @@
 {-# Language OverloadedStrings, TemplateHaskell, FlexibleContexts #-}
+{-# Language Rank2Types #-}
 module Game where
 
 import Data.Map(Map)
@@ -8,7 +9,8 @@ import qualified Data.Text as Text
 import Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
 
-import Control.Lens(makeLenses, (^.), (.~), (%~), to, (&), Traversal')
+import Control.Lens( makeLenses, (^.), (.~), (%~), to, (&), Lens',Traversal'
+                   , at, non)
 
 import Util.Random(Gen,StdGen,genRandFun)
 
@@ -58,6 +60,9 @@ newDeckCard el orig =
            , _deckCardOrig    = orig
            }
 
+deckCardName :: DeckCard -> Text
+deckCardName c = c ^. deckCardOrig . to cardName
+
 -- This is in Gen to generate random starting powers...
 newPlayer :: Text -> Deck -> Gen Player
 newPlayer name deck =
@@ -87,6 +92,31 @@ eachCard :: Traversal' Player DeckCard
 eachCard = playerDeck   -- in the deck
          . traverse     -- for each element
          . traverse     -- for each card
+
+player :: Who -> Lens' Game Player
+player w =
+  case w of
+    Caster   -> curPlayer
+    Opponent -> otherPlayer
+
+elementPower :: Element -> Lens' Player Int
+elementPower e = playerPower . at e . non 0
+
+creatureInSlot :: Slot -> Lens' Player (Maybe DeckCard)
+creatureInSlot s = playerActive . at s
+
+creatureAt :: Location -> Lens' Game (Maybe DeckCard)
+creatureAt l = player (locWho l) . creatureInSlot (locWhich l)
+
+
+
+{-
+view  :: Lens' s a -> s -> a
+(^.)  :: Lens' s a -> s -> a
+(.~)  :: Traversal' s a -> s -> a -> s
+(%~)  :: Traversal' s a -> s -> (a -> a) -> s
+(%%~) :: Traversal' s a -> s -> (a -> Maybe a) -> Maybe s
+-}
 
 -- | Compute which cards in the deck are playable this turn and
 -- disable opponents cards

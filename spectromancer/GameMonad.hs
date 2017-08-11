@@ -1,3 +1,4 @@
+{-# Language Rank2Types #-}
 module GameMonad
   ( GameStatus(..)
   , GameM
@@ -19,10 +20,11 @@ module GameMonad
   ) where
 
 import Control.Monad(ap,liftM)
+import Control.Lens(Lens',(^.),(%~))
 import Data.Maybe(catMaybes)
 
 import CardTypes
-import State
+import Game
 
 type Log = [String] -> [String]
 
@@ -82,13 +84,10 @@ updGame f =
      setGame g1
      return a
 
-withGame :: (Game -> a) -> GameM a
-withGame f =
+withGame :: Lens' Game a -> GameM a
+withGame l =
   do g <- getGame
-     return (f g)
-
-getCreatureAt :: Location -> GameM (Maybe DeckCard)
-getCreatureAt l = withGame (`creatureAt` l)
+     return (g ^. l)
 
 getCreaturesFor :: Who -> GameM [(Location,DeckCard)]
 getCreaturesFor w =
@@ -99,8 +98,15 @@ getCreaturesFor w =
   addSlot _ Nothing  = Nothing
   addSlot l (Just x) = Just (l,x)
 
+
+
 updPlayer_ :: Who -> (Player -> Player) -> GameM ()
-updPlayer_ w f = updGame_ (gameUpdatePlayer w f)
+updPlayer_ w f = updGame_ (player w %~ f)
+
+getCreatureAt :: Location -> GameM (Maybe DeckCard)
+getCreatureAt l = withGame (creatureAt l)
+
+
 
 
 
