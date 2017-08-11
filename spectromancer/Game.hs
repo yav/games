@@ -61,7 +61,7 @@ newDeckCard el orig =
            }
 
 deckCardName :: DeckCard -> Text
-deckCardName c = c ^. deckCardOrig . to cardName
+deckCardName c = c ^. deckCardOrig . cardName
 
 -- This is in Gen to generate random starting powers...
 newPlayer :: Text -> Deck -> Gen Player
@@ -108,6 +108,8 @@ creatureInSlot s = playerActive . at s
 creatureAt :: Location -> Lens' Game (Maybe DeckCard)
 creatureAt l = player (locWho l) . creatureInSlot (locWhich l)
 
+deckCardLife :: Lens' DeckCard Int
+deckCardLife = deckCard . cardEffect . creatureCard . creatureLife
 
 
 {-
@@ -130,7 +132,7 @@ activateCards g =
   activate ca = ca & deckCardEnabled .~ active (ca ^. deckCard)
     where
     have = Map.findWithDefault 0 (ca ^. deckCardElement) (curP ^. playerPower)
-    active card = cardCost card <= have && hasTarget (cardTarget card)
+    active card = (card ^. cardCost) <= have && hasTarget (cardTarget card)
 
     hasTarget tgt =
       case tgt of

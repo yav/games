@@ -6,10 +6,11 @@ import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Text(Text)
 import Data.Aeson(ToJSON(..))
+import Control.Lens(view)
 
 import Util.Random(Gen,shuffle)
 
-import CardTypes(Card(..))
+import CardTypes(cardName,Card)
 import Cards(allCards)
 import CardIds
 
@@ -103,7 +104,7 @@ validDeck ds = and [ ban fire_orc_chieftain earth_forest_sprite
                    , ban water_ice_golem fire_armageddon
                    ]
   where
-  has x = case find ((x ==) . cardName) ds of
+  has x = case find ((x ==) . view cardName) ds of
             Just _ -> True
             _      -> False
 

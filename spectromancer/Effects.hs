@@ -5,7 +5,7 @@ import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import Control.Monad(when)
-import Control.Lens((&), to, (^.),(.~),(%~))
+import Control.Lens((^.),(.~),(%~),(&))
 
 import CardTypes
 import CardIds
@@ -79,7 +79,7 @@ checkDeath =
   checkCreature l =
     do mb <- getCreatureAt l
        case mb of
-         Just c | creatureLife (c ^. deckCard . to creatureCard) <= 0 ->
+         Just c | c ^. deckCardLife <= 0 ->
             do updPlayer_ (locWho l) (creatureInSlot (locWhich l) .~ Nothing)
                creatureDie (l,c)
                mapM_ (`creatureDied` l) (slotsFor Caster ++ slotsFor Opponent)
@@ -164,14 +164,10 @@ creatureTakeDamage dmg amt l =
   doDamage c am = doDamage' c am >> return ()
 
   doDamage' c am =
-    do let cre     = c ^. deckCard . to creatureCard
-           dmgDone = min (creatureLife cre) (max 0 am)
-           cre'  = cre { creatureLife = creatureLife cre - dmgDone }
-           c'    = c & deckCard %~ (\x -> x { cardEffect = Creature cre' })
+    do let dmgDone = min (c ^. deckCardLife) (max 0 am)
+           c'      = c & deckCardLife %~ subtract dmgDone
 
-           upd p = p & creatureInSlot (locWhich l) .~ Just c'
-
-       updPlayer_ (locWho l) upd -- XXX: Log something
+       updGame_ (creatureAt l .~ Just c')
        return dmgDone
 
 

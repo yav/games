@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings, RecordWildCards #-}
+{-# Language OverloadedStrings, RecordWildCards, TemplateHaskell, Rank2Types #-}
 module CardTypes where
 
 import           Data.Text(Text)
@@ -6,32 +6,67 @@ import           Data.Map(Map)
 import qualified Data.Map as Map
 import qualified Data.Aeson as JS
 import           Data.Aeson (ToJSON(..), (.=))
+import           Control.Lens(Lens',lens,makeLenses,(^.))
 
 type Category = Text
 type Cards    = Map Category [Card]
 
 data Card = Card
-  { cardName        :: Text
-  , cardDescription :: Text
-  , cardImage       :: FilePath
-  , cardCost        :: Int
-  , cardEffect      :: CardEffect
+  { _cardName        :: Text
+  , _cardDescription :: Text
+  , _cardImage       :: FilePath
+  , _cardCost        :: Int
+  , _cardEffect      :: CardEffect
   } deriving Show
 
-creatureCard :: Card -> CreatureCard
-creatureCard c =
-  case cardEffect c of
-    Creature d -> d
-    _ -> error "creatureCard: not a creature"
+data CardEffect = Spell Target | Creature CreatureCard
+  deriving Show
+
+data CreatureCard = CreatureCard
+  { _creatureAttack      :: Maybe Int
+  , _creatureLife        :: Int
+  } deriving Show
+
+data Target = NoTarget          -- ^ Spell has no target
+            | TargetOpponent's  -- ^ Spell needs an opponent's creature
+            | TargetOpponent'sNormal
+              -- ^ Spell needs an opponent's creature,
+              -- which belongs to Air, Fair, Water, or Earth
+
+            | TargetCaster's    -- ^ Spell needs a caster's creature
+            | TargetCreature    -- ^ Spell needs someone's creature
+            | TargetCasterBlank -- ^ Spell needs a caster's blank slot
+  deriving Show
+
+makeLenses ''Card
+makeLenses ''CreatureCard
+
+cardTarget :: Card -> Target
+cardTarget c =
+  case c ^. cardEffect of
+    Creature {} -> TargetCasterBlank
+    Spell tgt -> tgt
+
+creatureCard :: Lens' CardEffect CreatureCard
+creatureCard = lens getC setC
+  where
+  getC c =
+    case c of
+      Creature d -> d
+      _          -> error "creatureCard: not a creature"
+
+  setC _ c = Creature c
+
 
 isCreature :: Card -> Bool
-isCreature c = case cardEffect c of
+isCreature c = case c ^. cardEffect of
                  Creature {} -> True
                  Spell {}    -> False
 
 isSpell :: Card -> Bool
 isSpell = not . isCreature
 
+--------------------------------------------------------------------------------
 
 data Who      = Caster | Opponent
                 deriving (Eq,Ord,Show,Enum,Bounded)
@@ -69,48 +104,23 @@ isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 && abs (locWhich loc1 - locWhi
 isOpposing :: Location -> Location -> Bool
 isOpposing loc1 loc2 = locWho loc1 /= locWho loc2 && locWhich loc1 == locWhich loc2
 
-cardTarget :: Card -> Target
-cardTarget c =
-  case cardEffect c of
-    Creature {} -> TargetCasterBlank
-    Spell tgt -> tgt
-
-data CardEffect = Spell Target | Creature CreatureCard
-  deriving Show
-
-data Target = NoTarget          -- ^ Spell has no target
-            | TargetOpponent's  -- ^ Spell needs an opponent's creature
-            | TargetOpponent'sNormal
-              -- ^ Spell needs an opponent's creature,
-              -- which belongs to Air, Fair, Water, or Earth
-
-            | TargetCaster's    -- ^ Spell needs a caster's creature
-            | TargetCreature    -- ^ Spell needs someone's creature
-            | TargetCasterBlank -- ^ Spell needs a caster's blank slot
-  deriving Show
-
-data CreatureCard = CreatureCard
-  { creatureAttack      :: Maybe Int
-  , creatureLife        :: Int
-  } deriving Show
-
 instance ToJSON Card where
-  toJSON Card { .. } = JS.object fields
+  toJSON c = JS.object fields
     where
     fields = special ++ common
-    common = [ "name" .= cardName
-             , "description" .= cardDescription
-             , "image" .= cardImage
-             , "cost" .= cardCost
+    common = [ "name"        .= (c ^. cardName)
+             , "description" .= (c ^. cardDescription)
+             , "image"       .= (c ^. cardImage)
+             , "cost"        .= (c ^. cardCost)
              ]
-    special = case cardEffect of
+    special = case c ^. cardEffect of
                 Spell tgt -> [ "type" .= ("spell" :: Text)
                              , "target" .= tgt
                              ]
-                Creature CreatureCard { .. } ->
-                  [ "type" .= ("creature" :: Text)
-                  , "attack" .= creatureAttack
-                  , "life"   .=  creatureLife
+                Creature ct ->
+                  [ "type"   .= ("creature" :: Text)
+                  , "attack" .= (ct ^. creatureAttack)
+                  , "life"   .= (ct ^. creatureLife)
                   ]
 
 instance ToJSON Target where
