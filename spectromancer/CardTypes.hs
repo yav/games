@@ -99,10 +99,15 @@ slotsFor locWho = map mk (take slotNum [ 0 .. ])
   where mk locWhich = Location { .. }
 
 isNeighbor :: Location -> Location -> Bool
-isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 && abs (locWhich loc1 - locWhich loc2) == 1
+isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 &&
+                              abs (locWhich loc1 - locWhich loc2) == 1
+
+sameSide :: Location -> Location -> Bool
+sameSide l1 l2 = locWho l1 == locWho l2
 
 isOpposing :: Location -> Location -> Bool
-isOpposing loc1 loc2 = locWho loc1 /= locWho loc2 && locWhich loc1 == locWhich loc2
+isOpposing loc1 loc2 = not (sameSide loc1 loc2) &&
+                        locWhich loc1 == locWhich loc2
 
 instance ToJSON Card where
   toJSON c = JS.object fields

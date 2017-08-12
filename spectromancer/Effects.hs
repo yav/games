@@ -189,8 +189,8 @@ creatureDie (l,c) =
     ]
 
 -- | The creature at the given location performs its attack, if any.
-creatureAttack :: Location -> Game -> Game
-creatureAttack = undefined
+creatureAttack :: Location -> GameM ()
+creatureAttack _ = undefined
 
 -- | Compute changes in power growth due to the presence of this creature
 -- for either the caster or the opponent.
@@ -205,6 +205,27 @@ creatureModifyPowerGrowth w c =
   abilities = Map.fromList
     [ (fire_priest_of_fire, (Caster, [(Fire,1)]))
     ]
+
+-- | Compute changes to the attack value of a speicif creature.
+creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
+                        (Location,DeckCard) {- ^ Modifier of attack -} -> Int
+
+creatureModifyAttack (l,d) (l1,c)
+  | isWall d = 0
+  | name == fire_orc_chieftain && isNeighbor l l1 = 2
+  | name == fire_minotaur_commander && ours = 1
+  | name == golem_golem_instructor && ours && deckCardName d == other_golem = 2
+  | otherwise = 0
+  where
+  name = deckCardName c
+  ours = sameSide l l1
+
+isWall :: DeckCard -> Bool
+isWall d = deckCardName d `elem` walls
+  where walls = [ fire_wall_of_fire
+                , illusion_wall_of_reflection
+                , air_wall_of_lightning
+                ]
 
 
 -- | Do something at the beginning of the owner's turn.
