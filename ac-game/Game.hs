@@ -77,6 +77,8 @@ gameNew n mp
   where p : ps = map playerNew (take n [ 0 .. ])
 
 
+gameDoAction :: Game -> Game
+gameDoAction = gameNextPlayer -- XXX
 
 
 -- | End the current player's turn and go to the next player.
@@ -111,17 +113,19 @@ gameNextPlayer g = upd g
 
 
 -- | The current player picks a pawn
-gameSelectPawn :: PawnLoc -> Pawn -> Game -> Maybe Game
+gameSelectPawn :: PawnLoc -> Pawn -> Game -> Perhaps Game
 gameSelectPawn l p g =
   case g ^. gamePlayerCur . curPlayerPawn of
-    Just _  -> Nothing -- already selected
-    Nothing -> (gamePlayerCur.curPlayerPawn .~ Just (curPawnNew l p))
-           <$> (gameBoard.boardPawns) (rmPawn l p) g
+    Just _  -> fail "A worker is already selected."
+    Nothing -> g & gamePlayerCur.curPlayerPawn .~ Just (curPawnNew l p)
+                 & gameBoard . boardPawns %%~
+                                          perhaps "No such worker" . rmPawn l p
 
 -- | Place one of the unallocated workers on the board.
 gamePlaceNewWorker :: PawnLoc -> Game -> Perhaps Game
-gamePlaceNewWorker l g = g & (gamePlayerCur %%~ upd)
-                           . (gameBoard . boardPawns %~ newPawn l pid)
+gamePlaceNewWorker l g = do g1 <- g & gameBoard . boardPawns %~ newPawn l pid
+                                    & gamePlayerCur %%~ upd
+                            gameSelectPawn l (pawnNew pid) g1
   where
   pid = g ^. gamePlayerCur . curPlayer . playerId
   upd cp =

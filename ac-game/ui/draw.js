@@ -36,22 +36,26 @@ function addPawnLoc(board, tiles, x, y) {
 
 
   var sz = pawn_spot_sz
-  board.append($('<div/>')
-               .css('width', sz + 'px')
-               .css('height', sz + 'px')
-               .css('background-color', 'rgba(0,0,0,0.25)')
-               .css('border-radius', sz/6)
-               .css('position', 'absolute')
-               .css('left', realPawnLoc(x) + 'px')
-               .css('bottom', realPawnLoc(y) + 'px')
-               .css('z-index', '2')
-               .click(function() {
-                console.log(x,y)
-                  if (action) {
-                    toServer({x:x,y:y})
-                  }
+  var back = $('<div/>')
+             .css('width', sz + 'px')
+             .css('height', sz + 'px')
+             .css('background-color', 'rgba(0,0,0,0.25)')
+             .css('border-radius', sz/6)
+             .css('position', 'absolute')
+             .css('left', realPawnLoc(x) + 'px')
+             .css('bottom', realPawnLoc(y) + 'px')
+             .css('z-index', '20')
+
+  var front = back
+            .clone()
+            .css('background-color', 'rgba(0,0,0,0)')
+            .css('z-index','100')
+            .click(function() {
+              console.log(x,y)
+                  if (action) { toServer({x:x,y:y}) }
                })
-              )
+
+  board.append(back,front)
 }
 
 function realPawnLoc(d) { return (1.5 * d - 0.5) * pawn_spot_sz }
@@ -236,15 +240,30 @@ function drawPlayer(p) {
   return sh
 }
 
+function drawCurPawn(board,ix,cp) {
+  var x = cp.loc.x
+  var y = cp.loc.y
+  addPawn(board,cp.pawn,x,y,ix)
+  var xx = realPawnLoc(x)
+  var yy = realPawnLoc(y)
+  var d = $('<div/>')
+          .css('position','absolute')
+          .css('left',xx)
+          .css('bottom',yy)
+          .css('font-weight','bold')
+          .text(cp.boost + ',' + cp.move)
+  board.append(d)
+}
+
 function drawCurPlayer(b,cp) {
-  console.log(cp)
+  action = null
   var p = cp.player
   var sh = drawPlayerShell(p)
   var t = $('<table>')
   sh.append(t)
   var ws = drawPlayerStat('workers',p.workers)
 
-  if (p.workers > 0) clickable(ws,function() {
+  if (p.workers > 0 && !cp.pawn) clickable(ws,function() {
     console.log('new worker')
     action = '/newWorker'
   })
@@ -258,6 +277,7 @@ function drawCurPlayer(b,cp) {
   if (cp.pawn) {
     action = '/move'
     selected = true
+    drawCurPawn(b,0,cp.pawn) // XXX: ix
   }
 
 
@@ -266,6 +286,26 @@ function drawCurPlayer(b,cp) {
           , drawPlayerStat('move',p.speedBoost)
           , drawPlayerStat('share',p.shareSpace)
           )
+
+  if (cp.pawn) {
+    var btn = $('<div/>')
+              .css('width','128px')
+              .css('height','20px')
+              .css('border-radius','5px')
+              .css('background-color', playerFgColor(cp.player.id))
+              .css('color', playerColor(cp.player.id))
+              .css('padding','5px')
+              .css('font-weight','bold')
+              .css('text-align','center')
+              .text('End turn')
+
+   clickable(btn, function() {
+    action = 'doAction'
+    toServer({})
+   })
+
+    t.append(btn)
+  }
 
   return sh
 }

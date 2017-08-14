@@ -45,6 +45,8 @@ main =
           route
             [ ("getState", snapGetState s)
             , ("newWorker", snapNewWorker s)
+            , ("doAction", snapDoAction s)
+            , ("move", snapMove s)
             ]
            <|> serveDirectory "ui"
 
@@ -58,6 +60,16 @@ snapNewWorker :: ServerState -> Snap ()
 snapNewWorker s =
   do l <- getLoc
      g <- modifyState s (gamePlaceNewWorker l)
+     sendJSON (toJSON g)
+
+snapDoAction :: ServerState -> Snap ()
+snapDoAction s =
+  sendJSON . toJSON =<< modifyState s (Ok . gameDoAction)
+
+snapMove :: ServerState -> Snap ()
+snapMove s =
+  do l <- getLoc
+     g <- modifyState s (gameMove l)
      sendJSON (toJSON g)
 
 getLoc :: Snap PawnLoc
