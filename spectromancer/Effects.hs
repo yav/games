@@ -4,8 +4,9 @@ module Effects where
 import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import Control.Monad(when)
-import Control.Lens((^.),(.~),(%~),(&))
+import Control.Monad(when,unless)
+import Control.Lens((^.),(.~),(%~),(&),at)
+import Util.Random(oneOf)
 
 import CardTypes
 import CardIds
@@ -45,6 +46,7 @@ generatePower =
 
      updPlayer_ Caster addPower
 
+-- | Do this at the start of each turn.
 startOfTurn :: GameM ()
 startOfTurn =
   do ours <- getCreaturesFor Caster
@@ -53,9 +55,9 @@ startOfTurn =
 playCard :: DeckCard -> Game -> Game
 playCard = undefined
 
-creaturesAttack :: Game -> Game
-creaturesAttack = undefined
-
+-- | Do the attack phase of a turn.
+creaturesAttack :: GameM ()
+creaturesAttack = mapM_ performCreatureAttack (slotsFor Caster)
 
 --------------------------------------------------------------------------------
 
@@ -189,8 +191,102 @@ creatureDie (l,c) =
     ]
 
 -- | The creature at the given location performs its attack, if any.
-creatureAttack :: Location -> GameM ()
-creatureAttack _ = undefined
+performCreatureAttack :: Location -> GameM ()
+performCreatureAttack l =
+  do g <- getGame
+     case g ^. creatureAt l of
+       Nothing -> return ()
+       Just c
+         | isWall c || not (c ^. deckCardEnabled)    -> return ()
+         | otherwise  ->
+           do let p = getAttackPower g (l,c)
+              case Map.lookup (deckCardName c) abilities of
+                Just act -> act c p
+                Nothing  ->
+                  do let loc = oppositeOf l
+                     case g ^. creatureAt loc of
+                       Nothing -> doWizardDamage otherWizard c p
+                       Just _  -> creatureTakeDamage Attack p loc
+              checkDeath
+  where
+  otherWizard = theOtherOne (locWho l)
+
+  abilities = Map.fromList
+    [ (earth_hydra, damageEveryone)
+    , (earth_forest_sprite, damageEveryone)
+    , (air_lightning_cloud, damageEveryone)
+    ]
+
+  damageEveryone c p =
+    do doWizardDamage otherWizard c p
+       mapM_ (creatureTakeDamage Attack p) (slotsFor otherWizard)
+
+
+-- | Deal some damage to one of the two players.
+doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
+                  DeckCard {- ^ This is the attacker (creature or spell) -} ->
+                  Int      {- ^ Amount of damage we are trying to do -} ->
+                  GameM ()
+doWizardDamage who dc amt =
+  do -- XXX: The stuff below happens only if White Elephant is not around.
+     checkGoblinSaboteur
+     amt1 <- checkIceGuard
+     updGame_ (player who . playerLife %~ subtract amt1)
+
+  where
+  checkGoblinSaboteur =
+    when (deckCardName dc == goblin's_goblin_saboteur) $
+    do g <- getGame
+       let p   = g ^. player who
+           els = Map.keys (Map.filter (not . null) (p ^. playerDeck))
+       unless (null els) $
+         do el <- random (oneOf els)
+            updGame_ (player who . playerDeck . at el %~ fmap tail)
+
+
+  checkIceGuard =
+    do g <- getGame
+       let halfRoundUp _ x = div (x + 1) 2
+       return $ foldr halfRoundUp amt
+              $ filter ((water_ice_guard ==) . deckCardName)
+              $ map snd
+              $ inhabitedSlots g (slotsFor who)
+
+
+
+
+-- | Compute the current attack power for the given creature.
+getAttackPower :: Game -> (Location, DeckCard) -> Int
+getAttackPower g (l,c) = max 0 (base + change + c ^. deckCardAttackChange)
+
+  where
+  ourCreatures   = inhabitedSlots g (slotsFor Caster)
+  theirCreatures = inhabitedSlots g (slotsFor Opponent)
+
+  change = sum $ map (creatureModifyAttack (l,c))
+               $ ourCreatures ++ theirCreatures
+
+  name  = deckCardName c
+  owner = locWho l
+
+  base = case c ^. deckCard . cardEffect . creatureCard . creatureAttack of
+           Just a -> a
+           Nothing
+             | name == fire_fire_elemental    -> elemental Fire
+             | name == air_air_elemental      -> elemental Air
+             | name == earth_earth_elemental  -> elemental Earth
+             | name == water_water_elemental  -> elemental Water
+             | name == golem_golem_instructor ->
+                  length $ case owner of
+                             Caster   -> ourCreatures
+                             Opponent -> theirCreatures
+
+             | otherwise -> error "[bug]: Missing base attack"
+
+  elemental s = g ^. player owner . elementPower s
+
+
+
 
 -- | Compute changes in power growth due to the presence of this creature
 -- for either the caster or the opponent.

@@ -16,12 +16,14 @@ module GameMonad
   , getCreaturesFor
 
   , addLog
+  , random
 
   ) where
 
 import Control.Monad(ap,liftM)
-import Control.Lens(Lens',(^.),(%~))
+import Control.Lens(Lens',(^.),(%~),(&),(.~))
 import Data.Maybe(catMaybes)
+import Util.Random(Gen,genRand)
 
 import CardTypes
 import Game
@@ -83,6 +85,13 @@ updGame f =
      let (a,g1) = f g
      setGame g1
      return a
+
+-- | Do something random
+random :: Gen a -> GameM a
+random gen = updGame $ \g -> let (a,rnd1) = genRand (g ^. gameRNG) gen
+                             in (a, g & gameRNG .~ rnd1)
+
+
 
 withGame :: Lens' Game a -> GameM a
 withGame l =

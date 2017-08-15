@@ -8,6 +8,7 @@ import Data.Text(Text)
 import qualified Data.Text as Text
 import Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
+import Data.Maybe(maybeToList)
 
 import Control.Lens( makeLenses, (^.), (.~), (%~), to, (&), Lens',Traversal'
                    , at, non)
@@ -29,6 +30,8 @@ data Game = Game
 data Player = Player
   { _playerLife    :: Int
   , _playerDeck    :: Map Element [DeckCard]
+                      -- ^ The cards of the same element should be sorted
+                      -- by cost, cheapest first.
   , _playerPower   :: Map Element Int
   , _playerActive  :: Map Slot DeckCard
   , _playerName    :: Text
@@ -38,10 +41,12 @@ type Slot = Int
 
 -- | A card in a player's deck.
 data DeckCard = DeckCard
-  { _deckCardOrig      :: Card      -- ^ Unmodified deck card
-  , _deckCardElement   :: Element   -- ^ Card's element
-  , _deckCard          :: Card      -- ^ Current version of the card
-  , _deckCardEnabled   :: Bool      -- ^ Is it currently playable
+  { _deckCardOrig         :: Card      -- ^ Unmodified deck card
+  , _deckCardElement      :: Element   -- ^ Card's element
+  , _deckCard             :: Card      -- ^ Current version of the card
+  , _deckCardEnabled      :: Bool      -- ^ Is it currently playable
+  , _deckCardAttackChange :: Int
+    -- Temporary attack change, until the end of the current turn.
   } deriving Show
 
 $(makeLenses ''Game)
@@ -58,6 +63,7 @@ newDeckCard el orig =
            , _deckCardEnabled = False
            , _deckCardElement = el
            , _deckCardOrig    = orig
+           , _deckCardAttackChange = 0
            }
 
 deckCardName :: DeckCard -> Text
@@ -110,6 +116,10 @@ creatureAt l = player (locWho l) . creatureInSlot (locWhich l)
 
 deckCardLife :: Lens' DeckCard Int
 deckCardLife = deckCard . cardEffect . creatureCard . creatureLife
+
+inhabitedSlots :: Game -> [Location] -> [(Location,DeckCard)]
+inhabitedSlots g slots =
+  [ (l,creature) | l <- slots, creature <- maybeToList (g ^. creatureAt l) ]
 
 
 {-
