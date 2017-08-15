@@ -17,9 +17,10 @@ data Card = Card
   , _cardImage       :: FilePath
   , _cardCost        :: Int
   , _cardEffect      :: CardEffect
+  , _cardTarget      :: Target
   } deriving Show
 
-data CardEffect = Spell Target | Creature CreatureCard
+data CardEffect = Spell | Creature CreatureCard
   deriving Show
 
 data CreatureCard = CreatureCard
@@ -40,12 +41,6 @@ data Target = NoTarget          -- ^ Spell has no target
 
 makeLenses ''Card
 makeLenses ''CreatureCard
-
-cardTarget :: Card -> Target
-cardTarget c =
-  case c ^. cardEffect of
-    Creature {} -> TargetCasterBlank
-    Spell tgt -> tgt
 
 creatureCard :: Lens' CardEffect CreatureCard
 creatureCard = lens getC setC
@@ -117,11 +112,10 @@ instance ToJSON Card where
              , "description" .= (c ^. cardDescription)
              , "image"       .= (c ^. cardImage)
              , "cost"        .= (c ^. cardCost)
+             , "target"      .= (c ^. cardTarget)
              ]
     special = case c ^. cardEffect of
-                Spell tgt -> [ "type" .= ("spell" :: Text)
-                             , "target" .= tgt
-                             ]
+                Spell -> [ "type" .= ("spell" :: Text) ]
                 Creature ct ->
                   [ "type"   .= ("creature" :: Text)
                   , "attack" .= (ct ^. creatureAttack)

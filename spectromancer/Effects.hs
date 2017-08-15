@@ -5,7 +5,7 @@ import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import Control.Monad(when,unless)
-import Control.Lens((^.),(.~),(%~),(&),at)
+import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf)
 
 import CardTypes
@@ -52,8 +52,36 @@ startOfTurn =
   do ours <- getCreaturesFor Caster
      mapM_ creatureStartOfTurn ours
 
-playCard :: DeckCard -> Game -> Game
-playCard = undefined
+playCard :: DeckCard -> Maybe Location -> GameM ()
+playCard c mbLoc =
+  -- XXX: Remember to check the cost
+  case (c ^. deckCard . cardEffect, Nothing) of
+    (Spell {}, mb) -> do -- XXX: Check cost
+                         castSpell c mb
+                         -- XXX: subtract cost
+                         checkDeath
+    (Creature {}, Just l)
+      | locWho l == Caster && locWhich l >= 0 && locWhich l < slotNum ->
+        do g <- getGame
+           let isEmissary = deckCardName c == death_emissary_of_dorlak
+           case g ^. creatureAt l of
+             Nothing | isEmissary -> stop
+             Just _ | not isEmissary -> stop
+             _ -> do -- Check cost
+                     let c1 = c & deckCardEnabled .~ False
+                     updGame_ (creatureAt l .~ Just c1)
+                     creatureSummonEffect (l,c1)
+                     -- substract cost
+                     checkDeath
+                     mapM_ (`creatureSummoned` l)
+                                      (slotsFor Caster ++ slotsFor Opponent)
+                     checkDeath
+    _ -> stop
+
+  where
+  stop = stopGame (IllegalMove c mbLoc)
+
+
 
 -- | Do the attack phase of a turn.
 creaturesAttack :: GameM ()
@@ -65,8 +93,8 @@ creaturesAttack = mapM_ performCreatureAttack (slotsFor Caster)
 checkGameWon :: GameM ()
 checkGameWon =
   do g <- getGame
-     if | g ^. otherPlayer . playerLife <= 0 -> winGame Caster
-        | g ^. curPlayer   . playerLife <= 0 -> winGame Opponent
+     if | g ^. otherPlayer . playerLife <= 0 -> stopGame (GameWonBy Caster)
+        | g ^. curPlayer   . playerLife <= 0 -> stopGame (GameWonBy Opponent)
         | otherwise                          -> return ()
 
 
@@ -89,10 +117,24 @@ checkDeath =
 
 
 
+--------------------------------------------------------------------------------
 
+castSpell :: DeckCard -> Maybe Location -> GameM ()
+castSpell _ _ = return () -- XXX: implement spell
 
 --------------------------------------------------------------------------------
 -- Things that can happen to summoned creatures
+
+creatureSummonEffect :: (Location,DeckCard) -> GameM ()
+creatureSummonEffect (l,c) =
+  case Map.lookup (deckCardName c) abilities of
+    Nothing  -> return ()
+    Just act -> act
+  where
+  abilities = Map.fromList
+    [ (fire_fire_drake,
+          updGame_ (creatureAt l . mapped . deckCardEnabled .~ True))
+    ]
 
 
 creatureReact ::
@@ -286,6 +328,17 @@ getAttackPower g (l,c) = max 0 (base + change + c ^. deckCardAttackChange)
   elemental s = g ^. player owner . elementPower s
 
 
+
+-- | How is the cost of a played card affected by the active creatures.
+creatureModifyCost ::
+  DeckCard            {- ^ Card that is being played -} ->
+  DeckCard            {- ^ Opponent's creature affecting the cost -} ->
+  Int                 {- ^ Change to the cost -}
+creatureModifyCost c dc = Map.findWithDefault 0 (deckCardName dc) $
+  Map.fromList
+    [ (control_goblin_shaman, if isSpell (c ^. deckCard) then 1 else 0)
+    , (control_damping_tower, 1)
+    ]
 
 
 -- | Compute changes in power growth due to the presence of this creature

@@ -1,10 +1,11 @@
 {-# Language Rank2Types #-}
 module GameMonad
   ( GameStatus(..)
+  , GameStopped(..)
   , GameM
 
   , runGame
-  , winGame
+  , stopGame
   , getGame
   , setGame
   , updGame
@@ -28,49 +29,49 @@ import Util.Random(Gen,genRand)
 import CardTypes
 import Game
 
-type Log = [String] -> [String]
+type Log   = [String] -> [String]
 
-data GameStatus a = GameWonBy Who Game Log
-                    -- ^ Game state and log as it was when the game ended
-                  | GameOn a Game Log  -- ^ The current game state and log
+data GameStopped = GameWonBy Who
+                 | IllegalMove DeckCard (Maybe Location)
 
-newtype GameM a   = GameM { unGameM :: Game -> GameStatus a }
+data GameStatus a = GameStopped GameStopped
+                  | GameOn a  -- ^ The game is in progress.
+
+newtype GameM a   = GameM { unGameM :: Game -> (GameStatus a, Game, Log) }
 
 instance Functor GameM where
   fmap = liftM
 
 instance Applicative GameM where
-  pure a = GameM (\g -> GameOn a g id)
+  pure a = GameM (\g -> (GameOn a, g, id))
   (<*>)  = ap
 
 instance Monad GameM where
 
   -- GameM a -> (a -> GameM b) -> GameM b
-  GameM m1 >>= f = GameM $ \g ->
-    case m1 g of
-      GameWonBy w g' l -> GameWonBy w g' l
-      GameOn a  g1 ls  -> addLogStatus ls (unGameM (f a) g1)
+  m1 >>= f = GameM $ \g ->
+    let (status, g1, out1) = unGameM m1 g
+    in case status of
+         GameOn a ->
+            let (newStatus, g2, out2) = unGameM (f a) g1
+            in (newStatus, g2, out1 . out2)
+         GameStopped s -> (GameStopped s, g1, out1)
 
-addLogStatus :: Log -> GameStatus a -> GameStatus a
-addLogStatus xs s =
-  case s of
-    GameWonBy w g ys -> GameWonBy w g (xs . ys)
-    GameOn a g ys    -> GameOn a g (xs . ys)
 
-runGame :: Game -> GameM a -> GameStatus a
+runGame :: Game -> GameM a -> (GameStatus a, Game, Log)
 runGame g (GameM f) = f g
 
-winGame :: Who -> GameM a
-winGame w = GameM (\g -> GameWonBy w g id)
+stopGame :: GameStopped -> GameM a
+stopGame r = GameM (\g -> (GameStopped r, g, id))
 
 getGame :: GameM Game
-getGame = GameM (\g -> GameOn g g id)
+getGame = GameM (\g -> (GameOn g, g, id))
 
 setGame :: Game -> GameM ()
-setGame g = GameM (\_ -> GameOn () g id)
+setGame g = GameM (\_ -> (GameOn (), g, id))
 
 addLog :: String -> GameM ()
-addLog l = GameM (\g -> GameOn () g (l :))
+addLog l = GameM (\g -> (GameOn (), g, (l :)))
 
 --------------------------------------------------------------------------------
 

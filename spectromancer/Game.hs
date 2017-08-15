@@ -142,7 +142,7 @@ activateCards g =
   activate ca = ca & deckCardEnabled .~ active (ca ^. deckCard)
     where
     have = Map.findWithDefault 0 (ca ^. deckCardElement) (curP ^. playerPower)
-    active card = (card ^. cardCost) <= have && hasTarget (cardTarget card)
+    active card = (card ^. cardCost) <= have && hasTarget (card ^. cardTarget)
 
     hasTarget tgt =
       case tgt of
@@ -177,7 +177,7 @@ instance ToJSON DeckCard where
                                     -- XXX: add stats from original in desc.
               , "enabled" .= (c ^. deckCardEnabled)
               , "element" .= (c ^. deckCardElement)
-              , "target"  .= (c ^. deckCard . to cardTarget)
+              , "target"  .= (c ^. deckCard . cardTarget)
               ]
 
 instance ToJSON Player where

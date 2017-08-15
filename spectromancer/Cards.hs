@@ -50,7 +50,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 12 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Griffin"
             , _cardDescription =
@@ -60,15 +60,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 15 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Call to Thunder"
             , _cardDescription =
                 "Call to Thunder deals 6 damage to target opponent's creature and 6 damage to the opponent. "
             , _cardImage = "CalltoThunderBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         , Card
             { _cardName = "Faerie Sage"
             , _cardDescription =
@@ -78,7 +78,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 19 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Wall of Lightning"
             , _cardDescription =
@@ -88,15 +88,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 28 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Lightning Bolt"
             , _cardDescription =
                 "Lightning Bolt deals (5+its caster's Air power) damage to the opponent. "
             , _cardImage = "LightningBoltBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Phoenix"
             , _cardDescription =
@@ -106,15 +106,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 16 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Chain Lightning"
             , _cardDescription =
                 "Chain Lightning deals 9 damage to the opponent and to each of the opponent's creatures. "
             , _cardImage = "ChainLightningBig.jpg"
             , _cardCost = 8
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Lightning Cloud"
             , _cardDescription =
@@ -124,15 +124,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Tornado"
             , _cardDescription =
                 "Air spell, cost 10 Destroy target opponent's creature. "
             , _cardImage = "TornadoBig.jpg"
             , _cardCost = 10
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         , Card
             { _cardName = "Air Elemental"
             , _cardDescription =
@@ -142,7 +142,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Nothing , _creatureLife = 44 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Titan"
             , _cardDescription =
@@ -152,7 +152,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 9 , _creatureLife = 40 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "BEAST CARDS"
@@ -165,7 +165,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 9 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Scorpion"
             , _cardDescription =
@@ -175,7 +175,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 18 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Wolverine"
             , _cardDescription =
@@ -185,7 +185,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 25 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Energy Beast"
             , _cardDescription =
@@ -195,7 +195,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 34 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Death Falcon"
             , _cardDescription =
@@ -205,7 +205,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 45 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "White Elephant"
             , _cardDescription =
@@ -215,7 +215,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 40 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Basilisk"
             , _cardDescription =
@@ -225,7 +225,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 54 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ancient Dragon"
             , _cardDescription =
@@ -235,7 +235,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 45 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "BEAST'S ABILITIES"
@@ -245,64 +245,64 @@ allCards =
                 "Elephant's ability, cost 0 White Elephant increases its owner's Beast power by 1. "
             , _cardImage = "TrumpetBig.jpg"
             , _cardCost = 0
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Gaze"
             , _cardDescription =
                 "Basilisk's ability, cost 0 Deals 6 damage to target creature. "
             , _cardImage = "GazeBig.jpg"
             , _cardCost = 0
-            , _cardEffect = Spell TargetCreature
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCreature }
         , Card
             { _cardName = "Pump Energy"
             , _cardDescription =
                 "Energy Beast increases its owner's Fire, Water, Air and Earth powers by 1. "
             , _cardImage = "PumpEnergyBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget =  NoTarget }
         , Card
             { _cardName = "Move Falcon"
             , _cardDescription =
                 "Death Falcon moves to target empty slot and deals 4 damage to each of the opponent's creatures. "
             , _cardImage = "MoveFalconBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell TargetCasterBlank
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Poison"
             , _cardDescription =
                 "Scorpions's ability, cost 2 Scorpion deals 14 damage to target opponent's creature. "
             , _cardImage = "PoisonBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         , Card
             { _cardName = "Enrage"
             , _cardDescription =
                 "Wolverine completely heals itself and its attack is increased by 2 permanently. "
             , _cardImage = "EnrageBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Natural Healing"
             , _cardDescription =
                 "Magic Hamster heals 18 life to all of its owner's creatures. "
             , _cardImage = "NaturalHealingBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Breathe Fire"
             , _cardDescription =
                 "Ancient Dragon deals 10 damage to the opponent and to each of the opponent's creatures. "
             , _cardImage = "BreatheFireBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         ]
       )
     , ( "CHAOS CARDS"
@@ -315,7 +315,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 11 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Insanian Berserker"
             , _cardDescription =
@@ -325,23 +325,23 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 14 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Doom Bolt"
             , _cardDescription =
                 "Chaos spell, cost 3 Doom Bolt deals 25 damage to a random opponent's creature. "
             , _cardImage = "DoomBoltBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Chaotic Wave"
             , _cardDescription =
                 "Chaotic Wave deals 2-12 damage to each of the opponent's creatures, then heals 2-12 life to each of its caster's creatures. "
             , _cardImage = "ChaoticWaveBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Insanian Shaman"
             , _cardDescription =
@@ -351,7 +351,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 25 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Insanian Lord"
             , _cardDescription =
@@ -361,7 +361,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 28 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Insanian Catapult"
             , _cardDescription =
@@ -371,7 +371,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 38 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Insanian King"
             , _cardDescription =
@@ -381,7 +381,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 46 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "CONTROL CARDS"
@@ -394,15 +394,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 12 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Weakness"
             , _cardDescription =
                 "Weakness decreases each of the opponent's powers by 1, then deals 3 damage to the opponent. "
             , _cardImage = "WeaknessBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Damping Tower"
             , _cardDescription =
@@ -412,7 +412,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 17 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ancient Horror"
             , _cardDescription =
@@ -422,15 +422,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 25 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Poisonous Cloud"
             , _cardDescription =
                 "Poisonous Cloud decreases all of the opponent's powers by 1, then deals damage to each of the opponent's creatures equal to half of its life (rounded up). "
             , _cardImage = "PoisonousCloudBig.jpg"
             , _cardCost = 5
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Ancient Witch"
             , _cardDescription =
@@ -440,7 +440,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 18 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Mindstealer"
             , _cardDescription =
@@ -450,7 +450,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 36 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ancient Giant"
             , _cardDescription =
@@ -460,7 +460,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 49 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "CULT CARDS"
@@ -473,15 +473,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 26 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Call to Ancient Spirits"
             , _cardDescription =
                 "Call to Ancient Spirits deals 10 damage to each of the opponent's creatures, then deals 5 damage to each of its caster's creatures. "
             , _cardImage = "CalltoAncientSpiritsBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Zealot"
             , _cardDescription =
@@ -491,7 +491,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 42 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Monument to Rage"
             , _cardDescription =
@@ -501,7 +501,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 63 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Cursed Unicorn"
             , _cardDescription =
@@ -511,7 +511,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 53 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Blind Prophet"
             , _cardDescription =
@@ -521,7 +521,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 27 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Reaver"
             , _cardDescription =
@@ -531,7 +531,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 56 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Greater Bargul"
             , _cardDescription =
@@ -541,7 +541,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 13 , _creatureLife = 58 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "DEATH CARDS"
@@ -551,16 +551,16 @@ allCards =
                 "Dark Ritual deals 3 damage to the opponent's creatures, then heals 3 life to each of its caster's creatures. "
             , _cardImage = "DarkRitualBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         , Card
             { _cardName = "Cursed Fog"
             , _cardDescription =
                 "Cursed Fog deals 12 damage to each creature and 3 damage to the opponent. "
             , _cardImage = "CursedFogBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Banshee"
             , _cardDescription =
@@ -570,7 +570,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 21 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Emissary of Dorlak"
             , _cardDescription =
@@ -580,15 +580,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 48 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Blood Ritual"
             , _cardDescription =
                 "Destroy target caster's creature. Blood Ritual deals X damage to each of the opponent's creatures, where X is equal to the life of the destroyed creature, but not more than 32. "
             , _cardImage = "BloodRitualBig.jpg"
             , _cardCost = 5
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Keeper of Death"
             , _cardDescription =
@@ -598,15 +598,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 35 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Drain Souls"
             , _cardDescription =
                 "Kill all creatures. Drain Souls heals an amount of life to its caster equal to twice the number of creatures killed by this spell. When Drain Souls is cast it is replaced by the Rage of Souls spell card. "
             , _cardImage = "DrainSoulsBig.jpg"
             , _cardCost = 7
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Master Lich"
             , _cardDescription =
@@ -616,7 +616,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 46 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "DEMONIC CARDS"
@@ -629,23 +629,23 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 8 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Explosion"
             , _cardDescription =
                 "Destroy target caster's creature. Explosion deals 28 damage to the creature in the opposing slot. "
             , _cardImage = "ExplosionBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Power Chains"
             , _cardDescription =
                 "Power Chains deals 12 damage to target opponent's Fire, Water, Air or Earth Creature, then decreases that opponent's power by 3. "
             , _cardImage = "PowerChainsBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell TargetOpponent'sNormal
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent'sNormal }
         , Card
             { _cardName = "Ergodemon"
             , _cardDescription =
@@ -655,7 +655,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 23 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Demon Quartermaster"
             , _cardDescription =
@@ -665,15 +665,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 21 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "HellFire"
             , _cardDescription =
                 "Hellfire deals 13 damage to each of the opponent's creatures, then increases its caster's Fire power by 1 for each creature killed by this spell. "
             , _cardImage = "HellFireBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Three-headed demon"
             , _cardDescription =
@@ -683,7 +683,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 30 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Greater Demon"
             , _cardDescription =
@@ -693,7 +693,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 42 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "EARTH CARDS"
@@ -706,15 +706,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 12 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Nature's Ritual"
             , _cardDescription =
                 "Nature's Ritual heals 8 life to target caster's creature and to its caster. "
             , _cardImage = "NaturesRitualBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Forest Sprite"
             , _cardDescription =
@@ -724,15 +724,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 1 , _creatureLife = 22 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Rejuvenation"
             , _cardDescription =
                 "Rejuvenation heals an amount of life to its caster equal to twice its caster's Earth power. "
             , _cardImage = "RejuvenationBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Elf Hermit"
             , _cardDescription =
@@ -742,15 +742,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 1 , _creatureLife = 13 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Nature's Fury"
             , _cardDescription =
                 "Nature's Fury deals an amount of damage to the opponent equal to the total attack of its caster's two creatures with the highest attack. "
             , _cardImage = "NaturesFuryBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Giant Spider"
             , _cardDescription =
@@ -760,7 +760,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 24 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Troll"
             , _cardDescription =
@@ -770,15 +770,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 26 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Stone Rain"
             , _cardDescription =
                 "Earth spell, cost 9 Stone Rain deals 25 damage to each creature. "
             , _cardImage = "StoneRainBig.jpg"
             , _cardCost = 9
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Earth Elemental"
             , _cardDescription =
@@ -788,7 +788,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Nothing , _creatureLife = 50 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Master Healer"
             , _cardDescription =
@@ -798,7 +798,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 34 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Hydra"
             , _cardDescription =
@@ -808,7 +808,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 40 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "FIRE CARDS"
@@ -821,7 +821,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 16 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Wall of Fire"
             , _cardDescription =
@@ -831,7 +831,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 5 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Priest of Fire"
             , _cardDescription =
@@ -841,7 +841,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 13 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Fire Drake"
             , _cardDescription = "Fire Drake attacks the turn it enters play. "
@@ -850,7 +850,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 18 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Orc Chieftain"
             , _cardDescription =
@@ -860,15 +860,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 17 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Flame Wave"
             , _cardDescription =
                 "Fire spell, cost 6 Flame Wave deals 9 damage to each of the opponent's creatures. "
             , _cardImage = "FlameWaveBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Minotaur Commander"
             , _cardDescription =
@@ -878,7 +878,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Bargul"
             , _cardDescription =
@@ -888,15 +888,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 26 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Inferno"
             , _cardDescription =
                 "Inferno deals 18 damage to target opponent's creature and 10 damage to each of the opponent's other creatures. "
             , _cardImage = "InfernoBig.jpg"
             , _cardCost = 9
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         , Card
             { _cardName = "Fire Elemental"
             , _cardDescription =
@@ -906,15 +906,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Nothing , _creatureLife = 37 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Armageddon"
             , _cardDescription =
                 "Armageddon deals (8 + its caster's Fire power) damage to the opponent and to each creature. "
             , _cardImage = "ArmageddonBig.jpg"
             , _cardCost = 11
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Dragon"
             , _cardDescription =
@@ -924,7 +924,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 9 , _creatureLife = 40 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "FOREST CARDS"
@@ -937,7 +937,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 2 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Forest Wolf"
             , _cardDescription =
@@ -947,7 +947,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 24 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Vindictive Raccoon"
             , _cardDescription =
@@ -957,7 +957,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 14 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Enraged Beaver"
             , _cardDescription =
@@ -967,15 +967,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 10 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ritual of the Forest"
             , _cardDescription =
                 "Ritual of the Forest heals X+5 life to its caster and to each of its caster's creatures where X is equal to the attack of Magic Rabbit. "
             , _cardImage = "RitualoftheForestBig.jpg"
             , _cardCost = 5
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Treefolk Protector"
             , _cardDescription =
@@ -985,7 +985,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 25 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Bee Queen"
             , _cardDescription =
@@ -995,7 +995,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 14 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Angry Angry Bear"
             , _cardDescription =
@@ -1005,7 +1005,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 30 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "GOBLIN'S CARDS"
@@ -1015,8 +1015,8 @@ allCards =
                 "Move target creature to a random empty slot. If that creature is owned by this spell's caster, Rescue Operation heals 5 life to it. "
             , _cardImage = "RescueoperationBig.jpg"
             , _cardCost = 0
-            , _cardEffect = Spell TargetCreature
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCreature }
         , Card
             { _cardName = "Goblin Hero"
             , _cardDescription =
@@ -1026,7 +1026,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 14 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Goblin Saboteur"
             , _cardDescription =
@@ -1036,15 +1036,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Army of Rats"
             , _cardDescription =
                 "Army of Rats deals 12 damage to each of the opponent's creatures, then deals 12 damage to a random caster's creature. "
             , _cardImage = "ArmyofRatsBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Portal Jumper"
             , _cardDescription =
@@ -1054,7 +1054,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 28 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Goblin Looter"
             , _cardDescription =
@@ -1064,7 +1064,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 28 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Goblin Raider"
             , _cardDescription =
@@ -1074,7 +1074,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 24 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ratmaster"
             , _cardDescription =
@@ -1084,7 +1084,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 47 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "GOLEM CARDS"
@@ -1094,8 +1094,8 @@ allCards =
                 "Golem's Frenzy deals 3 damage to each of the opponent's creatures. For each creature killed by this spell, Golem's attack is increased by 3 until end of turn. "
             , _cardImage = "GolemsFrenzyBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Guardian Statue"
             , _cardDescription =
@@ -1105,23 +1105,23 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 10 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Golem's Justice"
             , _cardDescription =
                 "Golem's Justice deals 4 damage to each of the opponent's creatures, then heals 4 life to Golem's neighbours. "
             , _cardImage = "GolemsJusticeBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Army Upgrade"
             , _cardDescription =
                 "Army Upgrade heals 3 life to each of its caster's creatures. Golem's attack is increased by 2 permanently; this bonus remains even after Golem is killed. "
             , _cardImage = "ArmyUpgradeBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Golem Instructor"
             , _cardDescription =
@@ -1131,7 +1131,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Nothing , _creatureLife = 22 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Dark Sculptor"
             , _cardDescription =
@@ -1141,7 +1141,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 8 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Golem Guide"
             , _cardDescription =
@@ -1151,7 +1151,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 32 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Golem Handler"
             , _cardDescription =
@@ -1161,7 +1161,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 40 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "HOLY CARDS"
@@ -1174,7 +1174,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 9 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Monk"
             , _cardDescription =
@@ -1184,7 +1184,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 13 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Holy Guard"
             , _cardDescription =
@@ -1194,31 +1194,31 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 23 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Divine Justice"
             , _cardDescription =
                 "Divine Justice heals 12 life to target caster's creature and deals 12 damage to each other creature. "
             , _cardImage = "DivineJusticeBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Divine Intervention"
             , _cardDescription =
                 "Divine Intervention increases its caster's Fire, Water, Air and Earth powers by 2, then heals 10 life to its caster. "
             , _cardImage = "DivineInterventionBig.jpg"
             , _cardCost = 5
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Wrath of God"
             , _cardDescription =
                 "Wrath of God deals 12 damage to each of the opponent's creatures, then increases its caster's Holy power by 1 for each of the opponent's creatures that did not die. "
             , _cardImage = "WrathofGodBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Angel"
             , _cardDescription =
@@ -1228,7 +1228,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 42 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Archangel"
             , _cardDescription =
@@ -1238,7 +1238,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 48 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "ILLUSION CARDS"
@@ -1248,8 +1248,8 @@ allCards =
                 "Madness deals damage to each of the opponent's creatures equal to the attack of that creature. "
             , _cardImage = "MadnessBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Phantom Warrior"
             , _cardDescription =
@@ -1259,15 +1259,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 4 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Hypnosis"
             , _cardDescription =
                 "The two opponent's creatures with the highest attack immediately attack the opponent. "
             , _cardImage = "HypnosisBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Wall of Reflection"
             , _cardDescription =
@@ -1277,7 +1277,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Spectral Assassin"
             , _cardDescription =
@@ -1287,7 +1287,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 22 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Spectral Mage"
             , _cardDescription =
@@ -1297,7 +1297,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 34 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Oracle"
             , _cardDescription =
@@ -1307,7 +1307,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 41 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Hypnotist"
             , _cardDescription =
@@ -1317,7 +1317,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 39 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "MECHANICAL CARDS"
@@ -1327,8 +1327,8 @@ allCards =
                 "Mechanical spell, cost 0 Overtime increases its caster's Mechanics power by 1. "
             , _cardImage = "OvertimeBig.jpg"
             , _cardCost = 0
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Dwarven Rifleman"
             , _cardDescription =
@@ -1338,7 +1338,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 17 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Dwarven Craftsman"
             , _cardDescription =
@@ -1348,7 +1348,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 17 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ornithopter"
             , _cardDescription =
@@ -1358,7 +1358,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 24 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Steel Golem"
             , _cardDescription =
@@ -1368,7 +1368,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Cannon"
             , _cardDescription =
@@ -1378,15 +1378,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 29 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Cannonade"
             , _cardDescription =
                 "Cannonade deals 19 damage to each of the opponent's creatures. "
             , _cardImage = "CannonadeBig.jpg"
             , _cardCost = 7
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Steam Tank"
             , _cardDescription =
@@ -1396,7 +1396,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 52 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "OTHER CARDS"
@@ -1409,7 +1409,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 8 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Initiate"
             , _cardDescription =
@@ -1419,7 +1419,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 14 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Scrambled Lemure"
             , _cardDescription = "Attack 3, life 6 "
@@ -1428,7 +1428,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 6 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Magic Rabbit"
             , _cardDescription =
@@ -1438,7 +1438,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 1 , _creatureLife = 10 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Golem"
             , _cardDescription =
@@ -1448,7 +1448,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 10 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Enraged Quartermaster"
             , _cardDescription = "Attack 6, life 20 "
@@ -1457,7 +1457,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Demon Apostate"
             , _cardDescription =
@@ -1467,15 +1467,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 25 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Rage of Souls"
             , _cardDescription =
                 "Deals (9 + caster's Death power) damage to each of opponent's creatures. Caster gains 2 life for each creature killed by this spell. "
             , _cardImage = "RageofSoulsBig.jpg"
             , _cardCost = 7
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         ]
       )
     , ( "SORCERY CARDS"
@@ -1485,64 +1485,64 @@ allCards =
                 "Healing Spray heals 9 life to target caster's creature and 6 life to its neighboring creatures. "
             , _cardImage = "HealingSprayBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Fireball"
             , _cardDescription =
                 "Fireball deals 9 damage to target opponent's creature and 6 damage to its neighboring creatures. "
             , _cardImage = "FireballBig.jpg"
             , _cardCost = 2
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         , Card
             { _cardName = "Steal Essence"
             , _cardDescription =
                 "Steal Essence deals 5 damage to target creature. If the creature is killed by this spell, its caster's Sorcery power is increased by 4. "
             , _cardImage = "StealEssenceBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell TargetCreature
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCreature }
         , Card
             { _cardName = "Sacrifice"
             , _cardDescription =
                 "Destroy target caster's creature. Sacrifice increases its caster's Fire, Water, Air and Earth powers by 3. "
             , _cardImage = "SacrificeBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Ritual of Glory"
             , _cardDescription =
                 "Ritual of Glory completely heals each of its caster's creatures, then increases their attack by 3 until end of turn (except walls). "
             , _cardImage = "RitualofGloryBig.jpg"
             , _cardCost = 5
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Mana Burn"
             , _cardDescription =
                 "Mana Burn deals an amount of damage to each of the opponent's creatures equal to the opponent's highest power type, then decreases that opponent's power by 3. "
             , _cardImage = "ManaBurnBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Sonic Boom"
             , _cardDescription =
                 "Sonic Boom deals 11 damage to the opponent and to each of the opponent's creatures. Those creatures skip their attack next turn. "
             , _cardImage = "SonicBoomBig.jpg"
             , _cardCost = 7
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Disintegrate"
             , _cardDescription =
                 "Destroy target opponent's creature. Disintegrate deals 11 damage to each of the opponent's other creatures. "
             , _cardImage = "DisintegrateBig.jpg"
             , _cardCost = 8
-            , _cardEffect = Spell TargetOpponent's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetOpponent's }
         ]
       )
     , ( "SPIRIT CARDS"
@@ -1555,7 +1555,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 15 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Holy Avenger"
             , _cardDescription =
@@ -1565,7 +1565,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 23 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Templar"
             , _cardDescription =
@@ -1575,31 +1575,31 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 26 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Divine Justice"
             , _cardDescription =
                 "Divine Justice heals 12 life to target caster's creature and deals 12 damage to each other creature. "
             , _cardImage = "DivineJusticeBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Divine Meddling"
             , _cardDescription =
                 "Divine Meddling increases its caster's Fire, Water, Air and Earth powers by 2, then deals 10 damage to the opponent. "
             , _cardImage = "DivineMeddlingBig.jpg"
             , _cardCost = 5
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Rage of God"
             , _cardDescription =
                 "Rage of God deals 12 damage to each of the opponent's creatures, then deals 3 damage to the opponent for each of the opponent's creatures that did not die. "
             , _cardImage = "RageofGodBig.jpg"
             , _cardCost = 6
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Angel"
             , _cardDescription =
@@ -1609,7 +1609,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 42 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Angel of War"
             , _cardDescription =
@@ -1619,7 +1619,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 37 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "TIME CARDS"
@@ -1632,7 +1632,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 11 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Timeblazer"
             , _cardDescription =
@@ -1642,23 +1642,23 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 17 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Hasten"
             , _cardDescription =
                 "Target caster's creature with attack 9 or less immediately attacks the opponent and all the opponent's creatures. "
             , _cardImage = "HastenBig.jpg"
             , _cardCost = 3
-            , _cardEffect = Spell TargetCaster's
-            }
+            , _cardEffect = Spell
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Time Stop"
             , _cardDescription =
                 "Time Stop deals 4 damage to each of the opponent's creatures and forces the opponent to skip their next turn. "
             , _cardImage = "TimeStopBig.jpg"
             , _cardCost = 4
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Timeweaver"
             , _cardDescription =
@@ -1668,7 +1668,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 24 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Priestess of Moments"
             , _cardDescription =
@@ -1678,7 +1678,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 35 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Chrono Engine"
             , _cardDescription =
@@ -1688,7 +1688,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 33 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Time Dragon"
             , _cardDescription =
@@ -1698,7 +1698,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 40 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "VAMPIRIC CARDS"
@@ -1708,8 +1708,8 @@ allCards =
                 "Blood Boil deals 4 damage to each of the opponent's creatures, then increases its owner's Blood power by 1 for each creature killed by this spell. "
             , _cardImage = "BloodBoilBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Ghoul"
             , _cardDescription =
@@ -1719,7 +1719,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 25 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Devoted Servant"
             , _cardDescription =
@@ -1729,7 +1729,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 1 , _creatureLife = 19 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Vampire Mystic"
             , _cardDescription =
@@ -1739,7 +1739,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 46 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Justicar"
             , _cardDescription =
@@ -1749,7 +1749,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 49 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Chastiser"
             , _cardDescription =
@@ -1759,7 +1759,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 9 , _creatureLife = 51 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Vampire Elder"
             , _cardDescription =
@@ -1769,7 +1769,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 27 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Magister of Blood"
             , _cardDescription =
@@ -1779,7 +1779,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 8 , _creatureLife = 33 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     , ( "WATER CARDS"
@@ -1789,8 +1789,8 @@ allCards =
                 "Meditation increases its caster's Fire, Air and Earth powers by 1. "
             , _cardImage = "MeditationBig.jpg"
             , _cardCost = 1
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Sea Sprite"
             , _cardDescription =
@@ -1800,7 +1800,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 22 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Merfolk Apostate"
             , _cardDescription =
@@ -1810,7 +1810,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 10 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ice Golem"
             , _cardDescription =
@@ -1820,7 +1820,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 4 , _creatureLife = 12 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Merfolk Elder"
             , _cardDescription =
@@ -1830,7 +1830,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 16 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Ice Guard"
             , _cardDescription =
@@ -1840,7 +1840,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 3 , _creatureLife = 20 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Giant Turtle"
             , _cardDescription =
@@ -1850,15 +1850,15 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 5 , _creatureLife = 16 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Acidic Rain"
             , _cardDescription =
                 "Acidic Rain deals 15 damage to each creature, then decreases each of the opponent's powers by 1. "
             , _cardImage = "AcidicRainBig.jpg"
             , _cardCost = 8
-            , _cardEffect = Spell NoTarget
-            }
+            , _cardEffect = Spell
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Merfolk Overlord"
             , _cardDescription =
@@ -1868,7 +1868,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 35 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Water Elemental"
             , _cardDescription =
@@ -1878,7 +1878,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Nothing , _creatureLife = 37 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Mind Master"
             , _cardDescription =
@@ -1888,7 +1888,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 6 , _creatureLife = 23 }
-            }
+            , _cardTarget = TargetCasterBlank }
         , Card
             { _cardName = "Astral Guard"
             , _cardDescription =
@@ -1898,7 +1898,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 1 , _creatureLife = 18 }
-            }
+            , _cardTarget = TargetCasterBlank }
         ]
       )
     ]
