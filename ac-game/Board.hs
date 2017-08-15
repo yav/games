@@ -82,23 +82,22 @@ boardLocOwner l b =
      ps ^? ix 0 . pawnPlayer
 
 
--- | Remove a specific pawn from a location.
--- If theere are multiple pawns that are the same, then
--- remove the bottom one (i.e., the last one).
+-- | Remove a pawn for a player from a location.
+-- If theere are multiple pawns, then remove the top one (i.e.,
+-- the least powerful one).
 -- Fails if there is no such pawn at the location.
-rmPawn :: PawnLoc -> Pawn -> Pawns -> Maybe Pawns
-rmPawn l p mp =
+rmPawn :: PawnLoc -> PlayerId -> Pawns -> Maybe (Pawn,Pawns)
+rmPawn l pid mp =
   do ps <- Map.lookup l mp
-     qs <- rm ps
-     return (Map.insert l qs mp)
-
+     (q,qs) <- rm ps
+     return (q,Map.insert l qs mp)
   where
   rm xs = case xs of
             []     -> Nothing
-            a : as -> case rm as of
-                        Nothing | a == p    -> Just as
-                                | otherwise -> Nothing
-                        Just bs -> Just (a : bs)
+            a : as
+              | a ^. pawnPlayer == pid -> Just (a,as)
+              | otherwise -> do (b,bs) <- rm as
+                                return (b,a:bs)
 
 -- | Add a pawn to a location.  The new pawn goes on top (aka front).
 addPawn :: PawnLoc -> Pawn -> Pawns -> Pawns

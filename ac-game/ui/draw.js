@@ -1,7 +1,6 @@
 var pawn_spot_sz = 64
 var tile_size = 3 * pawn_spot_sz
 var action = null
-var selected = false
 
 function pawnCoordToTiles(x,y) {
   var tx = Math.floor(x/2)
@@ -51,7 +50,6 @@ function addPawnLoc(board, tiles, x, y) {
             .css('background-color', 'rgba(0,0,0,0)')
             .css('z-index','100')
             .click(function() {
-              console.log(x,y)
                   if (action) { toServer({x:x,y:y}) }
                })
 
@@ -95,7 +93,6 @@ function addTile(board,tiles,x,y) {
 
 
 function addPawn(b,p,x,y,ix) {
-  console.log(p)
   var sz = 0.75 * pawn_spot_sz
   var off = (pawn_spot_sz - sz) / 2
   var ssh = 0.80 * sz
@@ -142,7 +139,7 @@ function addPawn(b,p,x,y,ix) {
           .css('position','absolute')
           .css('border', '1px solid black')
           .css('left', (xx+off) + 'px')
-          .css('bottom', (yy+off - (ix * 5)) + 'px')
+          .css('bottom', (yy+off - (ix * sz/6)) + 'px')
           .css('text-align','center')
           .css('z-index', 40 - ix)
 
@@ -217,7 +214,6 @@ function drawPlayerStat(l,a) {
 function toServer(i) {
   jQuery.post(action,i,drawGame)
         .fail(function(x) {
-            console.log(x)
             $('#message').empty().text(x.statusText)
         })
 }
@@ -264,20 +260,21 @@ function drawCurPlayer(b,cp) {
   var ws = drawPlayerStat('workers',p.workers)
 
   if (p.workers > 0 && !cp.pawn) clickable(ws,function() {
-    console.log('new worker')
     action = '/newWorker'
   })
 
   var pow = drawPlayerStat('power',p.powerBoost)
 
-  if (p.power > 0 && cp.pawn) {
+  if (p.power > 0 && cp.pawn) clickable(pow,function() {
     console.log('boost')
-  }
+    action = '/boost'
+  })
 
   if (cp.pawn) {
     action = '/move'
-    selected = true
     drawCurPawn(b,0,cp.pawn) // XXX: ix
+  } else {
+    action = '/select'
   }
 
 
@@ -289,7 +286,7 @@ function drawCurPlayer(b,cp) {
 
   if (cp.pawn) {
     var btn = $('<div/>')
-              .css('width','128px')
+              .css('width','96px')
               .css('height','20px')
               .css('border-radius','5px')
               .css('background-color', playerFgColor(cp.player.id))

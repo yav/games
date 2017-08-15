@@ -113,19 +113,24 @@ gameNextPlayer g = upd g
 
 
 -- | The current player picks a pawn
-gameSelectPawn :: PawnLoc -> Pawn -> Game -> Perhaps Game
-gameSelectPawn l p g =
-  case g ^. gamePlayerCur . curPlayerPawn of
+gameSelectPawn :: PawnLoc -> Game -> Perhaps Game
+gameSelectPawn l g =
+  case pl ^. curPlayerPawn of
     Just _  -> fail "A worker is already selected."
-    Nothing -> g & gamePlayerCur.curPlayerPawn .~ Just (curPawnNew l p)
-                 & gameBoard . boardPawns %%~
-                                          perhaps "No such worker" . rmPawn l p
+    Nothing ->
+      do let ps = g ^. gameBoard . boardPawns
+         (p,qs) <- perhaps "No such worker" (rmPawn l pid ps)
+         return (g & gamePlayerCur . curPlayerPawn .~ Just (curPawnNew l p)
+                   & gameBoard . boardPawns .~ qs)
+
+  where pl = g ^. gamePlayerCur
+        pid = pl ^. curPlayer . playerId
 
 -- | Place one of the unallocated workers on the board.
 gamePlaceNewWorker :: PawnLoc -> Game -> Perhaps Game
 gamePlaceNewWorker l g = do g1 <- g & gameBoard . boardPawns %~ newPawn l pid
                                     & gamePlayerCur %%~ upd
-                            gameSelectPawn l (pawnNew pid) g1
+                            gameSelectPawn l g1
   where
   pid = g ^. gamePlayerCur . curPlayer . playerId
   upd cp =

@@ -11,6 +11,7 @@ import Util.Snap(sendJSON, snapIO, badInput, snapParam, snapParamSimpleEnum)
 import Util.Perhaps(Perhaps(..))
 
 import Game
+import Basics
 import Board
 import Board(testLayout)
 import JSON()
@@ -47,9 +48,14 @@ main =
             , ("newWorker", snapNewWorker s)
             , ("doAction", snapDoAction s)
             , ("move", snapMove s)
+            , ("select", snapSelect s)
             ]
            <|> serveDirectory "ui"
 
+snapJustModifyState :: ServerState -> (Game -> Perhaps Game) -> Snap ()
+snapJustModifyState s f =
+  do game <- modifyState s f
+     sendJSON (toJSON game)
 
 snapGetState :: ServerState -> Snap ()
 snapGetState s =
@@ -57,24 +63,21 @@ snapGetState s =
      sendJSON (toJSON game)
 
 snapNewWorker :: ServerState -> Snap ()
-snapNewWorker s =
-  do l <- getLoc
-     g <- modifyState s (gamePlaceNewWorker l)
-     sendJSON (toJSON g)
+snapNewWorker s = snapJustModifyState s . gamePlaceNewWorker =<< getLoc
 
 snapDoAction :: ServerState -> Snap ()
-snapDoAction s =
-  sendJSON . toJSON =<< modifyState s (Ok . gameDoAction)
+snapDoAction s = snapJustModifyState s (Ok . gameDoAction)
 
 snapMove :: ServerState -> Snap ()
-snapMove s =
-  do l <- getLoc
-     g <- modifyState s (gameMove l)
-     sendJSON (toJSON g)
+snapMove s = snapJustModifyState s . gameMove =<< getLoc
+
+snapSelect :: ServerState -> Snap ()
+snapSelect s = snapJustModifyState s . gameSelectPawn =<< getLoc
 
 getLoc :: Snap PawnLoc
 getLoc =
   do x <- snapParam "x"
      y <- snapParam "y"
      return (PawnLoc x y)
+
 
