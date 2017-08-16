@@ -18,7 +18,12 @@ function makeTurn(url,info,tgt) {
       })
   } else animFinished = true
 
-  jQuery.post(url, info, function(g) {
+  jQuery.post(url, info, function(res) {
+    var g = res.game
+    jQuery.each(res.log, function(ix,l) {
+        console.log(l)
+    })
+    console.log('-----------------')
     newG = g
     if (animFinished) draw()
   })
@@ -214,6 +219,8 @@ function drawArena(p1,p2,r1,r2) {
 }
 
 function drawGame(g) {
+  console.log(g)
+
   var left = g.current
   var right = g.other
   var leftR = 'caster'

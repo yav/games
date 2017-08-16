@@ -23,9 +23,8 @@ function newGame(m) {
   var b = $('body').empty()
   b.append($('<button>').text('New game')
                         .click(function() { newGame('newGame') }))
-  jQuery.getJSON(m,null,function(game) {
-    console.log(game)
-    b.append(drawGame(game))
+  jQuery.getJSON(m,null,function(res) {
+    b.append(drawGame(res.game))
   })
 }
 

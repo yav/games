@@ -3,6 +3,7 @@ module GameMonad
   ( GameStatus(..)
   , GameStopped(..)
   , GameM
+  , Log
 
   , runGame
   , stopGame
@@ -25,14 +26,18 @@ import Control.Monad(ap,liftM)
 import Control.Lens(Lens',(^.),(%~),(&),(.~))
 import Data.Maybe(catMaybes)
 import Util.Random(Gen,genRand)
+import Data.Text(Text)
 
 import CardTypes
+import Deck
 import Game
 
 type Log   = [String] -> [String]
 
 data GameStopped = GameWonBy Who
                  | IllegalMove DeckCard (Maybe Location)
+                 | InvalidCard Element Int
+                 | Err Text
 
 data GameStatus a = GameStopped GameStopped
                   | GameOn a  -- ^ The game is in progress.

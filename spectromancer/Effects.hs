@@ -1,4 +1,4 @@
-{-# Language MultiWayIf #-}
+{-# Language MultiWayIf, OverloadedStrings #-}
 module Effects where
 
 import qualified Data.Map as Map
@@ -54,32 +54,47 @@ startOfTurn =
 
 playCard :: DeckCard -> Maybe Location -> GameM ()
 playCard c mbLoc =
-  -- XXX: Remember to check the cost
-  case (c ^. deckCard . cardEffect, Nothing) of
-    (Spell {}, mb) -> do -- XXX: Check cost
+  case (c ^. deckCard . cardEffect, mbLoc) of
+    (Spell {}, mb) -> do cost <- checkCost
                          castSpell c mb
-                         -- XXX: subtract cost
+                         payCost cost
                          checkDeath
     (Creature {}, Just l)
       | locWho l == Caster && locWhich l >= 0 && locWhich l < slotNum ->
         do g <- getGame
            let isEmissary = deckCardName c == death_emissary_of_dorlak
            case g ^. creatureAt l of
-             Nothing | isEmissary -> stop
-             Just _ | not isEmissary -> stop
-             _ -> do -- Check cost
+             Nothing | isEmissary -> stop "Emissary must be go on top of a creature"
+             Just _ | not isEmissary -> stop "Creature must be played on an empty space"
+             _ -> do cost <- checkCost
                      let c1 = c & deckCardEnabled .~ False
                      updGame_ (creatureAt l .~ Just c1)
                      creatureSummonEffect (l,c1)
-                     -- substract cost
+                     payCost cost
                      checkDeath
                      mapM_ (`creatureSummoned` l)
                                       (slotsFor Caster ++ slotsFor Opponent)
                      checkDeath
-    _ -> stop
+    _ -> stop "Card needs an approprate target"
 
   where
-  stop = stopGame (IllegalMove c mbLoc)
+  stop msg = stopGame (Err msg)
+
+  el = c ^. deckCardElement
+
+  payCost cost = updGame_ ( player Caster . elementPower el %~ subtract cost)
+
+  checkCost = do g <- getGame
+                 let base = c ^. deckCard . cardCost
+                     cost = base + extraCost g
+                     have = g ^. player Caster . elementPower el
+                 when (cost > have) (stop "Card needs more power")
+                 return cost
+
+  extraCost g = sum
+              $ map (creatureModifyCost c . snd)
+              $ inhabitedSlots g
+              $ slotsFor Opponent
 
 
 
@@ -188,7 +203,8 @@ data DamageSource = Attack | Effect
 -- if it wishes to.
 creatureTakeDamage :: DamageSource -> Int -> Location -> GameM ()
 creatureTakeDamage dmg amt l =
-  do mb <- getCreatureAt l
+  do addLog ("creature take damage: " ++ show l)
+     mb <- getCreatureAt l
      case mb of
        Nothing -> return ()
        Just c ->
@@ -210,7 +226,9 @@ creatureTakeDamage dmg amt l =
   doDamage' c am =
     do let dmgDone = min (c ^. deckCardLife) (max 0 am)
            c'      = c & deckCardLife %~ subtract dmgDone
-
+       addLog ("really doing damage: " ++ show dmgDone)
+       addLog ("before: " ++ show c)
+       addLog ("after: " ++ show c')
        updGame_ (creatureAt l .~ Just c')
        return dmgDone
 
@@ -393,7 +411,8 @@ creatureStartOfTurn (l,c) =
   abilities =
     Map.fromList
       [ (fire_goblin_berserker,
-           do creatureTakeDamage Effect 2 (leftOf l)
+           do addLog "Goblin bersker start of turn"
+              creatureTakeDamage Effect 2 (leftOf l)
               creatureTakeDamage Effect 2 (rightOf l)
         )
 

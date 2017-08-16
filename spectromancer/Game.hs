@@ -10,10 +10,9 @@ import Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
 import Data.Maybe(maybeToList)
 
-import Control.Lens( makeLenses, (^.), (.~), (%~), to, (&), Lens',Traversal'
-                   , at, non)
+import Control.Lens( makeLenses, (^.), Lens',Traversal', at, non)
 
-import Util.Random(Gen,StdGen,genRandFun)
+import Util.Random(StdGen,Gen)
 
 import CardTypes
 import Deck
@@ -82,17 +81,6 @@ newPlayer name deck =
   where dc e cs = map (newDeckCard e) cs
 
 
-newGame :: StdGen -> (Text,Class) -> (Text,Class) -> Game
-newGame rng (name1,class1) (name2,class2) =
-  genRandFun rng $
-    do (deck1, deck2) <- pickDecks class1 class2
-       p1 <- newPlayer name1 deck1
-       p2 <- newPlayer name2 deck2
-       return $ \r -> activateCards
-                        Game { _curPlayer   = p1
-                             , _otherPlayer = p2
-                             , _gameRNG     = r  }
-
 -- | A traversal that visits each card in a player's deck.
 eachCard :: Traversal' Player DeckCard
 eachCard = playerDeck   -- in the deck
@@ -120,44 +108,6 @@ deckCardLife = deckCard . cardEffect . creatureCard . creatureLife
 inhabitedSlots :: Game -> [Location] -> [(Location,DeckCard)]
 inhabitedSlots g slots =
   [ (l,creature) | l <- slots, creature <- maybeToList (g ^. creatureAt l) ]
-
-
-{-
-view  :: Lens' s a -> s -> a
-(^.)  :: Lens' s a -> s -> a
-(.~)  :: Traversal' s a -> s -> a -> s
-(%~)  :: Traversal' s a -> s -> (a -> a) -> s
-(%%~) :: Traversal' s a -> s -> (a -> Maybe a) -> Maybe s
--}
-
--- | Compute which cards in the deck are playable this turn and
--- disable opponents cards
-activateCards :: Game -> Game
-activateCards g =
-  g & curPlayer   . eachCard %~ activate
-    & otherPlayer . eachCard . deckCardEnabled .~ False
-  where
-  curP = g ^. curPlayer
-
-  activate ca = ca & deckCardEnabled .~ active (ca ^. deckCard)
-    where
-    have = Map.findWithDefault 0 (ca ^. deckCardElement) (curP ^. playerPower)
-    active card = (card ^. cardCost) <= have && hasTarget (card ^. cardTarget)
-
-    hasTarget tgt =
-      case tgt of
-        NoTarget -> True
-        TargetCasterBlank -> Map.size curCreatures < slotNum
-        TargetCaster's    -> not (Map.null curCreatures)
-        TargetOpponent's  -> not (Map.null oppCreatures)
-        TargetOpponent'sNormal ->
-          any (\c -> c ^. deckCardElement /= Special) curCreatures
-        TargetCreature ->
-          not (Map.null curCreatures && Map.null oppCreatures)
-
-  curCreatures = curP ^. playerActive
-  oppCreatures = g    ^. otherPlayer . playerActive
-
 
 
 
