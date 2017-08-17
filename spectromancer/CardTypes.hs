@@ -93,6 +93,9 @@ slotsFor :: Who -> [ Location ]
 slotsFor locWho = map mk (take slotNum [ 0 .. ])
   where mk locWhich = Location { .. }
 
+allSlots :: [ Location ]
+allSlots = slotsFor Caster ++ slotsFor Opponent
+
 isNeighbor :: Location -> Location -> Bool
 isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 &&
                               abs (locWhich loc1 - locWhich loc2) == 1

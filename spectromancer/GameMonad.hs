@@ -7,6 +7,7 @@ module GameMonad
 
   , runGame
   , stopGame
+  , stopError
   , getGame
   , setGame
   , updGame
@@ -78,6 +79,8 @@ setGame g = GameM (\_ -> (GameOn (), g, id))
 addLog :: String -> GameM ()
 addLog l = GameM (\g -> (GameOn (), g, (l :)))
 
+
+
 --------------------------------------------------------------------------------
 
 updGame_ :: (Game -> Game) -> GameM ()
@@ -122,6 +125,8 @@ getCreatureAt :: Location -> GameM (Maybe DeckCard)
 getCreatureAt l = withGame (creatureAt l)
 
 
+stopError :: Text -> GameM a
+stopError t = stopGame (Err t)
 
 
 

@@ -15,6 +15,7 @@ import Control.Lens( makeLenses, (^.), Lens',Traversal', at, non)
 import Util.Random(StdGen,Gen)
 
 import CardTypes
+import CardIds
 import Deck
 
 
@@ -68,6 +69,15 @@ newDeckCard el orig =
 deckCardName :: DeckCard -> Text
 deckCardName c = c ^. deckCardOrig . cardName
 
+isWall :: DeckCard -> Bool
+isWall d = deckCardName d `elem` walls
+  where walls = [ fire_wall_of_fire
+                , illusion_wall_of_reflection
+                , air_wall_of_lightning
+                ]
+
+
+
 -- This is in Gen to generate random starting powers...
 newPlayer :: Text -> Deck -> Gen Player
 newPlayer name deck =
@@ -75,7 +85,7 @@ newPlayer name deck =
                 , _playerLife   = 60
                 , _playerActive = Map.empty
                 , _playerDeck   = Map.mapWithKey dc deck
-                , _playerPower  = Map.fromList [ (e,3) | e <- allElements ]
+                , _playerPower  = Map.fromList [ (e,13) | e <- allElements ]
                 }
 
   where dc e cs = map (newDeckCard e) cs
@@ -135,7 +145,8 @@ instance ToJSON Player where
     [ "name"    .= (c ^. playerName)
     , "life"    .= (c ^. playerLife)
     , "deck"    .= jsElementMap (c ^. playerDeck)
-    , "power"   .= jsElementMap (c ^. playerPower)
+    , "power"   .= JS.object [ Text.pack (show e) .= (c ^. elementPower e)
+                               | e <- allElements ]
     , "active"  .= [ Map.lookup s (c ^. playerActive)
                                           | s <- take slotNum [ 0 .. ] ]
     ]

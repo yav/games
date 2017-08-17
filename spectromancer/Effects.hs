@@ -4,6 +4,7 @@ module Effects where
 import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
+import           Data.List(delete)
 import Control.Monad(when,unless)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf)
@@ -48,9 +49,7 @@ generatePower =
 
 -- | Do this at the start of each turn.
 startOfTurn :: GameM ()
-startOfTurn =
-  do ours <- getCreaturesFor Caster
-     mapM_ creatureStartOfTurn ours
+startOfTurn = mapM_ creatureStartOfTurn (slotsFor Caster)
 
 playCard :: DeckCard -> Maybe Location -> GameM ()
 playCard c mbLoc =
@@ -64,16 +63,17 @@ playCard c mbLoc =
         do g <- getGame
            let isEmissary = deckCardName c == death_emissary_of_dorlak
            case g ^. creatureAt l of
-             Nothing | isEmissary -> stop "Emissary must be go on top of a creature"
-             Just _ | not isEmissary -> stop "Creature must be played on an empty space"
+             Nothing | isEmissary ->
+                          stop "Emissary must be go on top of a creature"
+             Just _ | not isEmissary ->
+                          stop "Creature must be played on an empty space"
              _ -> do cost <- checkCost
                      let c1 = c & deckCardEnabled .~ False
                      updGame_ (creatureAt l .~ Just c1)
                      creatureSummonEffect (l,c1)
                      payCost cost
                      checkDeath
-                     mapM_ (`creatureSummoned` l)
-                                      (slotsFor Caster ++ slotsFor Opponent)
+                     mapM_ (`creatureSummoned` l) allSlots
                      checkDeath
     _ -> stop "Card needs an approprate target"
 
@@ -127,7 +127,7 @@ checkDeath =
          Just c | c ^. deckCardLife <= 0 ->
             do updPlayer_ (locWho l) (creatureInSlot (locWhich l) .~ Nothing)
                creatureDie (l,c)
-               mapM_ (`creatureDied` l) (slotsFor Caster ++ slotsFor Opponent)
+               mapM_ (`creatureDied` l) allSlots
          _  -> return ()
 
 
@@ -135,7 +135,22 @@ checkDeath =
 --------------------------------------------------------------------------------
 
 castSpell :: DeckCard -> Maybe Location -> GameM ()
-castSpell _ _ = return () -- XXX: implement spell
+castSpell c mbTgt =
+  case Map.lookup (deckCardName c) spells of
+    Just act -> act
+    Nothing  -> addLog ("Not yet implemented: " ++ show (deckCardName c))
+  where
+  target = case mbTgt of
+             Nothing -> stopError "Spell needs target"
+             Just t  -> return t
+
+  spells = Map.fromList
+    [ (fire_flame_wave, damageCreatures Effect 9 (slotsFor Opponent))
+    , (fire_inferno, do t <- target
+                        damageCreatures Effect 18 [t]
+                        damageCreatures Effect 10 (delete t (slotsFor Opponent))
+      )
+    ]
 
 --------------------------------------------------------------------------------
 -- Things that can happen to summoned creatures
@@ -149,6 +164,9 @@ creatureSummonEffect (l,c) =
   abilities = Map.fromList
     [ (fire_fire_drake,
           updGame_ (creatureAt l . mapped . deckCardEnabled .~ True))
+
+    , (fire_wall_of_fire, damageCreatures Effect 5 (slotsFor Opponent))
+    , (fire_bargul, damageCreatures Effect 4 (delete l allSlots))
     ]
 
 
@@ -279,8 +297,11 @@ performCreatureAttack l =
 
   damageEveryone c p =
     do doWizardDamage otherWizard c p
-       mapM_ (creatureTakeDamage Attack p) (slotsFor otherWizard)
+       damageCreatures Attack p (slotsFor otherWizard)
 
+-- | Damage the creatures in the given location.
+damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
+damageCreatures ty amt ls = mapM_ (creatureTakeDamage ty amt) ls
 
 -- | Deal some damage to one of the two players.
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
@@ -387,27 +408,22 @@ creatureModifyAttack (l,d) (l1,c)
   name = deckCardName c
   ours = sameSide l l1
 
-isWall :: DeckCard -> Bool
-isWall d = deckCardName d `elem` walls
-  where walls = [ fire_wall_of_fire
-                , illusion_wall_of_reflection
-                , air_wall_of_lightning
-                ]
-
-
 -- | Do something at the beginning of the owner's turn.
-creatureStartOfTurn :: (Location,DeckCard) -> GameM ()
-creatureStartOfTurn (l,c) =
-  case Map.lookup name abilities of
-    Nothing -> return ()
-    Just act ->
-      do addLog (Text.unpack name ++ " start of turn action")
-         act
-         checkDeath
-
+creatureStartOfTurn :: Location -> GameM ()
+creatureStartOfTurn l =
+  do mb <- withGame (creatureAt l)
+     case mb of
+       Nothing -> return ()
+       Just c ->
+         do let name = deckCardName c
+            updGame_ (creatureAt l . mapped . deckCardEnabled .~ True)
+            case Map.lookup name abilities of
+              Nothing -> return ()
+              Just act ->
+                do addLog (Text.unpack name ++ " start of turn action")
+                   act
+                   checkDeath
   where
-  name = deckCardName c
-
   abilities =
     Map.fromList
       [ (fire_goblin_berserker,
@@ -415,7 +431,6 @@ creatureStartOfTurn (l,c) =
               creatureTakeDamage Effect 2 (leftOf l)
               creatureTakeDamage Effect 2 (rightOf l)
         )
-
       ]
 
 
