@@ -5,8 +5,8 @@ import Language.Haskell.TH
 import Data.Text(Text)
 import qualified Data.Text as Text
 import Data.Char(isSpace,isAlpha,toLower)
-import Data.Maybe(mapMaybe)
-import Control.Lens(view)
+import Data.Maybe(mapMaybe,listToMaybe)
+import Control.Lens(view,(^.))
 
 import qualified Data.Map as Map
 import CardTypes
@@ -35,6 +35,9 @@ card_name_decls = concat <$> mapM cat (Map.toList allCards)
                   dss <- mapM (decl (Just pref) . view cardName) cs
                   return (ds1 ++ concat dss)
 
+getCard :: Text -> Text -> Maybe Card
+getCard cl c = do xs <- Map.lookup cl allCards
+                  listToMaybe [ x | x <- xs, x ^. cardName == c ]
 
 
 allCards :: Cards
@@ -1401,6 +1404,15 @@ allCards =
       )
     , ( "OTHER CARDS"
       , [ Card
+            { _cardName = "Forest Spider"
+            , _cardDescription = "Spiders."
+            , _cardImage = "ForestSpiderBig.jpg"
+            , _cardCost = 1
+            , _cardEffect =
+                Creature
+                  CreatureCard { _creatureAttack = Just 2 , _creatureLife = 11 }
+            , _cardTarget = TargetCasterBlank }
+      ,  Card
             { _cardName = "Bee Soldier"
             , _cardDescription =
                 "When Bee Soldier dies it deals 3 damage to opponent. "

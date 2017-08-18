@@ -11,6 +11,7 @@ import Util.Random(oneOf)
 
 import CardTypes
 import CardIds
+import Cards(getCard)
 import Game
 import GameMonad
 import Deck(Element(..),allElements)
@@ -144,6 +145,19 @@ castSpell c mbTgt =
              Nothing -> stopError "Spell needs target"
              Just t  -> return t
 
+  casterTarget =
+    do tgt <- target
+       case locWho tgt of
+         Caster -> return tgt
+         _      -> stopError "This spell only affects the caster"
+
+  opponentTarget =
+    do tgt <- target
+       case locWho tgt of
+         Opponent -> return tgt
+         _        -> stopError "This spell only affects the opponent"
+
+
   damageSpell k =
     do g <- getGame
        let cs      = map snd (inhabitedSlots g (slotsFor Caster))
@@ -155,7 +169,7 @@ castSpell c mbTgt =
     [ (fire_flame_wave, damageSpell $ \dmg ->
                             damageCreatures Effect (dmg 9) (slotsFor Opponent))
     , (fire_inferno, damageSpell $ \dmg ->
-                     do t   <- target
+                     do t <- opponentTarget
                         damageCreatures Effect (dmg 18) [t]
                         damageCreatures Effect (dmg 10)
                                             (delete t (slotsFor Opponent))
@@ -177,9 +191,7 @@ castSpell c mbTgt =
              updGame_ (player Opponent . elementPower el %~ subtract 1))
 
     , (air_call_to_thunder, damageSpell $ \dmg ->
-          do tgt <- target
-             when (locWho tgt == Caster) $
-               stopError "\"Call to thunder\" must be cast on the opponent."
+          do tgt <- opponentTarget
              doWizardDamage Opponent c (dmg 6)
              damageCreatures Effect (dmg 6) [tgt])
 
@@ -191,11 +203,10 @@ castSpell c mbTgt =
         do doWizardDamage Opponent c (dmg 9)
            damageCreatures Effect (dmg 9) (slotsFor Opponent))
 
-    , (air_tornado, do tgt <- target
-                       when (locWho tgt == Caster) $
-                         stopError "Tornado must be cast on the opponent."
+    , (air_tornado, do tgt <- opponentTarget
                        updGame_ (creatureAt tgt .~ Nothing))
-    , (earth_natures_ritual, do tgt <- target
+
+    , (earth_natures_ritual, do tgt <- casterTarget
                                 healCreature tgt 8
                                 healOwner 8)
     , (earth_rejuvenation,
@@ -209,6 +220,20 @@ castSpell c mbTgt =
            let d = sum . take 2 . reverse . sort $ atks
                atks = (map (getAttackPower g) (inhabitedSlots g (slotsFor Caster)))
            when (d > 0) $ doWizardDamage Opponent c (dmg (fromIntegral d)))
+
+    , (death_dark_ritual, damageSpell $ \dmg ->
+          do damageCreatures Effect (dmg 3) (slotsFor Opponent)
+             forM_ (slotsFor Caster) $ \s -> healCreature s 3)
+
+    , (death_blood_ritual, damageSpell $ \dmg ->
+        do tgt <- casterTarget
+           mb  <- withGame (creatureAt tgt)
+           case mb of
+             Nothing -> stopError "We need a target creature"
+             Just cr  ->
+               do let d = min 32 (fromIntegral (cr ^. deckCardLife))
+                  updGame_ (creatureAt tgt .~ Nothing)
+                  damageCreatures Effect (dmg d) (slotsFor Opponent))
     ]
 
 --------------------------------------------------------------------------------
@@ -244,6 +269,16 @@ creatureSummonEffect (l,c) =
     , (air_air_elemental, doWizardDamage Opponent c 8)
     , (air_titan, creatureTakeDamage Effect 15 (oppositeOf l))
 
+    , (earth_giant_spider,
+        do let Just card = getCard other_cards other_forest_spider
+               fs = newDeckCard Earth card
+               place l' = when (onBoard l') $
+                            do mb <- withGame (creatureAt l')
+                               case mb of
+                                 Nothing -> updGame_ (creatureAt l' .~ Just fs)
+                                 Just _  -> return ()
+           place (leftOf l)
+           place (rightOf l))
     ]
 
 
@@ -482,7 +517,7 @@ creatureModifyPowerGrowth w c =
 
     , (air_air_elemental,     (Caster, [(Air,1)]))
     , (earth_earth_elemental, (Caster, [(Earth,1)]))
-    --, (earth_elf_hermit,      (Caster. [(Earth,2)]))
+    , (earth_elf_hermit,      (Caster, [(Earth,2)]))
     ]
 
 -- | Compute changes to the attack value of a speicif creature.
@@ -565,9 +600,13 @@ creatureStartOfTurn l =
       ]
 
 
--- XXX: creatures should only heal up to their original life
 healCreature :: Location -> Int -> GameM ()
-healCreature l n = updGame_ (creatureAt l . mapped . deckCardLife %~ (+n))
+healCreature l n = updGame_ (creatureAt l . mapped %~ upd)
+  where
+  upd d = d & deckCardLife %~ increase
+    where
+    maxLife    = d ^. deckCardOrig . cardEffect . creatureCard . creatureLife
+    increase c = min (c + n) maxLife
 
 
 

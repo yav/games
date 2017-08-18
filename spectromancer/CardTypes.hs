@@ -89,6 +89,10 @@ oppositeOf l = l { locWho = theOtherOne (locWho l) }
 slotNum :: Int
 slotNum = 6
 
+onBoard :: Location -> Bool
+onBoard l = 0 <= slot && slot < slotNum
+  where slot = locWhich l
+
 slotsFor :: Who -> [ Location ]
 slotsFor locWho = map mk (take slotNum [ 0 .. ])
   where mk locWhich = Location { .. }
