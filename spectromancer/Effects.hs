@@ -5,7 +5,7 @@ import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Data.List(delete)
-import Control.Monad(when,unless)
+import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf)
 
@@ -144,12 +144,60 @@ castSpell c mbTgt =
              Nothing -> stopError "Spell needs target"
              Just t  -> return t
 
+  damageSpell k =
+    do g <- getGame
+       let cs      = map snd (inhabitedSlots g (slotsFor Caster))
+           scaling = product (map creatureModifySpellDamageMul cs)
+           add     = sum (map creatureModifySpellDamageAdd cs)
+       k (\d -> ceiling (d * scaling) + add)
+
+
+
   spells = Map.fromList
-    [ (fire_flame_wave, damageCreatures Effect 9 (slotsFor Opponent))
-    , (fire_inferno, do t <- target
-                        damageCreatures Effect 18 [t]
-                        damageCreatures Effect 10 (delete t (slotsFor Opponent))
+    [ (fire_flame_wave, damageSpell $ \dmg ->
+                            damageCreatures Effect (dmg 9) (slotsFor Opponent))
+    , (fire_inferno, damageSpell $ \dmg ->
+                     do t   <- target
+                        damageCreatures Effect (dmg 18) [t]
+                        damageCreatures Effect (dmg 10)
+                                            (delete t (slotsFor Opponent))
       )
+    , (fire_armageddon, damageSpell $ \dmg ->
+                        do fp <- withGame (player Caster . elementPower Fire)
+                           let d = dmg (8 + fromIntegral fp)
+                           doWizardDamage Opponent c d
+                           damageCreatures Effect d allSlots)
+
+    , (water_meditation,
+        forM_ [ Fire, Air, Earth ] $ \el ->
+          updGame_ (player Caster . elementPower el %~ (+1))
+      )
+
+    , (water_acidic_rain, damageSpell $ \dmg ->
+        do damageCreatures Effect (dmg 15) allSlots
+           forM_ allElements $ \el ->
+             updGame_ (player Opponent . elementPower el %~ subtract 1))
+
+    , (air_call_to_thunder, damageSpell $ \dmg ->
+          do tgt <- target
+             when (locWho tgt == Caster) $
+               stopError "\"Call to thunder\" must be cast on the opponent."
+             doWizardDamage Opponent c (dmg 6)
+             damageCreatures Effect (dmg 6) [tgt])
+
+    , (air_lightning_bolt, damageSpell $ \dmg ->
+         do p <- withGame (player Caster . elementPower Air)
+            doWizardDamage Opponent c (dmg (fromIntegral p + 5)))
+
+    , (air_chain_lightning, damageSpell $ \dmg ->
+        do doWizardDamage Opponent c (dmg 9)
+           damageCreatures Effect (dmg 9) (slotsFor Opponent))
+
+    , (air_tornado, do tgt <- target
+                       when (locWho tgt == Caster) $
+                         stopError "Tornado must be cast on the opponent."
+                       updGame_ (creatureAt tgt .~ Nothing))
+
     ]
 
 --------------------------------------------------------------------------------
@@ -167,6 +215,24 @@ creatureSummonEffect (l,c) =
 
     , (fire_wall_of_fire, damageCreatures Effect 5 (slotsFor Opponent))
     , (fire_bargul, damageCreatures Effect 4 (delete l allSlots))
+    , (fire_fire_elemental,
+          do doWizardDamage Opponent c 3
+             damageCreatures Effect 3 (slotsFor Opponent)
+      )
+
+    , (water_merfolk_apostate,
+          updGame_ (player Caster . elementPower Fire %~ (+2)))
+    , (water_water_elemental, healOwner 10)
+
+    , (air_griffin,
+        do p <- withGame (player Caster . elementPower Air)
+           when (p >= 5) (doWizardDamage Opponent c 5))
+    , (air_faerie_sage,
+        do p <- withGame (player Caster . elementPower Earth)
+           healOwner (min 10 p))
+    , (air_air_elemental, doWizardDamage Opponent c 8)
+    , (air_titan, creatureTakeDamage Effect 15 (oppositeOf l))
+
     ]
 
 
@@ -196,9 +262,13 @@ creatureSummoned ::
   Location {- ^ summoned creature -} ->
   GameM ()
 creatureSummoned = creatureReact
-    [ (mechanical_dwarven_rifleman,
-       \(cl,_) sl -> when (locWho cl /= locWho sl)
-                       $ creatureTakeDamage Effect 4 sl
+    [ (water_merfolk_overlord, \(cl,_) tgt ->
+         when (isNeighbor cl tgt) $
+           updGame_ (creatureAt tgt . mapped . deckCardEnabled .~ True))
+
+    , (mechanical_dwarven_rifleman, \(cl,_) sl ->
+        when (locWho cl /= locWho sl)
+          $ creatureTakeDamage Effect 4 sl
       )
     ]
 
@@ -303,6 +373,9 @@ performCreatureAttack l =
 damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
 damageCreatures ty amt ls = mapM_ (creatureTakeDamage ty amt) ls
 
+healOwner :: Int -> GameM ()
+healOwner n = updGame_ (player Caster . playerLife %~ (+n))
+
 -- | Deal some damage to one of the two players.
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
                   DeckCard {- ^ This is the attacker (creature or spell) -} ->
@@ -391,7 +464,16 @@ creatureModifyPowerGrowth w c =
   name = deckCardName c
 
   abilities = Map.fromList
-    [ (fire_priest_of_fire, (Caster, [(Fire,1)]))
+    [ (fire_priest_of_fire,   (Caster, [(Fire,1)]))
+    , (fire_fire_elemental,   (Caster, [(Fire,1)]))
+
+    , (water_merfolk_elder,   (Caster,   [(Air,1)]))
+    , (water_water_elemental, (Caster,   [(Water,1)]))
+    , (water_mind_master,     (Caster,   [ (e, 1) | e <- allElements ]))
+    , (water_astral_guard,    (Opponent, [ (e,-1) | e <- allElements ]))
+
+    , (air_air_elemental,     (Caster, [(Air,1)]))
+    , (earth_earth_elemental, (Caster, [(Earth,1)]))
     ]
 
 -- | Compute changes to the attack value of a speicif creature.
@@ -407,6 +489,28 @@ creatureModifyAttack (l,d) (l1,c)
   where
   name = deckCardName c
   ours = sameSide l l1
+
+creatureModifySpellDamageAdd ::
+  DeckCard {- ^ Summoned crature modifying -} ->
+  Int
+creatureModifySpellDamageAdd c =
+  Map.findWithDefault 0 (deckCardName c) abilities
+  where
+  abilities = Map.fromList
+    [ (air_faerie_apprentice, 1)
+    ]
+
+creatureModifySpellDamageMul ::
+  DeckCard {- ^ Summoned crature modifying -} ->
+  Rational
+creatureModifySpellDamageMul c =
+  Map.findWithDefault 0 (deckCardName c) abilities
+  where
+  abilities = Map.fromList
+    [ (fire_dragon, 3/2)
+    ]
+
+
 
 -- | Do something at the beginning of the owner's turn.
 creatureStartOfTurn :: Location -> GameM ()
@@ -424,6 +528,11 @@ creatureStartOfTurn l =
                    act
                    checkDeath
   where
+  card = do mb <- withGame (creatureAt l)
+            case mb of
+              Nothing -> stopError "[bug] Creature disappeared!"
+              Just c  -> return c
+
   abilities =
     Map.fromList
       [ (fire_goblin_berserker,
@@ -431,8 +540,24 @@ creatureStartOfTurn l =
               creatureTakeDamage Effect 2 (leftOf l)
               creatureTakeDamage Effect 2 (rightOf l)
         )
+
+      , (water_sea_sprite, card >>= \c -> doWizardDamage Caster c 2)
+
+      , (air_wall_of_lightning, card >>= \c -> doWizardDamage Opponent c 4)
+
+      , (earth_elven_healer, healOwner 3)
+      , (earth_troll, healCreature l 4)
+
+      , (earth_master_healer,
+            do healOwner 3
+               forM_ (slotsFor Caster) $ \s -> healCreature s 3)
+
+      , (earth_hydra, healCreature l 4)
       ]
 
+
+healCreature :: Location -> Int -> GameM ()
+healCreature l n = updGame_ (creatureAt l . mapped . deckCardLife %~ (+n))
 
 
 
