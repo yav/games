@@ -4,7 +4,7 @@ module Effects where
 import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import           Data.List(delete)
+import           Data.List(delete,sort)
 import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf)
@@ -151,8 +151,6 @@ castSpell c mbTgt =
            add     = sum (map creatureModifySpellDamageAdd cs)
        k (\d -> ceiling (d * scaling) + add)
 
-
-
   spells = Map.fromList
     [ (fire_flame_wave, damageSpell $ \dmg ->
                             damageCreatures Effect (dmg 9) (slotsFor Opponent))
@@ -197,7 +195,20 @@ castSpell c mbTgt =
                        when (locWho tgt == Caster) $
                          stopError "Tornado must be cast on the opponent."
                        updGame_ (creatureAt tgt .~ Nothing))
+    , (earth_natures_ritual, do tgt <- target
+                                healCreature tgt 8
+                                healOwner 8)
+    , (earth_rejuvenation,
+        do p <- withGame (player Caster . elementPower Earth)
+           healOwner (2 * p))
+    , (earth_stone_rain,  damageSpell $ \dmg ->
+        do damageCreatures Effect (dmg 25) allSlots)
 
+    , (earth_natures_fury, damageSpell $ \dmg ->
+        do g <- getGame
+           let d = sum . take 2 . reverse . sort $ atks
+               atks = (map (getAttackPower g) (inhabitedSlots g (slotsFor Caster)))
+           when (d > 0) $ doWizardDamage Opponent c (dmg (fromIntegral d)))
     ]
 
 --------------------------------------------------------------------------------
@@ -406,9 +417,6 @@ doWizardDamage who dc amt =
               $ map snd
               $ inhabitedSlots g (slotsFor who)
 
-
-
-
 -- | Compute the current attack power for the given creature.
 getAttackPower :: Game -> (Location, DeckCard) -> Int
 getAttackPower g (l,c) = max 0 (base + change + c ^. deckCardAttackChange)
@@ -474,6 +482,7 @@ creatureModifyPowerGrowth w c =
 
     , (air_air_elemental,     (Caster, [(Air,1)]))
     , (earth_earth_elemental, (Caster, [(Earth,1)]))
+    --, (earth_elf_hermit,      (Caster. [(Earth,2)]))
     ]
 
 -- | Compute changes to the attack value of a speicif creature.
@@ -556,8 +565,10 @@ creatureStartOfTurn l =
       ]
 
 
+-- XXX: creatures should only heal up to their original life
 healCreature :: Location -> Int -> GameM ()
 healCreature l n = updGame_ (creatureAt l . mapped . deckCardLife %~ (+n))
+
 
 
 
