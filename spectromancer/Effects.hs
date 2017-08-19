@@ -16,6 +16,8 @@ import Game
 import GameMonad
 import Deck(Element(..),allElements)
 
+import Debug.Trace
+
 
 {-
 Effects of an action are resolved in this order:
@@ -165,7 +167,7 @@ castSpell c mbTgt =
        let cs      = map snd (inhabitedSlots g (slotsFor Caster))
            scaling = product (map creatureModifySpellDamageMul cs)
            add     = sum (map creatureModifySpellDamageAdd cs)
-       k (\d -> ceiling (d * scaling) + add)
+       traceShow (scaling,add) $ k (\d -> ceiling (d * scaling) + add)
 
   spells = Map.fromList
     [ (fire_flame_wave, damageSpell $ \dmg ->
@@ -222,6 +224,10 @@ castSpell c mbTgt =
            let d = sum . take 2 . reverse . sort $ atks
                atks = (map (getAttackPower g) (inhabitedSlots g (slotsFor Caster)))
            when (d > 0) $ doWizardDamage Opponent c (dmg (fromIntegral d)))
+
+    , (death_cursed_fog, damageSpell $ \dmg ->
+         do doWizardDamage Opponent c (dmg 3)
+            damageCreatures Effect (dmg 12) allSlots)
 
     , (death_dark_ritual, damageSpell $ \dmg ->
           do damageCreatures Effect (dmg 3) (slotsFor Opponent)
@@ -392,7 +398,8 @@ creatureTakeDamage dmg amt l =
   doDamage' c am =
     do let dmgDone = min (c ^. deckCardLife) (max 0 am)
            c'      = c & deckCardLife %~ subtract dmgDone
-       addLog ("really doing damage: " ++ show dmgDone)
+       addLog ("really doing damage to " ++ show (deckCardName c)
+                                         ++ show dmgDone)
        updGame_ (creatureAt l .~ Just c')
        return dmgDone
 
@@ -434,7 +441,8 @@ performCreatureAttack l =
        Just c
          | isWall c || not (c ^. deckCardEnabled)    -> return ()
          | otherwise  ->
-           do let p = getAttackPower g (l,c)
+           do addLog ("Creature attacking: " ++ show l)
+              let p = getAttackPower g (l,c)
               case Map.lookup (deckCardName c) abilities of
                 Just act -> act c p
                 Nothing  ->
@@ -605,7 +613,7 @@ creatureModifySpellDamageMul ::
   DeckCard {- ^ Summoned crature modifying -} ->
   Rational
 creatureModifySpellDamageMul c =
-  Map.findWithDefault 0 (deckCardName c) abilities
+  Map.findWithDefault 1 (deckCardName c) abilities
   where
   abilities = Map.fromList
     [ (fire_dragon, 3/2)
@@ -658,7 +666,8 @@ creatureStartOfTurn l =
 
 
 healCreature :: Location -> Int -> GameM ()
-healCreature l n = updGame_ (creatureAt l . mapped %~ upd)
+healCreature l n = do addLog ("Healing " ++ show l)
+                      updGame_ (creatureAt l . mapped %~ upd)
   where
   upd d = d & deckCardLife %~ increase
     where
