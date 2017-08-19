@@ -133,6 +133,8 @@ checkDeath =
 
 
 
+
+
 --------------------------------------------------------------------------------
 
 castSpell :: DeckCard -> Maybe Location -> GameM ()
@@ -234,6 +236,25 @@ castSpell c mbTgt =
                do let d = min 32 (fromIntegral (cr ^. deckCardLife))
                   updGame_ (creatureAt tgt .~ Nothing)
                   damageCreatures Effect (dmg d) (slotsFor Opponent))
+
+    , (death_drain_souls,
+        do deaths <- sum <$> mapM creatureKill allSlots
+           healOwner (2 * deaths)
+           let newCard = newDeckCard Special
+                                      (getCard other_cards other_rage_of_souls)
+           updGame_ (replaceCard Caster death_drain_souls newCard)
+      )
+
+    , (other_rage_of_souls, damageSpell $ \dmg ->
+        do p <- withGame (player Caster . elementPower Special)
+           let opp = slotsFor Opponent
+           damageCreatures Effect (dmg (fromIntegral p + 9)) opp
+           g <- getGame
+           healOwner $
+              sum [ 2 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife <= 0 ])
+
+
+
     ]
 
 --------------------------------------------------------------------------------
@@ -270,8 +291,7 @@ creatureSummonEffect (l,c) =
     , (air_titan, creatureTakeDamage Effect 15 (oppositeOf l))
 
     , (earth_giant_spider,
-        do let Just card = getCard other_cards other_forest_spider
-               fs = newDeckCard Earth card
+        do let fs = newDeckCard Earth (getCard other_cards other_forest_spider)
                place l' = when (onBoard l') $
                             do mb <- withGame (creatureAt l')
                                case mb of
@@ -279,6 +299,18 @@ creatureSummonEffect (l,c) =
                                  Just _  -> return ()
            place (leftOf l)
            place (rightOf l))
+
+    , (death_banshee,
+        do let l1 = oppositeOf l
+           mb <- withGame (creatureAt l1)
+           case mb of
+             Nothing -> return ()
+             Just c1  ->
+               do let dmg = (c1 ^. deckCardLife + 1) `div` 2
+                  damageCreatures Effect dmg [l1])
+
+    , (death_master_lich, damageCreatures Effect 8 (slotsFor Opponent))
+
     ]
 
 
@@ -361,15 +393,24 @@ creatureTakeDamage dmg amt l =
     do let dmgDone = min (c ^. deckCardLife) (max 0 am)
            c'      = c & deckCardLife %~ subtract dmgDone
        addLog ("really doing damage: " ++ show dmgDone)
-       addLog ("before: " ++ show c)
-       addLog ("after: " ++ show c')
        updGame_ (creatureAt l .~ Just c')
        return dmgDone
 
 
+creatureKill :: Location -> GameM Int
+creatureKill l =
+  do mb <- withGame (creatureAt l)
+     case mb of
+       Nothing -> return 0
+       Just c  -> do updGame_ (creatureAt l .~ Nothing)
+                     creatureDie (l,c)
+                     return 1
+
 -- | Effects that happen when a creature dies.
 -- The location is where the crature used to be, but it would have
 -- already been removed by the time we call this function.
+-- Note that the creature's life might not be 0, if it got killed
+-- through some odd way (e.g., drain souls)
 creatureDie :: (Location,DeckCard) -> GameM ()
 creatureDie (l,c) =
   case Map.lookup (deckCardName c) abilities of
@@ -409,6 +450,15 @@ performCreatureAttack l =
     [ (earth_hydra, damageEveryone)
     , (earth_forest_sprite, damageEveryone)
     , (air_lightning_cloud, damageEveryone)
+    , (death_master_lich, \c p ->
+        do let opp = oppositeOf l
+           mb <- withGame (creatureAt opp)
+           case mb of
+             Nothing ->
+               do damaged <- doWizardDamage' otherWizard c p
+                  when damaged $
+                    updGame_ (player (locWho l) . elementPower Special %~ (+2))
+             _ -> creatureTakeDamage Attack p opp)
     ]
 
   damageEveryone c p =
@@ -422,16 +472,23 @@ damageCreatures ty amt ls = mapM_ (creatureTakeDamage ty amt) ls
 healOwner :: Int -> GameM ()
 healOwner n = updGame_ (player Caster . playerLife %~ (+n))
 
--- | Deal some damage to one of the two players.
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
                   DeckCard {- ^ This is the attacker (creature or spell) -} ->
                   Int      {- ^ Amount of damage we are trying to do -} ->
-                  GameM ()
-doWizardDamage who dc amt =
+                  GameM ()  -- ^ Did we actually do any damage
+doWizardDamage w d n = doWizardDamage' w d n >> return ()
+
+-- | Deal some damage to one of the two players.
+doWizardDamage' :: Who      {- ^ Damage this wizzard -} ->
+                  DeckCard {- ^ This is the attacker (creature or spell) -} ->
+                  Int      {- ^ Amount of damage we are trying to do -} ->
+                  GameM Bool -- ^ Did we actually do any damage
+doWizardDamage' who dc amt =
   do -- XXX: The stuff below happens only if White Elephant is not around.
      checkGoblinSaboteur
      amt1 <- checkIceGuard
      updGame_ (player who . playerLife %~ subtract amt1)
+     return (amt1 > 0)
 
   where
   checkGoblinSaboteur =

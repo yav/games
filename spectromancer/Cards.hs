@@ -35,9 +35,12 @@ card_name_decls = concat <$> mapM cat (Map.toList allCards)
                   dss <- mapM (decl (Just pref) . view cardName) cs
                   return (ds1 ++ concat dss)
 
-getCard :: Text -> Text -> Maybe Card
-getCard cl c = do xs <- Map.lookup cl allCards
-                  listToMaybe [ x | x <- xs, x ^. cardName == c ]
+getCard :: Text -> Text -> Card
+getCard cl c = case mb of
+                 Nothing   -> error ("Unknwon card: " ++ show (cl,c))
+                 Just card -> card
+  where mb = do xs <- Map.lookup cl allCards
+                listToMaybe [ x | x <- xs, x ^. cardName == c ]
 
 
 allCards :: Cards
@@ -555,7 +558,7 @@ allCards =
             , _cardImage = "DarkRitualBig.jpg"
             , _cardCost = 1
             , _cardEffect = Spell
-            , _cardTarget = TargetOpponent's }
+            , _cardTarget = NoTarget }
         , Card
             { _cardName = "Cursed Fog"
             , _cardDescription =
@@ -583,7 +586,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 7 , _creatureLife = 48 }
-            , _cardTarget = TargetCasterBlank }
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Blood Ritual"
             , _cardDescription =

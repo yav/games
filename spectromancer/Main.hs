@@ -60,8 +60,8 @@ newServerState g =
 
 main :: IO ()
 main =
-  do game <- newGameIO ("Player 1", vampiric_cards)
-                       ("Player 2", sorcery_cards)
+  do game <- newGameIO ("Player 1", death_cards)
+                       ("Player 2", death_cards)
 
      s <- newServerState game
 

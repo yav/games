@@ -10,7 +10,9 @@ import Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
 import Data.Maybe(maybeToList)
 
-import Control.Lens( makeLenses, (^.), Lens',Traversal', at, non)
+import Control.Lens( makeLenses, (^.), Lens',Traversal', at, non, (.~), (&)
+                   , (%~), mapped
+                   , IndexedTraversal', itraversed, indices, indexed, icompose )
 
 import Util.Random(StdGen,Gen)
 
@@ -85,10 +87,25 @@ newPlayer name deck =
                 , _playerLife   = 60
                 , _playerActive = Map.empty
                 , _playerDeck   = Map.mapWithKey dc deck
-                , _playerPower  = Map.fromList [ (e,13) | e <- allElements ]
+                , _playerPower  = Map.fromList [ (e,3) | e <- allElements ]
                 }
 
   where dc e cs = map (newDeckCard e) cs
+
+replaceCardList :: Text -> DeckCard -> [DeckCard] -> [DeckCard]
+replaceCardList oldCardName newCard cards =
+  case break ((== oldCardName) . deckCardName) cards of
+    (before,_:after) -> before ++ newCard : after
+    _                -> cards
+
+-- | Replace a card in one of the players' decks.
+replaceCard :: Who -> Text -> DeckCard -> Game -> Game
+replaceCard who oldCardName newCard g =
+  g & player who
+    . playerDeck
+    . at (newCard ^. deckCardElement)
+    . mapped
+    %~ replaceCardList oldCardName newCard
 
 
 -- | A traversal that visits each card in a player's deck.
@@ -109,8 +126,39 @@ elementPower e = playerPower . at e . non 0
 creatureInSlot :: Slot -> Lens' Player (Maybe DeckCard)
 creatureInSlot s = playerActive . at s
 
+-- itraversed :: IndexedTraversal' k (Map k v) v
+
+creatures :: IndexedTraversal' Slot Player DeckCard
+creatures = playerActive . itraversed
+
+playerCreaturesAt :: [Slot] -> Traversal' Player DeckCard
+playerCreaturesAt ls = creatures . indices (`elem` ls)
+
+
+-- Applicative f => (Who -> Player -> f Player) -> (Game -> f Game)
+players :: IndexedTraversal' Who Game Player
+players f g = mk <$> indexed f Caster p1 <*> indexed f Opponent p2
+  where
+  mk p1' p2' = g & curPlayer   .~ p1'
+                 & otherPlayer .~ p2'
+
+  p1 = g ^. curPlayer
+  p2 = g ^. otherPlayer
+
+
 creatureAt :: Location -> Lens' Game (Maybe DeckCard)
 creatureAt l = player (locWho l) . creatureInSlot (locWhich l)
+
+-- icompose :: (i -> j -> k) -> IndexedTraversal' i s b
+--                           -> IndexedTraversal' j b a
+--                           -> IndexedTraversal' k s a
+gameCreatures :: IndexedTraversal' Location Game DeckCard
+gameCreatures = icompose mk players creatures
+  where mk p s = Location { locWho = p, locWhich = s }
+
+creaturesAt :: [Location] -> IndexedTraversal' Location Game DeckCard
+creaturesAt ls = gameCreatures . indices (`elem` ls)
+
 
 deckCardLife :: Lens' DeckCard Int
 deckCardLife = deckCard . cardEffect . creatureCard . creatureLife
@@ -118,8 +166,6 @@ deckCardLife = deckCard . cardEffect . creatureCard . creatureLife
 inhabitedSlots :: Game -> [Location] -> [(Location,DeckCard)]
 inhabitedSlots g slots =
   [ (l,creature) | l <- slots, creature <- maybeToList (g ^. creatureAt l) ]
-
-
 
 
 
