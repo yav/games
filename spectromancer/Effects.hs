@@ -263,9 +263,17 @@ castSpell c mbTgt =
            healCreature tgt 12
            damageCreatures Effect (dmg 12) (delete tgt allSlots))
     , (holy_divine_intervention, 
-        do forM_ [ Fire, Air, Earth ] $ \el ->
-              updGame_ (player Caster . elementPower el %~ (+1))
+        do forM_ [ Fire, Air, Earth, Water ] $ \el ->
+              updGame_ (player Caster . elementPower el %~ (+2))
            healOwner 10)
+    , (holy_wrath_of_god, damageSpell $ \dmg ->
+        do let opp = slotsFor Opponent
+           damageCreatures Effect (dmg 12) opp
+           g <- getGame
+           let srv = sum $ 
+                 [ 1 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife > 0 ]
+           updGame_ (player Caster . elementPower Special %~ (+srv))
+      )
     ]
 
 --------------------------------------------------------------------------------
@@ -459,7 +467,7 @@ creatureDie (l,c) =
                          then let newCard = c & deckCard .~ (c ^. deckCardOrig)
                               in p & creatureInSlot (locWhich l) .~ Just newCard
                          else p)
-      , (holy_monk, updGame_ (player Caster . elementPower Special %~ (+2)))
+      , (holy_monk, updGame_ (player (locWho l) . elementPower Special %~ (+2)))
     ]
 
 -- | The creature at the given location performs its attack, if any.

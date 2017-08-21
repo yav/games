@@ -60,7 +60,7 @@ newServerState g =
 
 main :: IO ()
 main =
-  do game <- newGameIO ("Player 1", death_cards)
+  do game <- newGameIO ("Player 1", holy_cards)
                        ("Player 2", death_cards)
 
      s <- newServerState game
@@ -86,8 +86,8 @@ snapGetState s =
 
 snapNewGame :: ServerState -> Snap ()
 snapNewGame self =
-  do game <- snapIO $ newGameIO ("Player 3", vampiric_cards)
-                                ("Player 4", sorcery_cards)
+  do game <- snapIO $ newGameIO ("Player 3", death_cards)
+                                ("Player 4", holy_cards)
      setState self game
      sendGame game id
 
