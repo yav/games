@@ -4,7 +4,8 @@ module Effects where
 import qualified Data.Map as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import           Data.List(delete,sort)
+import           Data.List(delete,sort,maximumBy)
+import           Data.Function(on)
 import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf)
@@ -274,6 +275,9 @@ castSpell c mbTgt =
                  [ 1 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife > 0 ]
            updGame_ (player Caster . elementPower Special %~ (+srv))
       )
+    , (mechanical_overtime, updGame_ (player Caster . elementPower Special %~ (+1)))
+    , (mechanical_cannonade, damageSpell $ \dmg ->
+        damageCreatures Effect (dmg 19) (slotsFor Opponent))
     ]
 
 --------------------------------------------------------------------------------
@@ -332,6 +336,7 @@ creatureSummonEffect (l,c) =
     , (holy_paladin, forM_ (slotsFor Caster) $ \s -> healCreature s 4)
     , (holy_angel, updGame_ (player Caster . elementPower Special %~ (+3)))
     , (holy_archangel, forM_ (slotsFor Caster) $ \s -> healCreature s 100000)
+    , (mechanical_steam_tank, damageCreatures Effect 12 (slotsFor Opponent))
     ]
 
 
@@ -407,6 +412,9 @@ creatureTakeDamage dmg amt l =
     , (water_ice_golem, \c -> case dmg of
                                 Attack -> doDamage c amt
                                 _      -> return ())
+    , (mechanical_steel_golem, \c -> case dmg of
+                                       Attack -> doDamage c (amt - 1)
+                                       _      -> return())
     ]
   modAbilities = Map.fromList
     [ (holy_holy_guard, \me oth ->
@@ -621,6 +629,7 @@ creatureModifyPowerGrowth w c =
     , (air_air_elemental,     (Caster, [(Air,1)]))
     , (earth_earth_elemental, (Caster, [(Earth,1)]))
     , (earth_elf_hermit,      (Caster, [(Earth,2)]))
+    , (mechanical_dwarven_craftsman, (Caster, [(Special, 1)]))
     ]
 
 -- | Compute changes to the attack value of a speicif creature.
@@ -700,6 +709,17 @@ creatureStartOfTurn l =
                forM_ (slotsFor Caster) $ \s -> healCreature s 3)
 
       , (earth_hydra, healCreature l 4)
+      , (mechanical_ornithopter, damageCreatures Effect 2 (slotsFor Opponent))
+      , (mechanical_cannon, 
+          do g <- getGame
+             let oppCr = inhabitedSlots g (slotsFor Opponent)
+             case oppCr of
+              [] -> return ()
+              _  -> do
+                let compareLife = (compare `on` (\(_,c1) -> c1 ^. deckCardLife))
+                    (lh,_) = (maximumBy compareLife oppCr)
+                damageCreatures Effect 8 [lh]
+        )
       ]
 
 
