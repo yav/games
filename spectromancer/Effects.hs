@@ -258,9 +258,14 @@ castSpell c mbTgt =
            g <- getGame
            healOwner $
               sum [ 2 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife <= 0 ])
-
-
-
+    , (holy_divine_justice, damageSpell $ \dmg ->
+        do tgt <- casterTarget
+           healCreature tgt 12
+           damageCreatures Effect (dmg 12) (delete tgt allSlots))
+    , (holy_divine_intervention, 
+        do forM_ [ Fire, Air, Earth ] $ \el ->
+              updGame_ (player Caster . elementPower el %~ (+1))
+           healOwner 10)
     ]
 
 --------------------------------------------------------------------------------
@@ -316,7 +321,9 @@ creatureSummonEffect (l,c) =
                   damageCreatures Effect dmg [l1])
 
     , (death_master_lich, damageCreatures Effect 8 (slotsFor Opponent))
-
+    , (holy_paladin, forM_ (slotsFor Caster) $ \s -> healCreature s 4)
+    , (holy_angel, updGame_ (player Caster . elementPower Special %~ (+3)))
+    , (holy_archangel, forM_ (slotsFor Caster) $ \s -> healCreature s 100000)
     ]
 
 
@@ -376,6 +383,7 @@ data DamageSource = Attack | Effect
 creatureTakeDamage :: DamageSource -> Int -> Location -> GameM ()
 creatureTakeDamage dmg amt l =
   do addLog ("creature take damage: " ++ show l)
+     g <- getGame
      mb <- getCreatureAt l
      case mb of
        Nothing -> return ()
@@ -384,7 +392,7 @@ creatureTakeDamage dmg amt l =
         -- take...
          case Map.lookup (deckCardName c) abilities of
            Just act -> act c
-           Nothing  -> doDamage c amt
+           Nothing  -> doDamage c (damageMods g amt)
   where
   abilities = Map.fromList
     [ (water_giant_turtle, \c -> doDamage c (amt - 5))
@@ -392,6 +400,27 @@ creatureTakeDamage dmg amt l =
                                 Attack -> doDamage c amt
                                 _      -> return ())
     ]
+  modAbilities = Map.fromList
+    [ (holy_holy_guard, \me oth ->
+        if isNeighbor me oth then (subtract 2) else id)
+    ]
+
+  creatureOr g lc m b =
+    case cat of
+      Nothing -> b
+      Just cr ->
+        case Map.lookup (deckCardName cr) m of
+          Nothing -> b
+          Just ent -> ent
+    where
+      cat = g ^. creatureAt lc
+
+  damageMods g =
+    foldr (.) id (abils)
+    where
+      nullAbil _ _ = id
+      otherSlots = delete l allSlots
+      abils = map (\lc -> (creatureOr g lc modAbilities nullAbil) lc l) otherSlots
 
   doDamage c am = doDamage' c am >> return ()
 
@@ -430,6 +459,7 @@ creatureDie (l,c) =
                          then let newCard = c & deckCard .~ (c ^. deckCardOrig)
                               in p & creatureInSlot (locWhich l) .~ Just newCard
                          else p)
+      , (holy_monk, updGame_ (player Caster . elementPower Special %~ (+2)))
     ]
 
 -- | The creature at the given location performs its attack, if any.
