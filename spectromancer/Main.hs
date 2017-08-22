@@ -3,11 +3,13 @@ import Snap.Core(Snap,route)
 import Snap.Http.Server (quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Control.Applicative ((<|>))
+import Control.Monad(unless)
 import Data.Aeson(toJSON, (.=))
 import qualified Data.Aeson as JS
 import Data.IORef(newIORef, readIORef, writeIORef)
 import Data.Text(Text)
 import qualified Data.Text as Text
+import qualified Data.Map as Map
 
 import Util.Snap(sendJSON, snapIO, badInput, snapParam, snapParamSimpleEnum)
 
@@ -86,8 +88,9 @@ snapGetState s =
 
 snapNewGame :: ServerState -> Snap ()
 snapNewGame self =
-  do game <- snapIO $ newGameIO ("Player 3", death_cards)
-                                ("Player 4", holy_cards)
+  do c1 <- snapCardClass "player1"
+     c2 <- snapCardClass "player2"
+     game <- snapIO $ newGameIO ("Player 3", c1) ("Player 4", c2)
      setState self game
      sendGame game id
 
@@ -105,8 +108,12 @@ snapPlayTargetedCard s =
      w <- snapParamSimpleEnum "who"
      snapGameM s (turnPlayCard e c (Just Location { locWho = w, locWhich = l }))
 
-
-
+snapCardClass :: Text -> Snap Text
+snapCardClass pname =
+  do e <- snapParam pname
+     unless (e `Map.member` allCards) $
+       sendError ("Invalid class in param: " `Text.append` pname) id
+     return e
 
 
 

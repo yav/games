@@ -19,11 +19,31 @@ function dumpAllCards() {
   })
 }
 
-function newGame(m) {
+function classBox() {
+  function val(x) { return $('<option/>').attr('value',x).text(x) }
+
+  return $('<select/>').append(val('DEATH CARDS')
+                              ,val('HOLY CARDS')
+                              ,val('MECHANICAL CARDS')
+                              ,val('ILLUSION CARDS')
+                              )
+}
+
+function drawNewGame() {
+  var p1 = classBox()
+  var p2 = classBox()
+  var btn = $('<button/>').text('New game')
+                          .click(function() {
+    newGame('newGame', { player1: $(p1).val(), player2: $(p2).val() })
+  })
+
+  return $('<div/>').append(p1,p2,btn)
+}
+
+function newGame(m,opts) {
   var b = $('body').empty()
-  b.append($('<button>').text('New game')
-                        .click(function() { newGame('newGame') }))
-  jQuery.getJSON(m,null,function(res) {
+  b.append(drawNewGame())
+  jQuery.getJSON(m,opts,function(res) {
     b.append(drawGame(res.game))
   })
 }

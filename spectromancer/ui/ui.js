@@ -4,7 +4,7 @@ function makeTurn(url,info,tgt) {
   var newG = null
   var animFinished = false
 
-  function draw() { $('body').empty().append(drawGame(newG)) }
+  function draw() { $('body').empty().append(drawNewGame(),drawGame(newG)) }
 
   if (tgt !== undefined) {
     finished = false

@@ -87,7 +87,7 @@ newPlayer name deck =
                 , _playerLife   = 60
                 , _playerActive = Map.empty
                 , _playerDeck   = Map.mapWithKey dc deck
-                , _playerPower  = Map.fromList [ (e,30) | e <- allElements ]
+                , _playerPower  = Map.fromList [ (e,3) | e <- allElements ]
                 }
 
   where dc e cs = map (newDeckCard e) cs
