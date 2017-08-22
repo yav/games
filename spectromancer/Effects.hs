@@ -170,6 +170,12 @@ castSpell c mbTgt =
            add     = sum (map creatureModifySpellDamageAdd cs)
        traceShow (scaling,add) $ k (\d -> ceiling (d * scaling) + add)
 
+  furySpell dmg w = 
+    do g <- getGame
+       let d = sum . take 2 . reverse . sort $ atks
+           atks = (map (getAttackPower g) (inhabitedSlots g (slotsFor w)))
+       when (d > 0) $ doWizardDamage Opponent c (dmg (fromIntegral d))
+
   spells = Map.fromList
     [ (fire_flame_wave, damageSpell $ \dmg ->
                             damageCreatures Effect (dmg 9) (slotsFor Opponent))
@@ -221,10 +227,7 @@ castSpell c mbTgt =
         do damageCreatures Effect (dmg 25) allSlots)
 
     , (earth_natures_fury, damageSpell $ \dmg ->
-        do g <- getGame
-           let d = sum . take 2 . reverse . sort $ atks
-               atks = (map (getAttackPower g) (inhabitedSlots g (slotsFor Caster)))
-           when (d > 0) $ doWizardDamage Opponent c (dmg (fromIntegral d)))
+        furySpell dmg Caster)
 
     , (death_cursed_fog, damageSpell $ \dmg ->
          do doWizardDamage Opponent c (dmg 3)
@@ -275,9 +278,18 @@ castSpell c mbTgt =
                  [ 1 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife > 0 ]
            updGame_ (player Caster . elementPower Special %~ (+srv))
       )
-    , (mechanical_overtime, updGame_ (player Caster . elementPower Special %~ (+1)))
+    , (mechanical_overtime, 
+        updGame_ (player Caster . elementPower Special %~ (+1)))
     , (mechanical_cannonade, damageSpell $ \dmg ->
         damageCreatures Effect (dmg 19) (slotsFor Opponent))
+    , (illusion_madness, damageSpell $ \dmg ->
+      do g <- getGame
+         let opp  = inhabitedSlots g (slotsFor Opponent)
+         forM_ opp $ \(cl, cc) -> 
+           do let damage = dmg. fromIntegral . (getAttackPower g) $ (cl, cc)
+              creatureTakeDamage Effect damage cl)
+    , (illusion_hypnosis, damageSpell $ \dmg ->
+        furySpell dmg Opponent)
     ]
 
 --------------------------------------------------------------------------------
@@ -337,6 +349,15 @@ creatureSummonEffect (l,c) =
     , (holy_angel, updGame_ (player Caster . elementPower Special %~ (+3)))
     , (holy_archangel, forM_ (slotsFor Caster) $ \s -> healCreature s 100000)
     , (mechanical_steam_tank, damageCreatures Effect 12 (slotsFor Opponent))
+    , (illusion_spectral_assassin, doWizardDamage Opponent c 12)
+    , (illusion_spectral_mage, 
+        do g <- getGame
+           let opp = inhabitedSlots g (slotsFor Opponent)
+           forM_ opp $ \(ol,oc) ->
+              creatureTakeDamage Effect (oc ^. deckCard . cardCost) ol)
+    , (illusion_hypnotist,
+        do doWizardDamage Opponent c 5
+           damageCreatures Effect 5 (slotsFor Opponent))
     ]
 
 
@@ -415,6 +436,10 @@ creatureTakeDamage dmg amt l =
     , (mechanical_steel_golem, \c -> case dmg of
                                        Attack -> doDamage c (amt - 1)
                                        _      -> return())
+    , (illusion_phantom_warrior, \c -> doDamage c (min 1 amt))
+    , (illusion_wall_of_reflection, \c ->
+      do dmgDone <- doDamage' c amt
+         doWizardDamage (theOtherOne $ locWho l) c dmgDone)
     ]
   modAbilities = Map.fromList
     [ (holy_holy_guard, \me oth ->
@@ -720,6 +745,10 @@ creatureStartOfTurn l =
                     (lh,_) = (maximumBy compareLife oppCr)
                 damageCreatures Effect 8 [lh]
         )
+      , (illusion_oracle,
+          do p <- withGame (player Caster . elementPower Special)
+             c <- card
+             doWizardDamage Opponent c p)
       ]
 
 
