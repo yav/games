@@ -59,7 +59,28 @@ function drawEvents(evs,k) {
 
       case 'wizardLife':
         console.log(ev)
-        setTimeout(next,0)
+        var lab = $('#' + getWizard(ev.who))
+        var pos = lab.offset()
+        console.log(pos)
+        var msg = $('<div/>')
+                  .css('position','absolute')
+                  .css('left',(pos.left + lab.width()/2) + 'px')
+                  .css('top', pos.top + 'px')
+                  .css('display','inline-block')
+                  .css('color', ev.amount >= 0 ? 'green' : 'red')
+                  .css('background-color', 'rgba(0,0,0,0.5)')
+                  .css('z-index','200')
+                  .css('font-size', '40px')
+                  .css('border-radius','3px')
+                  .css('padding','5px')
+                  .text(ev.amount)
+         $('body').append(msg)
+         msg.animate({ left: "-=20px", top: "-=20px", opacity: '0' }
+                    , 1000
+                    , 'swing'
+                    , next
+                    )
+ 
         return
 
 

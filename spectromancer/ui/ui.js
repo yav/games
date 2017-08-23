@@ -181,6 +181,7 @@ function drawDeckRow(p,row) {
 
 function drawPlayer(p,r) {
   var dom = $('<div/>')
+            .attr('id',r)
             .css('display','inline-block')
             .css('margin', '20px')
 
