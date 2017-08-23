@@ -375,7 +375,8 @@ creatureReact ab = \cl tgtl ->
        Just c ->
          case Map.lookup (deckCardName c) abilities of
            Nothing  -> return ()
-           Just act -> act (cl,c) tgtl
+           Just act -> do addLog (DoSomething cl)
+                          act (cl,c) tgtl
   where
   abilities = Map.fromList ab
 
@@ -708,7 +709,7 @@ creatureStartOfTurn l =
             case Map.lookup name abilities of
               Nothing -> return ()
               Just act ->
-                do addLog (StartOfTurn l)
+                do addLog (DoSomething l)
                    act
                    checkDeath
   where

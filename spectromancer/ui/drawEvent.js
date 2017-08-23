@@ -123,7 +123,7 @@ function drawEvents(evs,k) {
         setTimeout(next,0)
         return
 
-      case 'startTurn':
+      case 'doSomething':
         getLoc(ev.loc).animate({top: '-=2px'},'fast')
                       .animate({top: '+=4px'},'fast')
                       .animate({top: '-=2px'},'fast',next)
