@@ -708,7 +708,7 @@ creatureStartOfTurn l =
             case Map.lookup name abilities of
               Nothing -> return ()
               Just act ->
-                do addLog (Say (Text.unpack name ++ " start of turn action"))
+                do addLog (StartOfTurn l)
                    act
                    checkDeath
   where

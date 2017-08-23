@@ -159,20 +159,21 @@ function drawCard(c) {
   return grp
 }
 
-function drawDeckCard(c) {
+function drawDeckCard(c,owner) {
   if (c === null) return drawCard(null)
 
-  var dom = drawCard(c.card)
+  var dom = drawCard(c.card).addClass(owner)
   if (!c.enabled) dom.addClass('disabled')
   return dom
 }
 
-function drawDeckRow(p,row) {
+function drawDeckRow(p,row,who) {
   var dom = $('<tr/>')
   var pow = $('<td/>').text(row + ': ' + p.power[row])
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
-    var x = drawDeckCard(card)
+    var x = drawDeckCard(card,who)
+            .addClass('deck')
     if (card.enabled) x.click(setSource(x,row,ix,card))
     dom.append($('<td/>').append(x))
   })
@@ -194,7 +195,7 @@ function drawPlayer(p,r) {
 
   var deckTable = $('<table/>')
   jQuery.each(["Fire","Water","Air","Earth","Special"], function(ix,w) {
-    deckTable.append(drawDeckRow(p,w))
+    deckTable.append(drawDeckRow(p,w,r))
   })
 
   dom.append(deckTable)
@@ -203,8 +204,8 @@ function drawPlayer(p,r) {
 }
 
 function drawArenaField(act,r,i) {
-  return drawDeckCard(act).attr('id', r + '_' + i)
-                          .click(setTarget(act, r, i))
+  return drawDeckCard(act,r).attr('id', r + '_' + i)
+                            .click(setTarget(act, r, i))
 }
 
 function drawArena(p1,p2,r1,r2) {

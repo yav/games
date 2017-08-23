@@ -46,6 +46,7 @@ data LogEvent = Say String
               | SwapPlayers
               | CreatureSummon Location DeckCard
               | PowerChange Who Element Int
+              | StartOfTurn Location
                 deriving Show
 
 
@@ -163,6 +164,7 @@ instance ToJSON LogEvent where
       CreatureSummon l d -> [ tag "summon", "loc" .= l, "card" .= d ]
       PowerChange w e n ->
         [ tag "power", "who" .= w, "element" .= e, "amount" .= n ]
+      StartOfTurn l -> [ tag "startTurn", "loc" .= l ]
     where tag x = "tag" .= (x :: Text)
 
 

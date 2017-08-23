@@ -98,13 +98,35 @@ function drawEvents(evs,k) {
 
       case 'swap':
         swapped = !swapped
-        setTimeout(next,0)
+        var d = $('<div/>')
+                .text('Next Turn')
+                .css('position','absolute')
+                .css('left', '30%')
+                .css('top', '30%')
+                .css('background-color','white')
+                .css('font-size','128px')
+                .css('border','5px solid black')
+                .css('z-index','500')
+
+        $('body').append(d)
+        d.animate({opacity: 0}, 1000, 'swing', function() {
+          $('.deck.' + getWizard('caster')).removeClass('disabled')
+          $('.deck.' + getWizard('opponent')).addClass('disabled')
+          setTimeout(next,0)
+        })
+
         return
 
       case 'summon':
         var n = drawArenaField(ev.card,getWizard(ev.loc.who),ev.loc.slot)
         getLoc(ev.loc).replaceWith(n)
         setTimeout(next,0)
+        return
+
+      case 'startTurn':
+        getLoc(ev.loc).animate({top: '-=2px'},'fast')
+                      .animate({top: '+=4px'},'fast')
+                      .animate({top: '-=2px'},'fast',next)
         return
 
       case 'power':
