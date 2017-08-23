@@ -81,7 +81,8 @@ function drawEvents(evs,k) {
         return
 
       case 'summon':
-        console.log(ev)
+        var n = drawArenaField(ev.card,getWizard(ev.loc.who),ev.loc.slot)
+        getLoc(ev.loc).replaceWith(n)
         setTimeout(next,0)
         return
 

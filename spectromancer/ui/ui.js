@@ -17,6 +17,8 @@ function makeTurn(url,info,tgt) {
       .css('position','absolute')
       .css('z-index','100')
       .animate({ left: loc.left, top: loc.top }, 'slow', 'swing', function() {
+         selected.dom.hide()
+         console.log('hid?')
          if (newG !== null) draw()
          else animFinished = true
       })

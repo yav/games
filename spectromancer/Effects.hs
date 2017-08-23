@@ -74,6 +74,7 @@ playCard c mbLoc =
              _ -> do cost <- checkCost
                      let c1 = c & deckCardEnabled .~ False
                      updGame_ (creatureAt l .~ Just c1)
+                     addLog (CreatureSummon l c1)
                      creatureSummonEffect (l,c1)
                      payCost cost
                      checkDeath
