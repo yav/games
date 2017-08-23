@@ -1,9 +1,9 @@
-{-# Language Rank2Types #-}
+{-# Language Rank2Types, OverloadedStrings #-}
 module GameMonad
   ( GameStatus(..)
   , GameStopped(..)
   , GameM
-  , Log
+  , Log, LogEvent(..)
 
   , runGame
   , stopGame
@@ -17,6 +17,7 @@ module GameMonad
 
   , getCreatureAt
   , getCreaturesFor
+  , whenCreature
 
   , addLog
   , random
@@ -28,12 +29,25 @@ import Control.Lens(Lens',(^.),(%~),(&),(.~))
 import Data.Maybe(catMaybes)
 import Util.Random(Gen,genRand)
 import Data.Text(Text)
+import Data.Aeson (ToJSON(..), (.=))
+import qualified Data.Aeson as JS
 
 import CardTypes
 import Deck
 import Game
 
-type Log   = [String] -> [String]
+type Log = [LogEvent] -> [LogEvent]
+
+data LogEvent = Say String
+              | ChangeLife Location Int
+              | ChangeWizardLife Who Int
+              | CreatureDie Location
+              | CreatureAttack Location
+              | SwapPlayers
+              | CreatureSummon Location DeckCard
+              | PowerChange Who Element Int
+                deriving Show
+
 
 data GameStopped = GameWonBy Who
                  | IllegalMove DeckCard (Maybe Location)
@@ -76,7 +90,7 @@ getGame = GameM (\g -> (GameOn g, g, id))
 setGame :: Game -> GameM ()
 setGame g = GameM (\_ -> (GameOn (), g, id))
 
-addLog :: String -> GameM ()
+addLog :: LogEvent -> GameM ()
 addLog l = GameM (\g -> (GameOn (), g, (l :)))
 
 
@@ -124,11 +138,32 @@ updPlayer_ w f = updGame_ (player w %~ f)
 getCreatureAt :: Location -> GameM (Maybe DeckCard)
 getCreatureAt l = withGame (creatureAt l)
 
+whenCreature :: Location -> (DeckCard -> GameM ()) -> GameM ()
+whenCreature l k =
+  do mb <- getCreatureAt l
+     case mb of
+       Nothing -> return ()
+       Just d  -> k d
 
 stopError :: Text -> GameM a
 stopError t = stopGame (Err t)
 
 
+--------------------------------------------------------------------------------
+
+instance ToJSON LogEvent where
+  toJSON ev = JS.object $
+    case ev of
+      Say x -> [ tag "say", "text" .= x ]
+      ChangeLife l n -> [ tag "life", "loc" .= l, "amount" .= n ]
+      ChangeWizardLife w n -> [ tag "wizardLife", "who" .= w, "amount" .= n ]
+      CreatureDie l -> [ tag "die", "loc" .= l ]
+      CreatureAttack l -> [ tag "attack", "loc" .= l ]
+      SwapPlayers -> [ tag "swap" ]
+      CreatureSummon l d -> [ tag "summon", "loc" .= l, "card" .= d ]
+      PowerChange w e n ->
+        [ tag "power", "who" .= w, "element" .= e, "amount" .= n ]
+    where tag x = "tag" .= (x :: Text)
 
 
 

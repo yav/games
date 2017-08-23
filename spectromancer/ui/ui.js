@@ -4,7 +4,11 @@ function makeTurn(url,info,tgt) {
   var newG = null
   var animFinished = false
 
-  function draw() { $('body').empty().append(drawNewGame(),drawGame(newG)) }
+  function draw() {
+    drawEvents(newG.log, function() {
+      $('body').empty().append(drawNewGame(),drawGame(newG.game))
+    })
+  }
 
   if (tgt !== undefined) {
     finished = false
@@ -19,12 +23,7 @@ function makeTurn(url,info,tgt) {
   } else animFinished = true
 
   jQuery.post(url, info, function(res) {
-    var g = res.game
-    jQuery.each(res.log, function(ix,l) {
-        console.log(l)
-    })
-    console.log('-----------------')
-    newG = g
+    newG = res
     if (animFinished) draw()
   })
 
@@ -200,6 +199,10 @@ function drawPlayer(p,r) {
   return dom
 }
 
+function drawArenaField(act,r,i) {
+  return drawDeckCard(act).attr('id', r + '_' + i)
+                          .click(setTarget(act, r, i))
+}
 
 function drawArena(p1,p2,r1,r2) {
   var dom = $('<table/>').css('display','inline-block')
@@ -210,8 +213,8 @@ function drawArena(p1,p2,r1,r2) {
     var row = $('<tr/>')
     var actL = act1[i]
     var actR = act2[i]
-    var x = drawDeckCard(actL).click(setTarget(actL, r1, i))
-    var y = drawDeckCard(actR).click(setTarget(actR, r2, i))
+    var x = drawArenaField(actL,r1,i)
+    var y = drawArenaField(actR,r2,i)
     row.append($('<td/>').append(x),$('<td/>').append(y))
     dom.append(row)
   })
@@ -219,8 +222,6 @@ function drawArena(p1,p2,r1,r2) {
 }
 
 function drawGame(g) {
-  console.log(g)
-
   var left = g.current
   var right = g.other
   var leftR = 'caster'

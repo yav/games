@@ -31,7 +31,7 @@ sendGame g f = sendJSON $ JS.object [ "game" .= g
                                     ]
 
 sendError :: Text -> Log -> Snap ()
-sendError t l = badInput (Text.unwords (t : map Text.pack (l [])))
+sendError t l = badInput (Text.unwords (t : map (Text.pack . show) (l [])))
 
 snapMsg m = snapIO (putStrLn m)
 

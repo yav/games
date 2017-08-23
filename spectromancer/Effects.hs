@@ -144,7 +144,7 @@ castSpell :: DeckCard -> Maybe Location -> GameM ()
 castSpell c mbTgt =
   case Map.lookup (deckCardName c) spells of
     Just act -> act
-    Nothing  -> addLog ("Not yet implemented: " ++ show (deckCardName c))
+    Nothing  -> addLog (Say ("Not yet implemented: " ++ show (deckCardName c)))
   where
   target = case mbTgt of
              Nothing -> stopError "Spell needs target"
@@ -416,8 +416,7 @@ data DamageSource = Attack | Effect
 -- if it wishes to.
 creatureTakeDamage :: DamageSource -> Int -> Location -> GameM ()
 creatureTakeDamage dmg amt l =
-  do addLog ("creature take damage: " ++ show l)
-     g <- getGame
+  do g <- getGame
      mb <- getCreatureAt l
      case mb of
        Nothing -> return ()
@@ -468,8 +467,7 @@ creatureTakeDamage dmg amt l =
   doDamage' c am =
     do let dmgDone = min (c ^. deckCardLife) (max 0 am)
            c'      = c & deckCardLife %~ subtract dmgDone
-       addLog ("really doing damage to " ++ show (deckCardName c)
-                                         ++ show dmgDone)
+       addLog (ChangeLife l (negate dmgDone))
        updGame_ (creatureAt l .~ Just c')
        return dmgDone
 
@@ -490,9 +488,10 @@ creatureKill l =
 -- through some odd way (e.g., drain souls)
 creatureDie :: (Location,DeckCard) -> GameM ()
 creatureDie (l,c) =
-  case Map.lookup (deckCardName c) abilities of
-    Nothing  -> return ()
-    Just act -> act
+  do case Map.lookup (deckCardName c) abilities of
+       Nothing  -> return ()
+       Just act -> act
+     addLog (CreatureDie l)
   where
   abilities = Map.fromList
     [ (air_phoenix, updPlayer_ (locWho l) $ \p ->
@@ -512,7 +511,7 @@ performCreatureAttack l =
        Just c
          | isWall c || not (c ^. deckCardEnabled)    -> return ()
          | otherwise  ->
-           do addLog ("Creature attacking: " ++ show l)
+           do addLog (CreatureAttack l)
               let p = getAttackPower g (l,c)
               case Map.lookup (deckCardName c) abilities of
                 Just act -> act c p
@@ -549,7 +548,9 @@ damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
 damageCreatures ty amt ls = mapM_ (creatureTakeDamage ty amt) ls
 
 healOwner :: Int -> GameM ()
-healOwner n = updGame_ (player Caster . playerLife %~ (+n))
+healOwner n =
+  do updGame_ (player Caster . playerLife %~ (+n))
+     addLog (ChangeWizardLife Caster n)
 
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
                   DeckCard {- ^ This is the attacker (creature or spell) -} ->
@@ -567,6 +568,7 @@ doWizardDamage' who dc amt =
      checkGoblinSaboteur
      amt1 <- checkIceGuard
      updGame_ (player who . playerLife %~ subtract amt1)
+     addLog (ChangeWizardLife who (negate amt1))
      return (amt1 > 0)
 
   where
@@ -705,7 +707,7 @@ creatureStartOfTurn l =
             case Map.lookup name abilities of
               Nothing -> return ()
               Just act ->
-                do addLog (Text.unpack name ++ " start of turn action")
+                do addLog (Say (Text.unpack name ++ " start of turn action"))
                    act
                    checkDeath
   where
@@ -717,8 +719,7 @@ creatureStartOfTurn l =
   abilities =
     Map.fromList
       [ (fire_goblin_berserker,
-           do addLog "Goblin bersker start of turn"
-              creatureTakeDamage Effect 2 (leftOf l)
+           do creatureTakeDamage Effect 2 (leftOf l)
               creatureTakeDamage Effect 2 (rightOf l)
         )
 
@@ -753,13 +754,14 @@ creatureStartOfTurn l =
 
 
 healCreature :: Location -> Int -> GameM ()
-healCreature l n = do addLog ("Healing " ++ show l)
-                      updGame_ (creatureAt l . mapped %~ upd)
-  where
-  upd d = d & deckCardLife %~ increase
-    where
-    maxLife    = d ^. deckCardOrig . cardEffect . creatureCard . creatureLife
-    increase c = min (c + n) maxLife
+healCreature l n =
+  whenCreature l $ \d ->
+  do let maxLife = d ^. deckCardOrig . cardEffect . creatureCard . creatureLife
+         curLife = d ^. deckCardLife
+         newLife = min (curLife + n) maxLife
+         change  = newLife - curLife
+     updGame_ (creatureAt l .~ Just (d & deckCardLife .~ newLife))
+     addLog (ChangeLife l change)
 
 
 

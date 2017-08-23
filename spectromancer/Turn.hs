@@ -71,6 +71,7 @@ turnPlayCard el cardNum mbTgt =
                      setGame $ activateCards
                              $ g1 & curPlayer   .~ g1 ^. otherPlayer
                                   & otherPlayer .~ g1 ^. curPlayer
+                     addLog SwapPlayers
                      generatePower
                      -- XXX: enable creatures...
                      startOfTurn

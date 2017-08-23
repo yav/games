@@ -111,6 +111,14 @@ isOpposing :: Location -> Location -> Bool
 isOpposing loc1 loc2 = not (sameSide loc1 loc2) &&
                         locWhich loc1 == locWhich loc2
 
+instance ToJSON Location where
+  toJSON l = JS.object [ "who" .= locWho l, "slot" .= locWhich l ]
+
+instance ToJSON Who where
+  toJSON w = case w of
+               Caster   -> toJSON ("caster" :: Text)
+               Opponent -> toJSON ("opponent" :: Text)
+
 instance ToJSON Card where
   toJSON c = JS.object fields
     where
