@@ -59,7 +59,10 @@ startOfTurn = mapM_ creatureStartOfTurn (slotsFor Caster)
 
 -- | Do this at the end of each turn.
 endOfTurn :: GameM ()
-endOfTurn = mapM_ creatureEndOfTurn (slotsFor Caster)
+endOfTurn =
+  do mapM_ creatureEndOfTurn (slotsFor Caster)
+     -- XXX: be more selective, when more mods?
+     updPlayer_ Caster (creatures %~ deckCardRmMods (\_ -> True))
 
 playCard :: DeckCard -> Maybe Location -> GameM ()
 playCard c mbLoc =
@@ -447,9 +450,10 @@ creatureSummonEffect (l,c) =
 
     ]
 
--- XXX
 skipNextAttack :: Location -> GameM ()
-skipNextAttack _ = return ()
+skipNextAttack l =
+  updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
+
 
 beastBorn :: Text -> GameM ()
 beastBorn x =
@@ -654,7 +658,10 @@ performCreatureAttack l =
      case g ^. creatureAt l of
        Nothing -> return ()
        Just c
-         | isWall c || not (c ^. deckCardEnabled)    -> return ()
+         | isWall c
+        || not (c ^. deckCardEnabled)
+        || SkipNextAttack `elem` c ^. deckCardMods -> return ()
+
          | otherwise  ->
            do addLog (CreatureAttack l)
               let p = getAttackPower g (l,c)
@@ -752,7 +759,7 @@ doWizardDamage' who dc amt =
 
 -- | Compute the current attack power for the given creature.
 getAttackPower :: Game -> (Location, DeckCard) -> Int
-getAttackPower g (l,c) = max 0 (base + change + c ^. deckCardAttackChange)
+getAttackPower g (l,c) = max 0 (base + change)
 
   where
   ourCreatures   = inhabitedSlots g (slotsFor Caster)

@@ -47,13 +47,18 @@ data DeckCard = DeckCard
   , _deckCardElement      :: Element   -- ^ Card's element
   , _deckCard             :: Card      -- ^ Current version of the card
   , _deckCardEnabled      :: Bool      -- ^ Is it currently playable
-  , _deckCardAttackChange :: Int
-    -- Temporary attack change, until the end of the current turn.
+  , _deckCardMods         :: [DeckCardMod]
+    -- Temporary modifications
   } deriving Show
+
+-- | Some sort of temporary modification to a deck card
+data DeckCardMod = SkipNextAttack
+  deriving (Show,Eq,Ord)
 
 $(makeLenses ''Game)
 $(makeLenses ''Player)
 $(makeLenses ''DeckCard)
+
 
 --------------------------------------------------------------------------------
 -- Constructors
@@ -65,11 +70,21 @@ newDeckCard el orig =
            , _deckCardEnabled = False
            , _deckCardElement = el
            , _deckCardOrig    = orig
-           , _deckCardAttackChange = 0
+           , _deckCardMods = []
            }
 
 deckCardName :: DeckCard -> Text
 deckCardName c = c ^. deckCardOrig . cardName
+
+-- | Add a new modification to card
+deckCardAddMod :: DeckCardMod -> DeckCard -> DeckCard
+deckCardAddMod m d = d & deckCardMods %~ (m:)
+
+-- | Remove the mods for which the predicate returns 'True'.
+deckCardRmMods :: (DeckCardMod -> Bool) {- ^ Which ones to remove -} ->
+                  DeckCard -> DeckCard
+deckCardRmMods p d = d & deckCardMods %~ filter (not . p)
+
 
 isWall :: DeckCard -> Bool
 isWall d = deckCardName d `elem` walls
