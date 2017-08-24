@@ -1738,7 +1738,7 @@ allCards =
         , Card
             { _cardName = "Devoted Servant"
             , _cardDescription =
-                "'+'At the beginning of its owner's turn, Devoted Servant's attack increases by 1 permanently. When Devoted Servant dies it increases its owner's Blood power by an amount equal to its attack. "
+                "At the beginning of its owner's turn, Devoted Servant's attack increases by 1 permanently. When Devoted Servant dies it increases its owner's Blood power by an amount equal to its attack. "
             , _cardImage = "DevotedServantBig.jpg"
             , _cardCost = 3
             , _cardEffect =
