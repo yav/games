@@ -199,6 +199,12 @@ function drawPlayer(p,r) {
   })
 
   dom.append(deckTable)
+  var skip = $('<button/>')
+           .text('Skip Turn')
+           .click(function() {
+               makeTurn("/skipTurn", {}, undefined)
+           })
+  dom.append(skip)
 
   return dom
 }

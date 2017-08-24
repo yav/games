@@ -74,6 +74,7 @@ main =
             , ("newGame",  snapNewGame s)
             , ("playCard", snapPlayCard s)
             , ("playTargetedCard", snapPlayTargetedCard s)
+            , ("skipTurn", snapSkipTurn s)
             ]
            <|> serveDirectory "ui"
 
@@ -99,6 +100,10 @@ snapPlayCard self =
   do e  <- snapParamSimpleEnum "element"
      c  <- snapParam "card"
      snapGameM self (turnPlayCard e c Nothing)
+
+snapSkipTurn :: ServerState -> Snap ()
+snapSkipTurn self =
+  do snapGameM self (turnSkip)
 
 snapPlayTargetedCard :: ServerState -> Snap ()
 snapPlayTargetedCard s =
