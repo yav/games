@@ -58,10 +58,8 @@ function drawEvents(evs,k) {
          return
 
       case 'wizardLife':
-        console.log(ev)
         var lab = $('#' + getWizard(ev.who))
         var pos = lab.offset()
-        console.log(pos)
         var msg = $('<div/>')
                   .css('position','absolute')
                   .css('left',(pos.left + lab.width()/2) + 'px')
@@ -124,6 +122,7 @@ function drawEvents(evs,k) {
         return
 
       case 'move':
+        console.log('move')
         var tgt = getLoc(ev.to)
         var tgtPos = tgt.offset()
         var src = getLoc(ev.from).css('position','absolute')

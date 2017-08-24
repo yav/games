@@ -6,7 +6,6 @@ import qualified Data.Map as Map
 import           Data.Text (Text)
 import           Data.List(delete,sort,maximumBy)
 import           Data.Function(on)
-import           Data.Maybe(isNothing)
 import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf)
@@ -172,12 +171,6 @@ castSpell c mbTgt =
          Opponent -> return tgt
          _        -> stopError "This spell only affects the opponent"
 
-  blankSpot tgt =
-    do occupant <- withGame (creatureAt tgt)
-       unless (isNothing occupant && onBoard tgt)
-         (stopError "Target must be a blank location on the board")
-       return tgt
-
   creature tgt =
     do occupant <- withGame (creatureAt tgt)
        case occupant of
@@ -325,17 +318,15 @@ castSpell c mbTgt =
         furySpell dmg Opponent)
 
 
+    -- Beast Abilities --------------------------------------
     , (beast's_trumpet, changePower Caster Special 1)
     , (beast's_gaze, damageSpell $ \dmg ->
                         damageCreature Effect (dmg 6) =<< creature =<< target)
     , (beast's_pump_energy,
         forM_ [Fire,Water,Air,Earth] $ \el -> changePower Caster el 1)
     , (beast's_move_falcon, damageSpell $ \dmg ->
-        do newLoc <- blankSpot =<< casterTarget
-           (l,d)  <- findBeast beast_death_falcon
-           addLog (CreatureMove l newLoc)
-           updGame_ ( (creatureAt l .~ Nothing)
-                    . (creatureAt newLoc .~ Just d) )
+        do (l,_)  <- findBeast beast_death_falcon
+           moveCreature l =<< casterTarget
            damageCreatures Effect (dmg 4) (slotsFor Opponent))
 
     , (beast's_poison, damageSpell $ \dmg ->
@@ -353,7 +344,44 @@ castSpell c mbTgt =
         do (_,d) <- findBeast beast_ancient_dragon
            doWizardDamage Opponent d 10
            damageCreatures Effect (dmg 10) (slotsFor Opponent))
+
+
+    -- Goblin Spells --------------------------
+    , (goblin's_rescue_operation,
+         do lFrom <- target
+            mbTo <- randomBlankSlot (locWho lFrom)
+            lTo <- case mbTo of
+                     Nothing -> stopError "No free slots"
+                     Just lTo  -> return lTo
+            moveCreature lFrom lTo
+            when (locWho lFrom == Caster) (healCreature lTo 5))
+    , (goblin's_army_of_rats, damageSpell $ \dmg ->
+        do damageCreatures Effect (dmg 12) (slotsFor Opponent)
+           mbL <- randomCreature Caster
+           case mbL of
+             Nothing -> return ()
+             Just l  -> damageCreature Effect (dmg 12) l)
     ]
+
+randomBlankSlot :: Who -> GameM (Maybe Location)
+randomBlankSlot who =
+  do as <- withGame (player who . playerActive)
+     let free = [ s | s <- take slotNum [ 0 .. ], not (s `Map.member` as) ]
+     case free of
+       [] -> return Nothing
+       _  -> do s <- random (oneOf free)
+                return (Just Location { locWho = who, locWhich = s })
+
+randomCreature :: Who -> GameM (Maybe Location)
+randomCreature who =
+  do as <- withGame (player who . playerActive)
+     case Map.keys as of
+       [] -> return Nothing
+       cs -> do s <- random (oneOf cs)
+                return (Just Location { locWho = who, locWhich = s })
+
+randomPower :: GameM Element
+randomPower = random (oneOf allElements)
 
 --------------------------------------------------------------------------------
 -- Things that can happen to summoned creatures
@@ -392,7 +420,9 @@ creatureSummonEffect (l,c) =
                place l' = when (onBoard l') $
                             do mb <- withGame (creatureAt l')
                                case mb of
-                                 Nothing -> updGame_ (creatureAt l' .~ Just fs)
+                                 Nothing ->
+                                   do updGame_ (creatureAt l' .~ Just fs)
+                                      addLog (CreatureSummon l' fs)
                                  Just _  -> return ()
            place (leftOf l)
            place (rightOf l))
@@ -446,6 +476,16 @@ creatureSummonEffect (l,c) =
         do beastBorn beast_ancient_dragon
            forM_ allElements $ \el -> changePower (locWho l) el 1)
 
+    -- Goblins
+    , (goblin's_goblin_raider,
+         do let addFriend = do mb <- randomBlankSlot (locWho l)
+                               case mb of
+                                 Nothing -> return ()
+                                 Just l ->
+                                    do updGame_ (creatureAt l .~ Just c)
+                                       addLog (CreatureSummon l c)
+            addFriend
+            addFriend)
 
 
     ]
@@ -516,6 +556,13 @@ creatureSummoned = creatureReact
         when (locWho cl /= locWho sl)
           $ damageCreature Effect 4 sl
       )
+
+    , (goblin's_goblin_hero, \(cl,_) tgt ->
+        when (cl == oppositeOf tgt) $
+          do mb <- randomBlankSlot (locWho cl)
+             case mb of
+               Nothing -> return () -- oh no, we have nowhere to run!
+               Just l  -> moveCreature cl l)
     ]
 
 
@@ -529,6 +576,10 @@ creatureDied = creatureReact
           when (owner /= locWho dl) $    -- opponents creature died
             changePower owner Special 1
     )
+  , (goblin's_goblin_looter, \(cl,_) _ ->
+      do el <- randomPower
+         changePower (locWho cl) el 1)
+
   ]
 
 data DamageSource = Attack | Effect
@@ -705,7 +756,8 @@ healOwner n =
 
 
 changePower :: Who -> Element -> Int -> GameM ()
-changePower w e i = updPlayer_ w (elementPower e %~ (+i))
+changePower w e i = updPlayer_ w (elementPower e %~ upd)
+  where upd x = max 0 (x + i)
 
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
                   DeckCard {- ^ This is the attacker (creature or spell) -} ->
@@ -835,6 +887,7 @@ creatureModifyAttack (l,d) (l1,c)
   | name == fire_orc_chieftain && isNeighbor l l1 = 2
   | name == fire_minotaur_commander && ours = 1
   | name == golem_golem_instructor && ours && deckCardName d == other_golem = 2
+  | deckCardName d == goblin's_goblin_hero && isNeighbor l l1 = 2
   | otherwise = 0
   where
   name = deckCardName c
@@ -917,6 +970,11 @@ creatureStartOfTurn l =
           do p <- withGame (player Caster . elementPower Special)
              c <- card
              doWizardDamage Opponent c p)
+
+      , (goblin's_ratmaster,
+            do damageCreatures Effect 6 (slotsFor Opponent)
+               el <- randomPower
+               changePower Opponent el (-3))
       ]
 
 creatureEndOfTurn :: Location -> GameM ()
@@ -933,6 +991,12 @@ creatureEndOfTurn l =
           whenCreature sl $ \cr ->
             when (cr ^. deckCardLife <= 8) $
               damageCreature Effect 4 sl)
+    , (goblin's_portal_jumper,
+         do skipNextAttack (oppositeOf l)
+            mbNew <- randomBlankSlot (locWho l)
+            case mbNew of
+              Nothing   -> return ()
+              Just lTo  -> moveCreature l lTo)
     ]
 
 
@@ -946,6 +1010,27 @@ healCreature l n =
          change  = newLife - curLife
      updGame_ (creatureAt l .~ Just (d & deckCardLife .~ newLife))
      addLog (ChangeLife l change)
+
+-- | Move a creature from one location to another.
+-- Fails of the source location does not have a creature, or
+-- the target location is occupied, or outside the board.
+moveCreature :: Location -> Location -> GameM ()
+moveCreature lFrom lTo =
+  do mbC <- withGame (creatureAt lFrom)
+     c   <- case mbC of
+              Nothing -> stopError "Nothing to move"
+              Just c  -> return c
+     mbTGT <- withGame (creatureAt lTo)
+     case mbTGT of
+       Nothing -> return ()
+       Just _ -> stopError "Cannot move on top of other creatures."
+     unless (onBoard lTo) $
+       stopError "The creature cannot move outside the board"
+     addLog (CreatureMove lFrom lTo)
+     updGame_ ( (creatureAt lFrom .~ Nothing)
+              . (creatureAt lTo   .~ Just c)
+              )
+
 
 
 
