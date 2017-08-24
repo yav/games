@@ -161,7 +161,8 @@ creaturesAt ls = gameCreatures . indices (`elem` ls)
 
 
 deckCardLife :: Lens' DeckCard Int
-deckCardLife = deckCard . cardEffect . creatureCard . creatureLife
+deckCardLife = deckCard . creatureCard . creatureLife
+
 
 inhabitedSlots :: Game -> [Location] -> [(Location,DeckCard)]
 inhabitedSlots g slots =

@@ -67,6 +67,7 @@ turnPlayCard el cardNum mbTgt =
                      creaturesAttack
                      -- XXX: do end of turn cleanup (e.g., effects that
                      -- only last for the current turn)
+                     endOfTurn
                      g1 <- getGame
                      setGame $ activateCards
                              $ g1 & curPlayer   .~ g1 ^. otherPlayer

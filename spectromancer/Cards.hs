@@ -165,7 +165,7 @@ allCards =
       , [ Card
             { _cardName = "Magic Hamster"
             , _cardDescription =
-                "10 life to each of its neighboring creatures. Activated ability (cost 3) Magic Hamster heals 18 life to all of its owner's creatures. "
+                "When Magic Hamster is summoned it heals 10 life to each of its neighboring creatures. Activated ability (cost 3) Magic Hamster heals 18 life to all of its owner's creatures. "
             , _cardImage = "MagicHamsterBig.jpg"
             , _cardCost = 1
             , _cardEffect =
@@ -175,7 +175,7 @@ allCards =
         , Card
             { _cardName = "Scorpion"
             , _cardDescription =
-                "the creature in the opposing slot to skip its attack next turn.'+' Activated ability (cost 2) Scorpion deals 14 damage to target opponent's creature. "
+                "When Scorpion is summoned it causes the creature in the opposing slot to skip its attack next turn. Activated ability (cost 2) Scorpion deals 14 damage to target opponent's creature. "
             , _cardImage = "ScorpionBig.jpg"
             , _cardCost = 2
             , _cardEffect =
@@ -185,7 +185,7 @@ allCards =
         , Card
             { _cardName = "Wolverine"
             , _cardDescription =
-                "Wolverine completely heals itself and its attack is increased by 2 permanently. "
+                "Activated ability (cost 2) Wolverine completely heals itself and its attack is increased by 2 permanently. "
             , _cardImage = "WolverineBig.jpg"
             , _cardCost = 3
             , _cardEffect =
@@ -195,7 +195,7 @@ allCards =
         , Card
             { _cardName = "Energy Beast"
             , _cardDescription =
-                "Energy Beast increases its owner's Fire, Water, Air and Earth powers by 1. "
+                "Activated ability (cost 1) Energy Beast increases its owner's Fire, Water, Air and Earth powers by 1. "
             , _cardImage = "EnergyBeastBig.jpg"
             , _cardCost = 4
             , _cardEffect =
@@ -205,7 +205,7 @@ allCards =
         , Card
             { _cardName = "Death Falcon"
             , _cardDescription =
-                "Death Falcon moves to target empty slot and deals 4 damage to each of the opponent's creatures. "
+                "Activated ability (cost 1) Death Falcon moves to target empty slot and deals 4 damage to each of the opponent's creatures. "
             , _cardImage = "DeathFalconBig.jpg"
             , _cardCost = 5
             , _cardEffect =
@@ -215,7 +215,7 @@ allCards =
         , Card
             { _cardName = "White Elephant"
             , _cardDescription =
-                "owner is dealt to White Elephant instead. Activated ability (cost 0) White Elephant increases its owner's Beast power by 1. "
+                "All damage that would be dealt to the owner is dealt to White Elephant instead. Activated ability (cost 0) White Elephant increases its owner's Beast power by 1. "
             , _cardImage = "WhiteElephantBig.jpg"
             , _cardCost = 6
             , _cardEffect =
@@ -225,7 +225,7 @@ allCards =
         , Card
             { _cardName = "Basilisk"
             , _cardDescription =
-                "deals 4 damage to each of the opponent's creatures with 8 or less life. Activated ability (cost 0) Deals 6 damage to target creature. "
+                "At the end of its owner's turn Basilisk deals 4 damage to each of the opponent's creatures with 8 or less life. Activated ability (cost 0) Deals 6 damage to target creature. "
             , _cardImage = "BasiliskBig.jpg"
             , _cardCost = 7
             , _cardEffect =
@@ -235,7 +235,7 @@ allCards =
         , Card
             { _cardName = "Ancient Dragon"
             , _cardDescription =
-                "increases each of its owner's powers by 1. Activated ability (cost 3) Ancient Dragon deals 10 damage to the opponent and to each of the opponent's creatures. "
+                "When Ancient Dragon is summoned it increases each of its owner's powers by 1. Activated ability (cost 3) Ancient Dragon deals 10 damage to the opponent and to each of the opponent's creatures. "
             , _cardImage = "AncientDragonBig.jpg"
             , _cardCost = 8
             , _cardEffect =

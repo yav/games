@@ -17,6 +17,7 @@ module GameMonad
 
   , getCreatureAt
   , getCreaturesFor
+  , findCreature
   , whenCreature
 
   , addLog
@@ -42,6 +43,7 @@ data LogEvent = Say String
               | ChangeLife Location Int
               | ChangeWizardLife Who Int
               | CreatureDie Location
+              | CreatureMove Location Location
               | CreatureAttack Location
               | SwapPlayers
               | CreatureSummon Location DeckCard
@@ -131,6 +133,11 @@ getCreaturesFor w =
   addSlot _ Nothing  = Nothing
   addSlot l (Just x) = Just (l,x)
 
+findCreature :: Who -> Text -> GameM [(Location,DeckCard)]
+findCreature w t = filter matches <$> getCreaturesFor w
+  where matches (_,d) = deckCardName d == t
+
+
 
 
 updPlayer_ :: Who -> (Player -> Player) -> GameM ()
@@ -165,6 +172,7 @@ instance ToJSON LogEvent where
       PowerChange w e n ->
         [ tag "power", "who" .= w, "element" .= e, "amount" .= n ]
       DoSomething l -> [ tag "doSomething", "loc" .= l ]
+      CreatureMove l1 l2 -> [ tag "move", "from" .= l1, "to" .= l2 ]
     where tag x = "tag" .= (x :: Text)
 
 

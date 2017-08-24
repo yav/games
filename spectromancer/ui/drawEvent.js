@@ -123,6 +123,19 @@ function drawEvents(evs,k) {
         setTimeout(next,0)
         return
 
+      case 'move':
+        var tgt = getLoc(ev.to)
+        var tgtPos = tgt.offset()
+        var src = getLoc(ev.from).css('position','absolute')
+        var id = tgt.attr('id')
+        src.animate({left: tgtPos.left + 'px', top: tgtPos.top + 'px'},
+            'fast','swing', function() {
+            tgt.replaceWith(src)
+            src.attr('id', id)
+            next()
+          })
+        return
+
       case 'doSomething':
         getLoc(ev.loc).animate({top: '-=2px'},'fast')
                       .animate({top: '+=4px'},'fast')

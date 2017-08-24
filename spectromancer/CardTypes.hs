@@ -42,8 +42,11 @@ data Target = NoTarget          -- ^ Spell has no target
 makeLenses ''Card
 makeLenses ''CreatureCard
 
-creatureCard :: Lens' CardEffect CreatureCard
-creatureCard = lens getC setC
+creatureCard :: Lens' Card CreatureCard
+creatureCard = cardEffect . creatureAspect
+
+creatureAspect :: Lens' CardEffect CreatureCard
+creatureAspect = lens getC setC
   where
   getC c =
     case c of
