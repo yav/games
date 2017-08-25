@@ -58,23 +58,33 @@ activateCards g =
   oppCreatures = g    ^. otherPlayer . playerActive
 
 
+postTurn :: GameM ()
+postTurn =
+  do creaturesAttack
+     -- XXX: do end of turn cleanup (e.g., effects that
+     -- only last for the current turn)
+     endOfTurn
+     g1 <- getGame
+     setGame $ activateCards
+             $ g1 & curPlayer   .~ g1 ^. otherPlayer
+                 & otherPlayer .~ g1 ^. curPlayer
+     addLog SwapPlayers
+     generatePower
+     -- XXX: enable creatures...
+     startOfTurn
+ 
+
+turnSkip :: GameM ()
+turnSkip = postTurn
+  
+
 turnPlayCard :: Element -> Int -> Maybe Location -> GameM ()
 turnPlayCard el cardNum mbTgt =
   do g <- getGame
      case g ^? player Caster . playerDeck . ix el . ix cardNum of
        Nothing -> stopGame (InvalidCard el cardNum)
        Just c  -> do playCard c mbTgt
-                     creaturesAttack
-                     -- XXX: do end of turn cleanup (e.g., effects that
-                     -- only last for the current turn)
-                     endOfTurn
-                     g1 <- getGame
-                     setGame $ activateCards
-                             $ g1 & curPlayer   .~ g1 ^. otherPlayer
-                                  & otherPlayer .~ g1 ^. curPlayer
-                     addLog SwapPlayers
-                     generatePower
-                     -- XXX: enable creatures...
-                     startOfTurn
+                     postTurn
+
 
 
