@@ -47,9 +47,12 @@ generatePower =
          theirEffect = concatMap (creatureModifyPowerGrowth Opponent) theirs
          changes     = Map.fromListWith (+)
                           (baseGrowth ++ ourEffects ++ theirEffect)
+
+     forM_ (Map.toList changes) $ \(el,n) -> changePower Caster el n
+      {-
          addPower p  = p & playerPower %~ Map.unionWith (+) changes
 
-     updPlayer_ Caster addPower
+     updPlayer_ Caster addPower -}
 
 -- | Do this at the start of each turn.
 startOfTurn :: GameM ()
@@ -756,7 +759,9 @@ healOwner n =
 
 
 changePower :: Who -> Element -> Int -> GameM ()
-changePower w e i = updPlayer_ w (elementPower e %~ upd)
+changePower w e i =
+  do updPlayer_ w (elementPower e %~ upd)
+     addLog (PowerChange w e i)
   where upd x = max 0 (x + i)
 
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->

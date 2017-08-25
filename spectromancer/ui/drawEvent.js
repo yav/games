@@ -143,7 +143,17 @@ function drawEvents(evs,k) {
 
       case 'power':
         console.log(ev)
-        setTimeout(next,0)
+        var el = $('#' + getWizard(ev.who) + '_' + ev.element)
+        var loc = el.offset()
+        var dom = $('<div/>')
+                  .css('display','inline-block')
+                  .css('position','absolute')
+                  .css('left', loc.left)
+                  .css('top', loc.top)
+                  .text(ev.amount)
+        $('body').append(dom)
+        dom.animate( { left: '-=20px', top: '-=20px', opacity: 0 }
+                   , 'slow', 'swing', next)
         return
 
       default:

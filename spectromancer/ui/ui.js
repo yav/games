@@ -169,7 +169,9 @@ function drawDeckCard(c,owner) {
 
 function drawDeckRow(p,row,who) {
   var dom = $('<tr/>')
-  var pow = $('<td/>').text(row + ': ' + p.power[row])
+  var pow = $('<td/>')
+            .attr('id',who + '_' + row)
+            .text(row + ': ' + p.power[row])
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
     var x = drawDeckCard(card,who)
