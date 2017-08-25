@@ -211,8 +211,9 @@ function drawPlayer(p,r) {
   return dom
 }
 
-function drawArenaField(act,r,i) {
+function drawArenaField(act,r,i,al) {
   return drawDeckCard(act,r).attr('id', r + '_' + i)
+                            .addClass(al)
                             .click(setTarget(act, r, i))
 }
 
@@ -225,8 +226,8 @@ function drawArena(p1,p2,r1,r2) {
     var row = $('<tr/>')
     var actL = act1[i]
     var actR = act2[i]
-    var x = drawArenaField(actL,r1,i)
-    var y = drawArenaField(actR,r2,i)
+    var x = drawArenaField(actL,r1,i, 'arena_left')
+    var y = drawArenaField(actR,r2,i, 'arena_right')
     row.append($('<td/>').append(x),$('<td/>').append(y))
     dom.append(row)
   })

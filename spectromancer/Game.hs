@@ -52,7 +52,7 @@ data DeckCard = DeckCard
   } deriving Show
 
 -- | Some sort of temporary modification to a deck card
-data DeckCardMod = SkipNextAttack
+data DeckCardMod = SkipNextAttack | AttackBoost Int
   deriving (Show,Eq,Ord)
 
 $(makeLenses ''Game)

@@ -4,14 +4,22 @@ function drawEvents(evs,k) {
 
   function getWizard(who) {
     if (swapped) {
-      who = who === 'caster' ? 'opponent' : 'caster'
+      who = swapWizard(who)
     }
 
     return who
   }
+  
+  function swapWizard(who) {
+    return who === 'caster' ? 'opponent' : 'caster'
+  }
 
   function getLoc(l) {
     return $('#' + getWizard(l.who) + '_' + l.slot)
+  }
+
+  function getOpp(l) {
+    return $('#' + getWizard(swapWizard(l.who)) + "_" + l.slot)
   }
 
   function drawEvent(i) {
@@ -89,6 +97,12 @@ function drawEvents(evs,k) {
       case 'attack':
         var ch1 = "+=50px"
         var ch2 = "-=50px"
+
+        if(getLoc(ev.loc).hasClass('arena_right')) {
+          var ch1 = "-=50px"
+          var ch2 = "+=50px"
+        }
+        
         getLoc(ev.loc).css('z-index','100')
                       .animate({left: ch1})
                       .animate({left: ch2}, next)

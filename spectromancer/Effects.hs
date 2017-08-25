@@ -375,6 +375,53 @@ castSpell c mbTgt =
            forM_ (slotsFor Caster) $ \l ->
                  do amt <- random (randInRange 2 12)
                     healCreature l amt)
+
+    -- Sorcery spells ----------------------------
+    , (sorcery_healing_spray,
+        do tgt <- casterTarget
+           healCreature tgt 9
+           healCreature (rightOf tgt) 6
+           healCreature (leftOf tgt) 6)
+    , (sorcery_fireball, damageSpell $ \dmg ->
+        do tgt <- opponentTarget
+           damageCreature Effect (dmg 9) tgt
+           damageCreatures Effect (dmg 6) $ [leftOf tgt, rightOf tgt])
+    , (sorcery_steal_essence, damageSpell $ \dmg ->
+        do tgt <- opponentTarget
+           damageCreature Effect (dmg 5) tgt
+           whenCreature tgt $ \cr -> 
+            if cr ^. deckCardLife <= 0
+              then changePower Caster Special 4
+              else return ())
+    , (sorcery_sacrifice, 
+      do tgt <- casterTarget
+         destroyCreature tgt
+         forM_ [Fire, Water, Air, Earth] $ \elt -> changePower Caster elt 3)
+    , (sorcery_ritual_of_glory,
+        do forM_ (slotsFor Caster) $ \l ->
+            whenCreature l $ \cr -> 
+              do healCreature l 100000
+                 updGame_ $ creatureAt l . mapped 
+                    .~ deckCardAddMod (AttackBoost 3) cr)
+    , (sorcery_mana_burn, damageSpell $ \dmg ->
+        do g <- getGame
+           let eltList = [ (g ^. player Opponent . elementPower e, e)
+                         | e <- allElements ]
+               (amt, elt) = maximumBy (compare `on` fst) eltList
+ 
+           damageCreatures Effect (dmg (fromIntegral amt)) (slotsFor Opponent)
+           changePower Opponent elt (-3))
+    , (sorcery_sonic_boom, damageSpell $ \dmg ->
+        do doWizardDamage Opponent c (dmg 11)
+           forM_ (slotsFor Opponent) $ \l ->
+              do damageCreature Effect (dmg 11) l 
+                 whenCreature l $ \cr ->
+                    updGame_ $ creatureAt l . mapped 
+                             .~ deckCardAddMod (SkipNextAttack) cr)
+    , (sorcery_disintegrate, damageSpell $ \dmg ->
+        do tgt <- opponentTarget
+           destroyCreature tgt
+           damageCreatures Effect (dmg 11) (delete tgt $ slotsFor Opponent))
     ]
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
@@ -827,14 +874,19 @@ doWizardDamage' who dc amt =
 
 -- | Compute the current attack power for the given creature.
 getAttackPower :: Game -> (Location, DeckCard) -> Int
-getAttackPower g (l,c) = max 0 (base + change)
+getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
 
   where
   ourCreatures   = inhabitedSlots g (slotsFor Caster)
   theirCreatures = inhabitedSlots g (slotsFor Opponent)
 
-  change = sum $ map (creatureModifyAttack (l,c))
-               $ ourCreatures ++ theirCreatures
+  boardChange = sum $ map (creatureModifyAttack (l,c))
+                    $ ourCreatures ++ theirCreatures
+
+  modChange = sum [boostModVal m | m <- c ^. deckCardMods]
+
+  boostModVal (AttackBoost k) = k
+  boostModVal _ = 0
 
   name  = deckCardName c
   owner = locWho l
