@@ -4,11 +4,11 @@ module Effects where
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text (Text)
-import           Data.List(delete,sort,maximumBy)
+import           Data.List(delete,sort,maximumBy,(\\))
 import           Data.Function(on)
 import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
-import Util.Random(oneOf)
+import Util.Random(oneOf, randInRange)
 
 import CardTypes
 import CardIds
@@ -180,10 +180,6 @@ castSpell c mbTgt =
           Nothing -> stopError "Target must contain a creature"
           Just _  -> return ()
        return tgt
-
-
-
-
 
   damageSpell k =
     do g <- getGame
@@ -364,6 +360,21 @@ castSpell c mbTgt =
            case mbL of
              Nothing -> return ()
              Just l  -> damageCreature Effect (dmg 12) l)
+
+    -- Chaos spells -----------------------------
+    , (chaos_doom_bolt, damageSpell $ \dmg ->
+          do tgt <- randomCreature Opponent
+             case tgt of
+              Nothing  -> return ()
+              Just loc -> damageCreature Effect (dmg 25) loc)
+    , (chaos_chaotic_wave, damageSpell $ \dmg ->
+        do forM_ (slotsFor Opponent) $ \l ->
+                 do amt <- random (randInRange 2 12)
+                    damageCreature Effect (dmg (fromIntegral amt)) l
+
+           forM_ (slotsFor Caster) $ \l ->
+                 do amt <- random (randInRange 2 12)
+                    healCreature l amt)
     ]
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
@@ -980,6 +991,24 @@ creatureStartOfTurn l =
             do damageCreatures Effect 6 (slotsFor Opponent)
                el <- randomPower
                changePower Opponent el (-3))
+      , (chaos_insanian_peacekeeper,
+          do amt <- random (randInRange 1 6) 
+             healOwner amt)
+      , (chaos_insanian_berserker,
+          do amt <- random (randInRange 1 6)
+             c <- card
+             doWizardDamage Opponent c amt)
+      , (chaos_insanian_shaman,
+          do elt <- random $ oneOf allElements
+             changePower Opponent elt (-2))
+      , (chaos_insanian_lord,
+          do elt <- random $ oneOf allElements
+             changePower Caster elt 2)
+      , (chaos_insanian_catapult,
+          do mbtgt <- randomCreature Opponent
+             case mbtgt of
+               Nothing  -> return ()
+               Just tgt -> damageCreature Effect 10 tgt)
       ]
 
 creatureEndOfTurn :: Location -> GameM ()
@@ -1002,6 +1031,17 @@ creatureEndOfTurn l =
             case mbNew of
               Nothing   -> return ()
               Just lTo  -> moveCreature l lTo)
+    , (chaos_insanian_king,
+         do g <- getGame
+            let sld = newDeckCard Special (getCard other_cards other_soldier)
+            mbNew <- randomBlankSlot (locWho l)
+            case mbNew of
+              Nothing  -> return ()
+              Just slt ->
+                do updGame_ (creatureAt slt .~ Just sld)
+                   addLog (CreatureSummon slt sld))
+
+                
     ]
 
 

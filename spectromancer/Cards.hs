@@ -1416,6 +1416,15 @@ allCards =
                   CreatureCard { _creatureAttack = Just 2 , _creatureLife = 11 }
             , _cardTarget = TargetCasterBlank }
       ,  Card
+            { _cardName = "Soldier"
+            , _cardDescription = "No abilities."
+            , _cardImage = "ChaosSoldierBig.jpg"
+            , _cardCost = 1
+            , _cardEffect =
+                Creature
+                  CreatureCard { _creatureAttack = Just 4, _creatureLife = 15 }
+            , _cardTarget = TargetCasterBlank }
+      ,  Card
             { _cardName = "Bee Soldier"
             , _cardDescription =
                 "When Bee Soldier dies it deals 3 damage to opponent. "
