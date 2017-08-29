@@ -37,6 +37,7 @@ data Player = Player
   , _playerPower   :: Map Element Int
   , _playerActive  :: Map Slot DeckCard
   , _playerName    :: Text
+  , _playerClass   :: Text
   } deriving Show
 
 type Slot = Int
@@ -96,13 +97,14 @@ isWall d = deckCardName d `elem` walls
 
 
 -- This is in Gen to generate random starting powers...
-newPlayer :: Text -> Deck -> Gen Player
-newPlayer name deck =
+newPlayer :: Text -> Class -> Deck -> Gen Player
+newPlayer name cls deck =
   return Player { _playerName   = name
                 , _playerLife   = 60
                 , _playerActive = Map.empty
                 , _playerDeck   = Map.mapWithKey dc deck
                 , _playerPower  = Map.fromList [ (e,30) | e <- allElements ]
+                , _playerClass  = cls
                 }
 
   where dc e cs = map (newDeckCard e) cs

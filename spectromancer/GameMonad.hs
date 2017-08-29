@@ -96,8 +96,6 @@ setGame g = GameM (\_ -> (GameOn (), g, id))
 addLog :: LogEvent -> GameM ()
 addLog l = GameM (\g -> (GameOn (), g, (l :)))
 
-
-
 --------------------------------------------------------------------------------
 
 updGame_ :: (Game -> Game) -> GameM ()

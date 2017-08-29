@@ -953,7 +953,7 @@ allCards =
             , _cardEffect =
                 Creature
                   CreatureCard { _creatureAttack = Just 0 , _creatureLife = 24 }
-            , _cardTarget = TargetCasterBlank }
+            , _cardTarget = TargetCaster's }
         , Card
             { _cardName = "Vindictive Raccoon"
             , _cardDescription =

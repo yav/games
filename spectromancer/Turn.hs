@@ -15,12 +15,17 @@ newGame :: StdGen -> (Text,Class) -> (Text,Class) -> Game
 newGame rng (name1,class1) (name2,class2) =
   genRandFun rng $
     do (deck1, deck2) <- pickDecks class1 class2
-       p1 <- newPlayer name1 deck1
-       p2 <- newPlayer name2 deck2
-       return $ \r -> activateCards
+       p1 <- newPlayer name1 class1 deck1
+       p2 <- newPlayer name2 class2 deck2
+       return $ \r -> activateCards . initialize $
                         Game { _curPlayer   = p1
                              , _otherPlayer = p2
                              , _gameRNG     = r  }
+
+    where
+      initialize g = 
+        let (_, g', _) = runGame g startOfTurn in g'
+           
 
 
 newGameIO :: (Text,Class) -> (Text,Class) -> IO Game

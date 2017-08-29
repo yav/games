@@ -56,7 +56,25 @@ generatePower =
 
 -- | Do this at the start of each turn.
 startOfTurn :: GameM ()
-startOfTurn = mapM_ creatureStartOfTurn (slotsFor Caster)
+startOfTurn = 
+  do forM_ (slotsFor Caster) creatureStartOfTurn 
+     handleRabbit
+
+     where handleRabbit =
+            do g <- getGame
+               let pcls = g ^. player Caster . playerClass
+               when (pcls == forest_cards) $
+                 do ext_rab <- findCreature Caster other_magic_rabbit 
+                    mbslot <- randomBlankSlot Caster
+                    case (ext_rab, mbslot) of
+                      (_, Nothing)    -> return ()
+                      (_:_, _)        -> return ()
+                      ([], Just slot) ->
+                        do addLog (CreatureSummon slot rabbit) 
+                           -- updGame_ $ creatureAt slot . mapped .~ rabbit
+                           updGame_ $ creatureAt slot .~ Just rabbit
+          
+           rabbit = newDeckCard Special (getCard other_cards other_magic_rabbit)
 
 
 -- | Do this at the end of each turn.
@@ -77,20 +95,25 @@ playCard c mbLoc =
       | locWho l == Caster && locWhich l >= 0 && locWhich l < slotNum ->
         do g <- getGame
            let isEmissary = deckCardName c == death_emissary_of_dorlak
+               isWolf     = deckCardName c == forest_forest_wolf
+           -- XXX: refactor me    
            case g ^. creatureAt l of
              Nothing | isEmissary ->
-                          stop "Emissary must be go on top of a creature"
-             Just _ | not isEmissary ->
+                          stop "Emissary must be played on top of a creature"
+                     | isWolf     ->
+                          stop "Wolf must be played on top of a rabbit"
+             Just r | not isEmissary && not isWolf ->
                           stop "Creature must be played on an empty space"
-             _ -> do cost <- checkCost
-                     let c1 = c & deckCardEnabled .~ False
-                     updGame_ (creatureAt l .~ Just c1)
-                     addLog (CreatureSummon l c1)
-                     creatureSummonEffect (l,c1)
-                     payCost cost
-                     checkDeath
-                     mapM_ (`creatureSummoned` l) allSlots
-                     checkDeath
+                    | isWolf && deckCardName r /= other_magic_rabbit ->
+                          stop "Wolf must be played on top of a rabbit"
+                    | isWolf      ->
+                          let ratk = r ^. deckCard 
+                                        . creatureCard . creatureAttack
+                              wlf = c & deckCard . creatureCard 
+                                      . creatureAttack .~ ratk
+                          in doSummon wlf l
+                    
+             _ -> do doSummon c l
     _ -> stop "Card needs an approprate target"
 
   where
@@ -99,6 +122,16 @@ playCard c mbLoc =
   el = c ^. deckCardElement
 
   payCost cost = changePower Caster el (negate cost)
+
+  doSummon dc l = do cost <- checkCost
+                     let c1 = dc & deckCardEnabled .~ False
+                     updGame_ (creatureAt l .~ Just c1)
+                     addLog (CreatureSummon l c1)
+                     creatureSummonEffect (l,c1)
+                     payCost cost
+                     checkDeath
+                     mapM_ (`creatureSummoned` l) allSlots
+                     checkDeath
 
   checkCost = do g <- getGame
                  let base = c ^. deckCard . cardCost
@@ -184,8 +217,10 @@ castSpell c mbTgt =
   damageSpell k =
     do g <- getGame
        let cs      = map snd (inhabitedSlots g (slotsFor Caster))
+           es      = map snd (inhabitedSlots g (slotsFor Opponent))
            scaling = product (map creatureModifySpellDamageMul cs)
-           add     = sum (map creatureModifySpellDamageAdd cs)
+           add     = sum (map (creatureModifySpellDamageAdd Caster) cs)
+                     + sum (map (creatureModifySpellDamageAdd Opponent) es)
        traceShow (scaling,add) $ k (\d -> ceiling (d * scaling) + add)
 
   furySpell dmg w =
@@ -422,6 +457,12 @@ castSpell c mbTgt =
         do tgt <- opponentTarget
            destroyCreature tgt
            damageCreatures Effect (dmg 11) (delete tgt $ slotsFor Opponent))
+
+    , (forest_ritual_of_the_forest,
+        do atk <- getRabbitAttack Caster
+           let amt = 5 + atk
+           healOwner amt 
+           forM_ (slotsFor Caster) $ \l -> healCreature l amt)
     ]
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
@@ -443,6 +484,19 @@ randomCreature who =
 
 randomPower :: GameM Element
 randomPower = random (oneOf allElements)
+
+summonLR :: Location -> DeckCard -> GameM ()
+summonLR ctr smn =
+  do let place l' = when (onBoard l') $
+                   do mb <- withGame (creatureAt l')
+                      case mb of
+                         Nothing ->
+                           do updGame_ (creatureAt l' .~ Just smn)
+                              addLog (CreatureSummon l' smn)
+                         Just _  -> return ()
+     place (leftOf ctr)
+     place (rightOf ctr)
+
 
 --------------------------------------------------------------------------------
 -- Things that can happen to summoned creatures
@@ -477,17 +531,8 @@ creatureSummonEffect (l,c) =
     , (air_titan, damageCreature Effect 15 (oppositeOf l))
 
     , (earth_giant_spider,
-        do let fs = newDeckCard Earth (getCard other_cards other_forest_spider)
-               place l' = when (onBoard l') $
-                            do mb <- withGame (creatureAt l')
-                               case mb of
-                                 Nothing ->
-                                   do updGame_ (creatureAt l' .~ Just fs)
-                                      addLog (CreatureSummon l' fs)
-                                 Just _  -> return ()
-           place (leftOf l)
-           place (rightOf l))
-
+        let fs = newDeckCard Earth (getCard other_cards other_forest_spider)
+        in summonLR l fs)
     , (death_banshee,
         do let l1 = oppositeOf l
            mb <- withGame (creatureAt l1)
@@ -548,7 +593,23 @@ creatureSummonEffect (l,c) =
             addFriend
             addFriend)
 
-
+    -- Forest
+    , (forest_crazy_squirrel,
+        do damageCreature Effect 8 (oppositeOf l))
+    , (forest_vindictive_raccoon,
+           whenCreature (oppositeOf l) $ \op ->
+              do g <- getGame
+                 let atk = getAttackPower g (oppositeOf l, op)
+                 damageCreature Effect atk (oppositeOf l))
+    , (forest_enraged_beaver, 
+        do atk <- getRabbitAttack Caster
+           if atk <= 0
+            then return ()
+            else do doWizardDamage Opponent c atk
+                    damageCreatures Effect atk (slotsFor Opponent))
+    , (forest_bee_queen,
+        let bee = newDeckCard Special (getCard other_cards other_bee_soldier)
+        in summonLR l bee)
     ]
 
 skipNextAttack :: Location -> GameM ()
@@ -698,6 +759,10 @@ damageCreature dmg amt l =
     , (illusion_wall_of_reflection, \c ->
       do dmgDone <- doDamage' c amt
          doWizardDamage (theOtherOne $ locWho l) c dmgDone)
+    , (forest_angry_angry_bear, \_ ->
+        if amt > 0
+          then changeCreatureAttack l 1
+          else return ())
     ]
   modAbilities = Map.fromList
     [ (holy_holy_guard, \me oth ->
@@ -758,8 +823,9 @@ creatureDie (l,c) =
                          then let newCard = c & deckCard .~ (c ^. deckCardOrig)
                               in p & creatureInSlot (locWhich l) .~ Just newCard
                          else p)
-      , (holy_monk, changePower (locWho l) Special 2)
-
+    , (holy_monk, changePower (locWho l) Special 2)
+    , (forest_bee_queen, doWizardDamage (theOtherOne (locWho l)) c 3 )
+    , (other_bee_soldier, doWizardDamage (theOtherOne (locWho l)) c 3 )
     ]
 
 
@@ -962,14 +1028,17 @@ creatureModifyAttack (l,d) (l1,c)
   ours = sameSide l l1
 
 creatureModifySpellDamageAdd ::
+  Who      {- ^ Whose spell are we modifying -} ->
   DeckCard {- ^ Summoned crature modifying -} ->
   Int
-creatureModifySpellDamageAdd c =
-  Map.findWithDefault 0 (deckCardName c) abilities
+creatureModifySpellDamageAdd who c =
+  Map.findWithDefault (\w -> 0) (deckCardName c) abilities $ who
   where
-  abilities = Map.fromList
-    [ (air_faerie_apprentice, 1)
-    ]
+  abilities = Map.fromList $
+      map (\(nm, w, a) -> (nm, \t -> if t == w then a else 0)) 
+      [ (air_faerie_apprentice, Caster, 1)
+      , (forest_treefolk_protector, Opponent, -3)
+      ]
 
 creatureModifySpellDamageMul ::
   DeckCard {- ^ Summoned crature modifying -} ->
@@ -1061,6 +1130,7 @@ creatureStartOfTurn l =
              case mbtgt of
                Nothing  -> return ()
                Just tgt -> damageCreature Effect 10 tgt)
+      , (other_magic_rabbit, changeCreatureAttack l 1)
       ]
 
 creatureEndOfTurn :: Location -> GameM ()
@@ -1092,11 +1162,7 @@ creatureEndOfTurn l =
               Just slt ->
                 do updGame_ (creatureAt slt .~ Just sld)
                    addLog (CreatureSummon slt sld))
-
-                
     ]
-
-
 
 healCreature :: Location -> Int -> GameM ()
 healCreature l n =
@@ -1128,9 +1194,22 @@ moveCreature lFrom lTo =
               . (creatureAt lTo   .~ Just c)
               )
 
+changeCreatureAttack :: Location -> Int -> GameM ()
+changeCreatureAttack l amt =
+  whenCreature l $ \c ->
+     do let c1 = c & atk %~ (+amt)
+            atk = deckCard . creatureCard . creatureAttack . mapped
+        updGame_ $ creatureAt l .~ Just c1
 
 
-
-
-
-
+getRabbitAttack :: Who -> GameM Int
+getRabbitAttack w =
+  do crs <- findCreature w other_magic_rabbit
+     case crs of
+      []  -> return 0
+      (l,r):_ -> 
+        case r ^. deckCard . creatureCard . creatureAttack of
+          Nothing -> return 0
+          Just a  -> do 
+            g <- getGame
+            return (getAttackPower g (l,r))
