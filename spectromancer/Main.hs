@@ -48,8 +48,6 @@ snapGameM s m =
          case why of
            GameWonBy w    -> do setState s g1
                                 sendGame g1 output
-           IllegalMove {} -> snapMsg "illegal move" >> sendError "Illegal move" output
-           InvalidCard {} -> snapMsg "bad card" >> sendError "Invalid card" output
            Err txt -> snapMsg "err" >> sendError txt output
 
 

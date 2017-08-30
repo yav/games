@@ -1,3 +1,4 @@
+{-# Language OverloadedStrings #-}
 module Turn where
 
 import Data.Text(Text)
@@ -87,7 +88,7 @@ turnPlayCard :: Element -> Int -> Maybe Location -> GameM ()
 turnPlayCard el cardNum mbTgt =
   do g <- getGame
      case g ^? player Caster . playerDeck . ix el . ix cardNum of
-       Nothing -> stopGame (InvalidCard el cardNum)
+       Nothing -> stopError "No such card"
        Just c  -> do playCard c mbTgt
                      postTurn
 

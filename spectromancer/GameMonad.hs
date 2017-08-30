@@ -53,8 +53,6 @@ data LogEvent = Say String
 
 
 data GameStopped = GameWonBy Who
-                 | IllegalMove DeckCard (Maybe Location)
-                 | InvalidCard Element Int
                  | Err Text
 
 data GameStatus a = GameStopped GameStopped

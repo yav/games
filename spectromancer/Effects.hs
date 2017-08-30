@@ -4,7 +4,7 @@ module Effects where
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text (Text)
-import           Data.List(delete,sort,maximumBy,(\\))
+import           Data.List(delete,sort,maximumBy)
 import           Data.Function(on)
 import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
@@ -99,13 +99,13 @@ playCard c mbLoc =
            -- XXX: refactor me    
            case g ^. creatureAt l of
              Nothing | isEmissary ->
-                          stop "Emissary must be played on top of a creature"
+                       stopError "Emissary must be played on top of a creature"
                      | isWolf     ->
-                          stop "Wolf must be played on top of a rabbit"
+                       stopError "Wolf must be played on top of a rabbit"
              Just r | not isEmissary && not isWolf ->
-                          stop "Creature must be played on an empty space"
+                      stopError "Creature must be played on an empty space"
                     | isWolf && deckCardName r /= other_magic_rabbit ->
-                          stop "Wolf must be played on top of a rabbit"
+                      stopError "Wolf must be played on top of a rabbit"
                     | isWolf      ->
                           let ratk = r ^. deckCard 
                                         . creatureCard . creatureAttack
@@ -114,11 +114,9 @@ playCard c mbLoc =
                           in doSummon wlf l
                     
              _ -> do doSummon c l
-    _ -> stop "Card needs an approprate target"
+    _ -> stopError "Card needs an approprate target"
 
   where
-  stop msg = stopGame (Err msg)
-
   el = c ^. deckCardElement
 
   payCost cost = changePower Caster el (negate cost)
@@ -137,7 +135,7 @@ playCard c mbLoc =
                  let base = c ^. deckCard . cardCost
                      cost = base + extraCost g
                      have = g ^. player Caster . elementPower el
-                 when (cost > have) (stop "Card needs more power")
+                 when (cost > have) (stopError "Card needs more power")
                  return cost
 
   extraCost g = sum
@@ -587,9 +585,9 @@ creatureSummonEffect (l,c) =
          do let addFriend = do mb <- randomBlankSlot (locWho l)
                                case mb of
                                  Nothing -> return ()
-                                 Just l ->
-                                    do updGame_ (creatureAt l .~ Just c)
-                                       addLog (CreatureSummon l c)
+                                 Just l' ->
+                                    do updGame_ (creatureAt l' .~ Just c)
+                                       addLog (CreatureSummon l' c)
             addFriend
             addFriend)
 
@@ -1032,7 +1030,7 @@ creatureModifySpellDamageAdd ::
   DeckCard {- ^ Summoned crature modifying -} ->
   Int
 creatureModifySpellDamageAdd who c =
-  Map.findWithDefault (\w -> 0) (deckCardName c) abilities $ who
+  Map.findWithDefault (\_ -> 0) (deckCardName c) abilities $ who
   where
   abilities = Map.fromList $
       map (\(nm, w, a) -> (nm, \t -> if t == w then a else 0)) 
@@ -1154,8 +1152,7 @@ creatureEndOfTurn l =
               Nothing   -> return ()
               Just lTo  -> moveCreature l lTo)
     , (chaos_insanian_king,
-         do g <- getGame
-            let sld = newDeckCard Special (getCard other_cards other_soldier)
+         do let sld = newDeckCard Special (getCard other_cards other_soldier)
             mbNew <- randomBlankSlot (locWho l)
             case mbNew of
               Nothing  -> return ()
@@ -1207,9 +1204,8 @@ getRabbitAttack w =
   do crs <- findCreature w other_magic_rabbit
      case crs of
       []  -> return 0
-      (l,r):_ -> 
+      (l,r):_ ->
         case r ^. deckCard . creatureCard . creatureAttack of
           Nothing -> return 0
-          Just a  -> do 
-            g <- getGame
-            return (getAttackPower g (l,r))
+          Just _  -> do g <- getGame
+                        return (getAttackPower g (l,r))
