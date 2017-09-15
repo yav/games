@@ -844,31 +844,38 @@ creatureKill l =
 creatureDie :: (Location,DeckCard) -> GameM ()
 creatureDie (l,c) =
   do case Map.lookup (deckCardName c) abilities of
-       Nothing  -> return ()
+       Nothing  -> leave
        Just act -> act
-     creatureLeave (l,c)
   where
+  leave = creatureLeave (l,c)
+
   abilities = Map.fromList $
-    [ (air_phoenix, updPlayer_ (locWho l) $ \p ->
-                      if p ^. elementPower Fire >= 10
-                         then let newCard = c & deckCard .~ (c ^. deckCardOrig)
-                              in p & creatureInSlot (locWhich l) .~ Just newCard
-                         else p)
-    , (holy_monk, changePower (locWho l) Special 2)
-    , (forest_bee_queen, doWizardDamage (theOtherOne (locWho l)) c 3 )
-    , (other_bee_soldier, doWizardDamage (theOtherOne (locWho l)) c 3 )
+    [ (air_phoenix,
+         do leave
+            updPlayer_ (locWho l) $ \p ->
+              if p ^. elementPower Fire >= 10
+                then let newCard = c & deckCard .~ (c ^. deckCardOrig)
+                     in  p & creatureInSlot (locWhich l) .~ Just newCard
+                 else p)
+    , (holy_monk, changePower (locWho l) Special 2 >> leave)
+    , (forest_bee_queen, doWizardDamage (theOtherOne (locWho l)) c 3 >> leave)
+    , (other_bee_soldier, doWizardDamage (theOtherOne (locWho l)) c 3 >> leave )
     , (demonic_lemure,
-        let lr = newDeckCard Special (getCard other_cards other_scrambled_lemure)
-         in summonCreature lr l False)
+        let lr = newDeckCard Special
+                   (getCard other_cards other_scrambled_lemure)
+         in leave >> summonCreature lr l False)
     , (demonic_ergodemon,
-        forM_ allElements $ \elt ->
-          changePower (theOtherOne $ locWho l) elt (-1))
+        do forM_ allElements $ \elt ->
+             changePower (theOtherOne $ locWho l) elt (-1)
+           leave
+       )
     , (demonic_demon_quartermaster,
-        let sq = newDeckCard Special (getCard other_cards other_enraged_quartermaster)
-         in summonCreature sq l False)
+        let sq = newDeckCard Special
+                    (getCard other_cards other_enraged_quartermaster)
+         in leave >> summonCreature sq l False)
     , (demonic_threeheaded_demon,
         let da = newDeckCard Special (getCard other_cards other_demon_apostate)
-         in summonCreature da l False)
+         in leave >> summonCreature da l False)
     ]
 
 
@@ -1156,7 +1163,7 @@ creatureStartOfTurn l =
       , (goblin's_ratmaster,
             do damageCreatures Effect 6 (slotsFor Opponent)
                el <- randomPower
-               changePower Opponent el (-3))
+               changePower Caster el (-3))
       , (chaos_insanian_peacekeeper,
           do amt <- random (randInRange 1 6) 
              healOwner amt)
