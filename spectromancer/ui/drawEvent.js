@@ -2,6 +2,9 @@
 function drawEvents(evs,k) {
   var swapped = false
 
+  var inProgress = 0
+  var finished = false
+
   function getWizard(who) {
     if (swapped) {
       who = swapWizard(who)
@@ -22,10 +25,20 @@ function drawEvents(evs,k) {
     return $('#' + getWizard(swapWizard(l.who)) + "_" + l.slot)
   }
 
+
+  function endAnimation() {
+    --inProgress
+    if (inProgress === 0 && finished) {
+      setTimeout(k,0)
+    }
+  }
+
   function drawEvent(i) {
     if (i >= evs.length) {
-      setTimeout(k,0)
-      return
+      if (inProgress === 0)
+        setTimeout(k,0)
+      else finished = true
+           return
     }
 
     function next() { drawEvent(i+1) }
@@ -136,7 +149,6 @@ function drawEvents(evs,k) {
         return
 
       case 'move':
-        console.log('move')
         var tgt = getLoc(ev.to)
         var tgtPos = tgt.offset()
         var src = getLoc(ev.from).css('position','absolute')
@@ -156,7 +168,6 @@ function drawEvents(evs,k) {
         return
 
       case 'power':
-        console.log(ev)
         var el = $('#' + getWizard(ev.who) + '_' + ev.element)
         var loc = el.offset()
         var dom = $('<div/>')
@@ -166,8 +177,10 @@ function drawEvents(evs,k) {
                   .css('top', loc.top)
                   .text(ev.amount)
         $('body').append(dom)
+        ++inProgress
         dom.animate( { left: '-=20px', top: '-=20px', opacity: 0 }
-                   , 'slow', 'swing', next)
+                   , 'slow', 'swing', endAnimation)
+        setTimeout(next,0)
         return
 
       default:
