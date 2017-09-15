@@ -144,6 +144,13 @@ playCard c mbLoc =
               $ slotsFor Opponent
 
 
+summonCreature :: DeckCard -> Location -> Bool -> GameM()
+summonCreature dc l m =
+  do updGame_ (creatureAt l .~ Just dc)
+     addLog $ CreatureSummon l dc
+     when m $ 
+      do mapM_ (`creatureSummoned` l) allSlots
+         checkDeath
 
 -- | Do the attack phase of a turn.
 creaturesAttack :: GameM ()
@@ -461,6 +468,27 @@ castSpell c mbTgt =
            let amt = 5 + atk
            healOwner amt 
            forM_ (slotsFor Caster) $ \l -> healCreature l amt)
+    , (demonic_explosion, damageSpell $ \dmg ->
+        do tgt <- casterTarget
+           destroyCreature tgt
+           damageCreature Effect (dmg 28) (oppositeOf tgt))
+    , (demonic_power_chains, damageSpell $ \dmg ->
+        do tgt <- opponentTarget
+           damageCreature Effect (dmg 12) tgt
+           mb <- withGame (creatureAt tgt)
+           case mb of
+              Nothing -> stopError "Spell must have a target"
+              Just a | a ^. deckCardElement == Special ->
+                stopError "Power chains must target a base creature"
+                     | otherwise -> 
+                        changePower Opponent (a ^. deckCardElement) (-3))
+    , (demonic_hellfire, damageSpell $ \dmg ->
+        do damageCreatures Effect (dmg 13) $ slotsFor Opponent
+           g <- getGame
+           let cnt = sum $ (\(_,dc) -> if dc ^. deckCardLife == 0 then 1 else 0) 
+                           <$> inhabitedSlots g (slotsFor Opponent)
+           changePower Caster Special cnt)
+    
     ]
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
@@ -608,6 +636,11 @@ creatureSummonEffect (l,c) =
     , (forest_bee_queen,
         let bee = newDeckCard Special (getCard other_cards other_bee_soldier)
         in summonLR l bee)
+    , (demonic_greater_demon,
+          do fp <- withGame (player Caster . elementPower Fire)
+             let dmg = min 10 fp
+             doWizardDamage Opponent c dmg
+             damageCreatures Effect dmg (slotsFor Opponent))
     ]
 
 skipNextAttack :: Location -> GameM ()
@@ -824,6 +857,18 @@ creatureDie (l,c) =
     , (holy_monk, changePower (locWho l) Special 2)
     , (forest_bee_queen, doWizardDamage (theOtherOne (locWho l)) c 3 )
     , (other_bee_soldier, doWizardDamage (theOtherOne (locWho l)) c 3 )
+    , (demonic_lemure,
+        let lr = newDeckCard Special (getCard other_cards other_scrambled_lemure)
+         in summonCreature lr l False)
+    , (demonic_ergodemon,
+        forM_ allElements $ \elt ->
+          changePower (theOtherOne $ locWho l) elt (-1))
+    , (demonic_demon_quartermaster,
+        let sq = newDeckCard Special (getCard other_cards other_enraged_quartermaster)
+         in summonCreature sq l False)
+    , (demonic_threeheaded_demon,
+        let da = newDeckCard Special (getCard other_cards other_demon_apostate)
+         in summonCreature da l False)
     ]
 
 
@@ -864,6 +909,7 @@ performCreatureAttack l =
                do damaged <- doWizardDamage' otherWizard c p
                   when damaged (changePower (locWho l) Special 2)
              _ -> damageCreature Attack p opp)
+    , (demonic_threeheaded_demon, damageEveryone)
     ]
 
   damageEveryone c p =
@@ -1008,6 +1054,7 @@ creatureModifyPowerGrowth w c =
     , (earth_earth_elemental, (Caster, [(Earth,1)]))
     , (earth_elf_hermit,      (Caster, [(Earth,2)]))
     , (mechanical_dwarven_craftsman, (Caster, [(Special, 1)]))
+    , (demonic_demon_quartermaster, (Caster, [(Special, 1)]))
     ]
 
 -- | Compute changes to the attack value of a speicif creature.
