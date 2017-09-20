@@ -26,42 +26,66 @@ instance ToJSON Element where
 allElements :: [Element]
 allElements = [minBound .. maxBound]
 
+-- | The first list tells us how to chunk the second list.
+splitInto :: Int -> [Int] -> [Int] -> [[Int]]
+splitInto n (x : xs) ys =
+  let end = n + x
+  in case span (< end) ys of
+       (as, bs) -> as : splitInto end xs bs
+splitInto _ [] _ = []
+
+-- | Insert in a sorted list.
+insert :: Int -> [Int] -> [Int]
+insert x xs =
+  case xs of
+    [] -> [x]
+    y : more
+      | x < y     -> x : y : more
+      | otherwise -> y : insert x more
+
+-- | Pick indexes of cards
+pickCategory :: Element -> Gen ([Int],[Int])
+pickCategory el =
+  do let ixes = take cardNum [ 0 .. ]
+     picked <- mapM fromChunk (splitInto 0 chunkNum ixes)
+     let (xs,ys) = unzip picked
+         used   = xs ++ ys
+         keep c = not (c `elem` used)
+     case el of
+       Special -> return (xs, ys)
+       _       -> do (x,y) <- fromChunk (filter keep ixes)
+                     return (insert x xs, insert y ys)
+  where
+  cardNum = sum chunkNum
+  chunkNum = case el of
+               Fire    -> [ 4, 5, 3 ]
+               Water   -> [ 3, 5, 4 ]
+               Air     -> [ 3, 5, 4 ]
+               Earth   -> [ 4, 5, 3 ]
+               Special -> [ 2, 2, 2, 2 ]
+
+
+
 
 pickDecks :: Class -> Class -> Gen (Deck,Deck)
 pickDecks special1 special2 =
-  do (f1,f2) <- pickCategory fire_cards
-     (a1,a2) <- pickCategory air_cards
-     (e1,e2) <- pickCategory earth_cards
-     (w1,w2) <- pickCategory water_cards
-     (s1,s2) <- if special1 == special2
-                   then pickCategory special1
-                   else -- XXX: In this case can we pick them separately
-                        -- or are the indexes in the two specialty decks
-                        -- related?
-                        do (s1,_) <- pickCategory special1
-                           (_,s2) <- pickCategory special2
-                           return (s1,s2)
+  do let toC xs c           = map ((allCards Map.! c) !!) xs
+         toC2 c1 c2 (xs,ys) = (toC xs c1, toC ys c2)
+
+     (f1,f2) <- toC2 fire_cards  fire_cards  <$> pickCategory Fire
+     (a1,a2) <- toC2 air_cards   air_cards   <$> pickCategory Air
+     (e1,e2) <- toC2 earth_cards earth_cards <$> pickCategory Earth
+     (w1,w2) <- toC2 water_cards water_cards <$> pickCategory Water
+     (s1,s2) <- toC2 special1   special2     <$> pickCategory Special
+
      let deck f a e w s = Map.fromList [ (Fire,f), (Water,w), (Air,a)
                                        , (Earth,e), (Special,s) ]
 
-     if validDeck (concat [f1,a1,e1,w1,s1]) &&
-        validDeck (concat [f2,a2,e2,w2,s2])
+     if validDeck special1 (concat [f1,a1,e1,w1,s1]) &&
+        validDeck special2 (concat [f2,a2,e2,w2,s2])
         then return (deck f1 a1 e1 w1 s1, deck f2 a2 e2 w2 s2)
         else pickDecks special1 special2
 
-pickCategory :: Class -> Gen ([Card],[Card])
-pickCategory c =
-  case Map.lookup c allCards of
-    Just xs -> pickFrom xs
-    Nothing -> error ("Unknown category: " ++ show c)
-
-
-chunks :: Int -> [a] -> [[a]]
-chunks n xs =
-  case xs of
-    [] -> []
-    _  -> let (as,bs) = splitAt n xs
-          in as : chunks n bs
 
 
 fromChunk :: [a] -> Gen (a,a)
@@ -69,18 +93,34 @@ fromChunk xs =
   do a : b : _ <- shuffle xs
      return (a,b)
 
-pickFrom :: [a] -> Gen ([a]{-4-},[a])
-pickFrom grp = fmap unzip (mapM fromChunk (chunks sz grp))
-  where sz = length grp `div` 4
 
+validDeck :: Class -> [Card] -> Bool
+validDeck c ds =
+               and [ numRange (1,1) [ fire_priest_of_fire
+                                    , water_merfolk_elder
+                                    , earth_elf_hermit ]
+                   , numRange (1,1) [ fire_flame_wave
+                                    , fire_inferno
+                                    , air_chain_lightning ]
+                   , numRange (1,2) [ air_chain_lightning
+                                    , fire_armageddon
+                                    , air_lightning_bolt
+                                    , earth_natures_fury ]
+                   , numRange (2,4) [ water_ice_guard
+                                    , water_water_elemental
+                                    , air_faerie_sage
+                                    , earth_elven_healer
+                                    , earth_natures_ritual
+                                    , earth_rejuvenation
+                                    , earth_master_healer ]
 
-validDeck :: [Card] -> Bool
-validDeck ds = and [ ban fire_orc_chieftain earth_forest_sprite
-                   , ban water_meditation    earth_stone_rain
+                   , ban fire_orc_chieftain earth_forest_sprite
+                   , ban water_meditation   earth_stone_rain
                    , ban fire_inferno       fire_armageddon
-                   , ban earth_elf_hermit    earth_natures_fury
+                   , ban earth_elf_hermit   earth_natures_fury
+
                    , if has air_phoenix
-                       then atMostOne [ fire_armageddon
+                       then numRange (0,1) [ fire_armageddon
                                       , water_acidic_rain
                                       , earth_stone_rain
                                       , death_drain_souls ]
@@ -95,22 +135,30 @@ validDeck ds = and [ ban fire_orc_chieftain earth_forest_sprite
                    , ban earth_elf_hermit goblin's_rescue_operation
                    , ban fire_orc_chieftain forest_forest_wolf
                    , ban fire_orc_chieftain vampiric_devoted_servant
+                   , onlyIf vampiric_cards $
+                        ban fire_orc_chieftain earth_giant_spider
                    , ban water_sea_sprite vampiric_chastiser
                    , ban earth_giant_spider vampiric_vampire_mystic
                    , ban water_ice_golem cult_greater_bargul
                    , ban earth_natures_fury cult_greater_bargul
                    , ban water_astral_guard cult_reaver
-                   , ban water_ice_golem earth_stone_rain
-                   , ban water_ice_golem fire_armageddon
+                   , onlyIf golem_cards $ ban water_ice_golem earth_stone_rain
+                   , onlyIf golem_cards $ ban water_ice_golem fire_armageddon
+                   , onlyIf golem_cards $ ban fire_armageddon earth_stone_rain
                    ]
   where
+
+  onlyIf x p = if c == x then p else True
+
   has x = case find ((x ==) . view cardName) ds of
             Just _ -> True
             _      -> False
 
   ban x y = if has x then not (has y) else True
 
-  atMostOne xs = case xs of
-                   []     -> True
-                   x : ys -> if has x then all (not . has) ys else atMostOne ys
+  numRange (least,most) xs = let have = length (filter has xs)
+                             in least <= have && have <= most
+
+
+
 
