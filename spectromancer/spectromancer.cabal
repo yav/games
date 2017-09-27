@@ -9,7 +9,7 @@ executable spectromancer-server
   hs-source-dirs:      .
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  other-modules:     Cards,Deck,CardTypes,CardIds,State,
+  other-modules:       Cards,Deck,CardTypes,CardIds,
                        Util.Snap,Util.Random,Util.JSON
   build-depends:       base,
                        random,

@@ -97,15 +97,16 @@ isWall d = deckCardName d `elem` walls
 
 
 -- This is in Gen to generate random starting powers...
-newPlayer :: Text -> Class -> Deck -> Gen Player
-newPlayer name cls deck =
-  return Player { _playerName   = name
-                , _playerLife   = 60
-                , _playerActive = Map.empty
-                , _playerDeck   = Map.mapWithKey dc deck
-                , _playerPower  = Map.fromList [ (e,30) | e <- allElements ]
-                , _playerClass  = cls
-                }
+newPlayer :: Text -> Class -> Deck -> Who -> Gen Player
+newPlayer name cls deck w =
+  do initialMana <- genInitialMana (w == Caster) deck 
+     return Player { _playerName   = name
+                   , _playerLife   = 60
+                   , _playerActive = Map.empty
+                   , _playerDeck   = Map.mapWithKey dc deck
+                   , _playerPower  = initialMana
+                   , _playerClass  = cls
+                   }
 
   where dc e cs = map (newDeckCard e) cs
 

@@ -1,5 +1,5 @@
 {-# Language OverloadedStrings #-}
-module Deck (Deck, pickDecks, Element(..), allElements, Class) where
+module Deck (Deck, pickDecks, Element(..), allElements, Class, genInitialMana) where
 
 import Data.List(find)
 import Data.Map(Map)
@@ -7,8 +7,9 @@ import qualified Data.Map as Map
 import Data.Text(Text)
 import Data.Aeson(ToJSON(..))
 import Control.Lens(view)
+import Control.Monad(replicateM)
 
-import Util.Random(Gen,shuffle)
+import Util.Random(Gen,shuffle,randInRange)
 
 import CardTypes(cardName,Card)
 import Cards(allCards)
@@ -150,9 +151,7 @@ validDeck c ds =
 
   onlyIf x p = if c == x then p else True
 
-  has x = case find ((x ==) . view cardName) ds of
-            Just _ -> True
-            _      -> False
+  has = hasCard ds
 
   ban x y = if has x then not (has y) else True
 
@@ -160,5 +159,46 @@ validDeck c ds =
                              in least <= have && have <= most
 
 
+hasCard :: [Card] -> Text -> Bool
+hasCard ds x = case find ((x ==) . view cardName) ds of
+      Just _ -> True
+      _      -> False
 
+bucketize :: Int -> Int -> (Int, Int) -> Gen [Int]
+bucketize n s (mn, mx) =
+  do let lb = s - mn * n
+     rands <- replicateM (n - 1) (randInRange mn mx)
+     let r =  (s - sum rands)
+         valid x = mn <= x && x <= mx
 
+     if valid r then return (r : rands) else bucketize n s (mn, mx)
+
+randBuckets :: Int -> Int -> (Int, Int) -> Gen [Int]
+randBuckets n s (mn, mx) =
+  do b <- bucketize n s (mn, mx)
+     s <- shuffle b
+     return s
+
+initialMana :: Int -> Gen (Map Element Int)
+initialMana s =
+  do pl <- randBuckets 4 s (3, 6)
+     return $
+        Map.fromList $ (Special, 2) : zip [Fire, Earth, Air, Water] pl
+
+validMana :: Deck -> (Map Element Int) -> Bool
+validMana d e =
+  and
+  [  not (power Fire < 3 && has fire_priest_of_fire)
+  ,  not (power Water < 5 && has water_merfolk_elder)
+  ,  not (power Air < 5 && has earth_elf_hermit)
+  ,  not (power Water > 4 && has sorcery_sacrifice
+      && (has water_mind_master || has water_astral_guard)) ]
+
+  where has c = any (\cs -> hasCard cs c) (Map.elems d)
+        power elt = e Map.! elt
+
+genInitialMana :: Bool -> Deck -> Gen (Map Element Int)
+genInitialMana isFirst deck =
+  do m <- initialMana amt
+     if validMana deck m then return m else genInitialMana isFirst deck
+  where amt = if isFirst then 19 else 18

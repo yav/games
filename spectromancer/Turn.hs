@@ -16,8 +16,8 @@ newGame :: StdGen -> (Text,Class) -> (Text,Class) -> Game
 newGame rng (name1,class1) (name2,class2) =
   genRandFun rng $
     do (deck1, deck2) <- pickDecks class1 class2
-       p1 <- newPlayer name1 class1 deck1
-       p2 <- newPlayer name2 class2 deck2
+       p1 <- newPlayer name1 class1 deck1 Caster
+       p2 <- newPlayer name2 class2 deck2 Opponent
        return $ \r -> activateCards . initialize $
                         Game { _curPlayer   = p1
                              , _otherPlayer = p2
