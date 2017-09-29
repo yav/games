@@ -7,12 +7,16 @@ module Util.Random
   , shuffle
   , oneOf
   , randInRange
+  , randIdent
   , randStdGen
   ) where
 
 import qualified System.Random as Rand
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
+import           Data.Word(Word8)
 import Data.Array (listArray, bounds, (!))
-import Control.Monad(ap,liftM)
+import Control.Monad(ap,liftM,replicateM)
 
 newtype StdGen = StdGen Rand.StdGen
 
@@ -72,5 +76,22 @@ oneOf xs = do let (l,h) = bounds as
 randInRange :: Int -> Int -> Gen Int
 randInRange l h = Gen (\g -> Rand.randomR (l,h) g)
 
+-- | Keep running the random generator, until it generates
+-- something that satisfies the predicate.  Note that this
+-- process is not guaranteed to stop.
+randomTill :: (a -> Bool) -> Gen a -> Gen a
+randomTill p g =
+  do a <- g
+     if p a then return a else randomTill p g
 
+-- | Generate a random byte
+randByte :: Gen Word8
+randByte = fromIntegral <$> randInRange 0 255
+
+randIdent :: Int {- ^ How long -} ->
+            (ByteString -> Bool) {- ^ Is it used -} ->
+            Gen ByteString
+randIdent n used = randomTill (not . used) (BS.pack <$> replicateM n randChar)
+  where
+  randChar = fromIntegral <$> randInRange 65 90
 
