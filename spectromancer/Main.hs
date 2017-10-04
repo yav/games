@@ -4,6 +4,7 @@ import Snap.Http.Server (quickHttpServe)
 import Snap.Util.FileServe(serveDirectory)
 import Control.Applicative ((<|>))
 import Control.Monad(unless)
+import Control.Exception(try)
 import Data.Aeson(toJSON, (.=))
 import qualified Data.Aeson as JS
 import Data.IORef(newIORef, readIORef, writeIORef)
@@ -11,60 +12,41 @@ import Data.Text(Text)
 import qualified Data.Text as Text
 import qualified Data.Map as Map
 
-import Util.Snap(sendJSON, snapIO, badInput, snapParam, snapParamSimpleEnum)
+import Util.Snap(sendJSON, snapIO, badInput, notFound,
+                    snapParam, snapParamSimpleEnum)
 
 import GameMonad
 import Game
+import ServerState
 import CardTypes(cardsToJSON,Location(..))
 import CardIds
 import Cards(allCards)
 import Turn
 
-data ServerState = ServerState
-  { readState :: Snap Game
-  , setState  :: Game -> Snap ()
-  }
 
-sendGame :: Game -> Log -> Snap ()
-sendGame g f = sendJSON $ JS.object [ "game" .= g
-                                    , "log"  .= f []
-                                    ]
+sendGame :: GameId -> Game -> Log -> Snap ()
+sendGame gid g f = sendJSON $ JS.object [ "game" .= g
+                                        , "log"  .= f []
+                                        , "gid"  .= gid
+                                        ]
 
 sendError :: Text -> Log -> Snap ()
 sendError t l = badInput (Text.unwords (t : map (Text.pack . show) (l [])))
 
-snapMsg m = snapIO (putStrLn m)
+snapGameM :: ServerState -> GameId -> GameM () -> Snap ()
+snapGameM s gid m =
+  do mb <- snapIO (try (updateGame s gid m))
+     case mb of
+       Left err ->
+         case err of
+           GameNotFound -> notFound
+           GameError err -> sendError err id
+       Right (g,l) -> sendGame gid g l
 
-snapGameM :: ServerState -> GameM () -> Snap ()
-snapGameM s m =
-  do g <- readState s
-     snapMsg "snapGameM begin"
-     let (status, g1, output) = runGame g m
-     case status of
-       GameOn () -> do snapMsg "game on"
-                       setState s g1
-                       sendGame g1 output
-       GameStopped why ->
-         case why of
-           GameWonBy w    -> do setState s g1
-                                sendGame g1 output
-           Err txt -> snapMsg "err" >> sendError txt output
-
-
-newServerState :: Game -> IO ServerState
-newServerState g =
-  do r <- newIORef g
-     return ServerState { readState = snapIO (readIORef r)
-                        , setState  = \x -> snapIO (writeIORef r x)
-                        }
 
 main :: IO ()
 main =
-  do game <- newGameIO ("Player 1", goblins_cards)
-                       ("Player 2", goblins_cards)
-
-     s <- newServerState game
-
+  do s <- newServerState
      quickHttpServe $
           route
             [ ("getCards", snapGetCards)
@@ -82,34 +64,42 @@ snapGetCards = sendJSON (cardsToJSON allCards)
 
 snapGetState :: ServerState -> Snap ()
 snapGetState s =
-  do game <- readState s
-     sendGame game id
+  do gid <- snapGameId
+     snapGameM s gid (return ())
 
 snapNewGame :: ServerState -> Snap ()
 snapNewGame self =
   do c1 <- snapCardClass "player1"
      c2 <- snapCardClass "player2"
-     game <- snapIO $ newGameIO ("Player 3", c1) ("Player 4", c2)
-     setState self game
-     sendGame game id
+     (gid,game) <- snapIO $
+        do g   <- newGameIO ("Player 3", c1) ("Player 4", c2)
+           gid <- addNewGame self g
+           return (gid,g)
+     sendGame gid game id
 
 snapPlayCard :: ServerState -> Snap ()
 snapPlayCard self =
-  do e  <- snapParamSimpleEnum "element"
+  do g  <- snapGameId
+     e  <- snapParamSimpleEnum "element"
      c  <- snapParam "card"
-     snapGameM self (turnPlayCard e c Nothing)
+     snapGameM self g (turnPlayCard e c Nothing)
 
 snapSkipTurn :: ServerState -> Snap ()
 snapSkipTurn self =
-  do snapGameM self (turnSkip)
+  do g <- snapGameId
+     snapGameM self g (turnSkip)
 
 snapPlayTargetedCard :: ServerState -> Snap ()
 snapPlayTargetedCard s =
-  do e <- snapParamSimpleEnum "element"
+  do g <- snapGameId
+     e <- snapParamSimpleEnum "element"
      c <- snapParam "card"
      l <- snapParam "loc"
      w <- snapParamSimpleEnum "who"
-     snapGameM s (turnPlayCard e c (Just Location { locWho = w, locWhich = l }))
+     snapGameM s g
+       (turnPlayCard e c (Just Location { locWho = w, locWhich = l }))
+
+--------------------------------------------------------------------------------
 
 snapCardClass :: Text -> Snap Text
 snapCardClass pname =
@@ -117,6 +107,9 @@ snapCardClass pname =
      unless (e `Map.member` allCards) $
        sendError ("Invalid class in param: " `Text.append` pname) id
      return e
+
+snapGameId :: Snap GameId
+snapGameId = snapParam "gid"
 
 
 

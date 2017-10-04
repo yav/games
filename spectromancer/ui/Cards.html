@@ -37,6 +37,20 @@ function classBox() {
 }
 
 function drawNewGame() {
+
+  var helpBox = $('<div/>')
+                .attr('id','helpBox')
+                .css('height', '15ex')
+                .css('overflow','auto')
+
+  var helpBtn = $('<button/>').text('Click to see help')
+
+  helpBtn.click(function() {
+    helpMode = !helpMode
+    helpBtn.text(helpMode? 'Click to play' : 'Click to see help')
+  })
+
+
   var p1 = classBox()
   var p2 = classBox()
   var btn = $('<button/>').text('New game')
@@ -44,13 +58,14 @@ function drawNewGame() {
     newGame('newGame', { player1: $(p1).val(), player2: $(p2).val() })
   })
 
-  return $('<div/>').append(p1,p2,btn)
+  return $('<div/>').append(p1,p2,btn,helpBtn, helpBox)
 }
 
 function newGame(m,opts) {
   var b = $('body').empty()
   b.append(drawNewGame())
   jQuery.getJSON(m,opts,function(res) {
+    gameID = res.gid
     b.append(drawGame(res.game))
   })
 }
@@ -65,6 +80,7 @@ $(document).ready(function() {
 <style>
 .selected { border: 2px solid red; }
 .disabled { opacity: 0.5; }
+/* body { background-image: url("img/background.jpg") } */
 </style>
 <head>
 <body>

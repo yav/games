@@ -1,15 +1,20 @@
 {-# Language OverloadedStrings #-}
-module ServerState where
+module ServerState
+  ( ServerState
+  , newServerState
+  , addNewGame
+  , updateGame
+  , GameException(..)
+  , GameId
+  ) where
 
 import           Data.Map ( Map )
 import qualified Data.Map as Map
-import           Data.IORef(IORef,newIORef,atomicModifyIORef',readIORef)
-import           Data.ByteString (ByteString)
+import           Data.IORef(IORef,newIORef,atomicModifyIORef')
 import           Data.Text(Text)
 import           Data.Time(UTCTime,NominalDiffTime,diffUTCTime,getCurrentTime)
 import           Control.Exception(Exception(..), throwIO)
 import           Control.Concurrent(threadDelay, forkIO)
-import           Control.Monad(forever)
 
 import Util.Random(StdGen, randSourceIO, genRandFun, randIdent)
 import Game
@@ -17,7 +22,8 @@ import GameMonad
 import CardTypes(Who)
 
 
-type GameId = ByteString
+type GameId = Text
+
 
 data ServerState = ServerState (IORef PureState)
 
@@ -155,9 +161,4 @@ gcThread age ref = go age
        go =<< atomicModifyIORef' ref (performGC now age)
 
 
-test =
-  do s@(ServerState ref) <- newServerState
-     addNewGame s undefined
-     forever $ do r <- readIORef ref
-                  print (Map.size (activeGames r))
 

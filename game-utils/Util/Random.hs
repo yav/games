@@ -12,8 +12,8 @@ module Util.Random
   ) where
 
 import qualified System.Random as Rand
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
+import           Data.Text (Text)
+import qualified Data.Text as Text
 import           Data.Word(Word8)
 import Data.Array (listArray, bounds, (!))
 import Control.Monad(ap,liftM,replicateM)
@@ -89,9 +89,9 @@ randByte :: Gen Word8
 randByte = fromIntegral <$> randInRange 0 255
 
 randIdent :: Int {- ^ How long -} ->
-            (ByteString -> Bool) {- ^ Is it used -} ->
-            Gen ByteString
-randIdent n used = randomTill (not . used) (BS.pack <$> replicateM n randChar)
+            (Text -> Bool) {- ^ Is it used -} ->
+            Gen Text
+randIdent n used = randomTill (not . used) (Text.pack <$> replicateM n randChar)
   where
-  randChar = fromIntegral <$> randInRange 65 90
+  randChar = toEnum <$> randInRange 65 90
 

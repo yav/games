@@ -1,4 +1,6 @@
 var selected = null
+var gameID = null
+var helpMode = false
 
 function makeTurn(url,info,tgt) {
   var newG = null
@@ -24,6 +26,7 @@ function makeTurn(url,info,tgt) {
       })
   } else animFinished = true
 
+  jQuery.extend(info, { gid: gameID })
   jQuery.post(url, info, function(res) {
     newG = res
     if (animFinished) draw()
@@ -33,8 +36,19 @@ function makeTurn(url,info,tgt) {
 }
 
 function setSource(x,row,ix,cd) {
+  var card = cd.card
 
   return function() {
+    if (helpMode) {
+      $('#helpBox').empty()
+        .append( $('<h4/>').text(card.name)
+               , $('<p>').text(card.description)
+               )
+      return
+    }
+
+
+
     if (cd.target === 'none') {
       makeTurn('/playCard', { element: row.toLowerCase(), card: ix })
       return
