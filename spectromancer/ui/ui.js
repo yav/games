@@ -1,6 +1,8 @@
 var selected = null
 var gameID = null
 var helpMode = false
+var oldGame = null
+var errMsg = null
 
 function makeTurn(url,info,tgt) {
   var newG = null
@@ -20,7 +22,6 @@ function makeTurn(url,info,tgt) {
       .css('z-index','100')
       .animate({ left: loc.left, top: loc.top }, 'slow', 'swing', function() {
          selected.dom.hide()
-         console.log('hid?')
          if (newG !== null) draw()
          else animFinished = true
       })
@@ -28,9 +29,16 @@ function makeTurn(url,info,tgt) {
 
   jQuery.extend(info, { gid: gameID })
   jQuery.post(url, info, function(res) {
+    errMsg = null
+    oldGame = res
     newG = res
     if (animFinished) draw()
-  })
+  }).fail(function(err) {
+    console.log(err.statusText)
+    errMsg = err.statusText
+    newG = oldGame
+    draw()
+  });
 
 
 }
@@ -47,7 +55,7 @@ function setSource(x,row,ix,cd) {
       return
     }
 
-
+    if (!cd.enabled) return
 
     if (cd.target === 'none') {
       makeTurn('/playCard', { element: row.toLowerCase(), card: ix })
@@ -147,7 +155,9 @@ function drawCard(c) {
             .css('height','96px')
 
   if (c == null) {
-    grp.css('border','1px solid black')
+    // grp.css('border','1px solid #666')
+    grp.css('background-color','rgba(0,0,0,0.5)')
+       .css('border-radius','5px')
     return grp
   }
 
@@ -190,7 +200,8 @@ function drawDeckRow(p,row,who) {
   jQuery.each(p.deck[row], function(ix,card) {
     var x = drawDeckCard(card,who)
             .addClass('deck')
-    if (card.enabled) x.click(setSource(x,row,ix,card))
+    // if (card.enabled) x.click(setSource(x,row,ix,card))
+    x.click(setSource(x,row,ix,card))
     dom.append($('<td/>').append(x))
   })
   return dom
@@ -199,8 +210,11 @@ function drawDeckRow(p,row,who) {
 function drawPlayer(p,r) {
   var dom = $('<div/>')
             .attr('id',r)
+            .css('background-color','rgba(0,0,0,0.5)')
+            .css('color','white')
             .css('display','inline-block')
             .css('margin', '20px')
+            .css('border-radius','10px')
 
   var pref = r === 'caster' ? '> ' : ''
 
@@ -215,12 +229,6 @@ function drawPlayer(p,r) {
   })
 
   dom.append(deckTable)
-  var skip = $('<button/>')
-           .text('Skip Turn')
-           .click(function() {
-               makeTurn("/skipTurn", {}, undefined)
-           })
-  dom.append(skip)
 
   return dom
 }
@@ -234,6 +242,7 @@ function drawArenaField(act,r,i,al) {
 function drawArena(p1,p2,r1,r2) {
   var dom = $('<table/>').css('display','inline-block')
                          .css('valign','bottom')
+                         .css('background-color','rgba(0,0,0,0.5)')
   var act1 = p1.active
   var act2 = p2.active
   jQuery.each([0,1,2,3,4,5], function(i,num) {
@@ -266,6 +275,21 @@ function drawGame(g) {
                        , $('<td/>').append(drawArena(left,right,leftR,rightR))
                        , $('<td/>').append(drawPlayer(right, rightR))
                        ))
+}
+
+
+function fancyBtn(txt) {
+  return $('<div/>')
+         .css('display','inline-block')
+         .css('margin', '5px')
+         .css('padding','3px')
+         .css('color','black')
+         .css('background-color','orange')
+         .css('border', '1px solid #fc3')
+         .css('border-radius', '5px')
+         .css('box-shadow', '0px 0px 20px #999')
+         .css('cursor','pointer')
+         .text(txt)
 }
 
 

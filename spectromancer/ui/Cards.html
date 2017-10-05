@@ -41,46 +41,67 @@ function drawNewGame() {
   var helpBox = $('<div/>')
                 .attr('id','helpBox')
                 .css('height', '15ex')
+                .css('color','white')
+                .css('background-color','rgba(0,0,0,0.5)')
+                .css('border-radius','5px')
+                .css('max-width','60em')
+                .css('padding','0.5em')
                 .css('overflow','auto')
+                .text(errMsg)
 
-  var helpBtn = $('<button/>').text('Click to see help')
+  var helpBtn = fancyBtn('Click to see help') // $('<button/>').text('Click to see help')
 
   helpBtn.click(function() {
     helpMode = !helpMode
     helpBtn.text(helpMode? 'Click to play' : 'Click to see help')
   })
 
+  var skip = fancyBtn('Skip Turn')
+           .click(function() {
+               makeTurn("/skipTurn", {}, undefined)
+           })
 
-  var p1 = classBox()
-  var p2 = classBox()
-  var btn = $('<button/>').text('New game')
-                          .click(function() {
-    newGame('newGame', { player1: $(p1).val(), player2: $(p2).val() })
-  })
 
-  return $('<div/>').append(p1,p2,btn,helpBtn, helpBox)
+
+  return $('<div/>')
+         .css('color','white')
+         .append(helpBtn, skip, helpBox)
 }
 
 function newGame(m,opts) {
   var b = $('body').empty()
   b.append(drawNewGame())
   jQuery.getJSON(m,opts,function(res) {
+    oldGame = res
     gameID = res.gid
-    b.append(drawGame(res.game))
+    var gid = $('<span/>').text('game: ' + gameID)
+    b.append(gid, drawGame(res.game))
   })
+}
+
+function drawNoGame() {
+  var p1 = classBox()
+  var p2 = classBox()
+  var btn = fancyBtn('New game')
+            .click(function() {
+              newGame('newGame', { player1: $(p1).val(), player2: $(p2).val() })
+            })
+
+  $('body').append($('<div/>').append(p1,p2,btn))
 }
 
 
 $(document).ready(function() {
-  // dumpAllCards()
-  newGame('getState')
-
+  drawNoGame()
 })
 </script>
 <style>
 .selected { border: 2px solid red; }
 .disabled { opacity: 0.5; }
-/* body { background-image: url("img/background.jpg") } */
+body {
+  color: white;
+  background-image: url("img/background.jpg");
+ }
 </style>
 <head>
 <body>

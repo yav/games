@@ -129,6 +129,7 @@ function drawEvents(evs,k) {
                 .css('left', '30%')
                 .css('top', '30%')
                 .css('background-color','white')
+                .css('color','black')
                 .css('font-size','128px')
                 .css('border','5px solid black')
                 .css('z-index','500')
@@ -175,6 +176,7 @@ function drawEvents(evs,k) {
                   .css('position','absolute')
                   .css('left', loc.left)
                   .css('top', loc.top)
+                  .css('color','white')
                   .text(ev.amount)
         $('body').append(dom)
         ++inProgress
