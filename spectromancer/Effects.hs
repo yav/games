@@ -112,7 +112,6 @@ playCard c mbLoc =
                               wlf = c & deckCard . creatureCard 
                                       . creatureAttack .~ ratk
                           in doSummon wlf l
-                    
              _ -> do doSummon c l
     _ -> stopError "Card needs an approprate target"
 
@@ -122,6 +121,12 @@ playCard c mbLoc =
   payCost cost = changePower Caster el (negate cost)
 
   doSummon dc l = do cost <- checkCost
+
+                     -- Normally, this should be empty, but in the
+                     -- case of Dorlak or the wolf, we should first destroy
+                     -- the creature, and perform death effects, if any.
+                     destroyCreature l
+
                      let c1 = dc & deckCardEnabled .~ False
                      updGame_ (creatureAt l .~ Just c1)
                      addLog (CreatureSummon l c1)
@@ -567,10 +572,6 @@ creatureSummonEffect (l,c) =
              Just c1  ->
                do let dmg = (c1 ^. deckCardLife + 1) `div` 2
                   damageCreatures Effect dmg [l1])
-
-    , (death_emissary_of_dorlak, destroyCreature l)
-      -- This one we can probably skip, as Dorlak will not be destorying
-      -- beasts but it seems more consistnt to call the handler anyway
 
     , (death_master_lich, damageCreatures Effect 8 (slotsFor Opponent))
 

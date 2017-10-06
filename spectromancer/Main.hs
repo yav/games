@@ -25,13 +25,14 @@ import Turn
 
 
 sendGame :: GameId -> Game -> Log -> Snap ()
-sendGame gid g f = sendJSON $ JS.object [ "game" .= g
-                                        , "log"  .= f []
-                                        , "gid"  .= gid
-                                        ]
+sendGame gid g f = do snapIO (mapM_ print (f []))
+                      sendJSON $ JS.object [ "game" .= g
+                                           , "log"  .= f []
+                                           , "gid"  .= gid
+                                           ]
 
 sendError :: Text -> Log -> Snap ()
-sendError t l = badInput (Text.unwords (t : map (Text.pack . show) (l [])))
+sendError t l = badInput t -- (Text.unwords (t : map (Text.pack . show) []))
 
 snapGameM :: ServerState -> GameId -> GameM () -> Snap ()
 snapGameM s gid m =
