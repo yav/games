@@ -6,15 +6,18 @@ module ServerState
   , updateGame
   , GameException(..)
   , GameId
+  , listGames
   ) where
 
 import           Data.Map ( Map )
 import qualified Data.Map as Map
-import           Data.IORef(IORef,newIORef,atomicModifyIORef')
+import           Data.IORef(IORef,newIORef,atomicModifyIORef',readIORef)
 import           Data.Text(Text)
 import           Data.Time(UTCTime,NominalDiffTime,diffUTCTime,getCurrentTime)
 import           Control.Exception(Exception(..), throwIO)
 import           Control.Concurrent(threadDelay, forkIO)
+import           Data.Monoid((<>))
+import           Control.Lens((^.))
 
 import Util.Random(StdGen, randSourceIO, genRandFun, randIdent)
 import Game
@@ -80,6 +83,15 @@ addNewGame (ServerState ref) game =
   do ag <- newActiveGame game
      atomicModifyIORef' ref (addNewGamePure ag)
 
+
+listGames :: ServerState -> IO [(GameId, Text)]
+listGames (ServerState s) =
+  do st <- readIORef s
+     return [(gid, pickName a) | (gid, a) <- Map.toList (activeGames st)]
+  where pickName ag =
+          let p1class = activeGame ag ^. curPlayer . playerClass
+              p2class = activeGame ag ^. otherPlayer . playerClass
+          in p1class <> " vs. " <> p2class
 
 -- | Perform the monadic computation in the given game context, and
 -- return the new state of the corresponding game.

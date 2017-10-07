@@ -56,6 +56,7 @@ main =
             , ("playCard", snapPlayCard s)
             , ("playTargetedCard", snapPlayTargetedCard s)
             , ("skipTurn", snapSkipTurn s)
+            , ("listGames", snapListGames s)
             ]
            <|> serveDirectory "ui"
 
@@ -66,6 +67,7 @@ snapGetCards = sendJSON (cardsToJSON allCards)
 snapGetState :: ServerState -> Snap ()
 snapGetState s =
   do gid <- snapGameId
+     snapIO $ print gid
      snapGameM s gid (return ())
 
 snapNewGame :: ServerState -> Snap ()
@@ -77,6 +79,11 @@ snapNewGame self =
            gid <- addNewGame self g
            return (gid,g)
      sendGame gid game id
+
+snapListGames :: ServerState -> Snap ()
+snapListGames self =
+  do gms <- snapIO $ listGames self
+     sendJSON $ toJSON gms
 
 snapPlayCard :: ServerState -> Snap ()
 snapPlayCard self =

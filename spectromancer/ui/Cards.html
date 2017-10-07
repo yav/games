@@ -82,12 +82,23 @@ function newGame(m,opts) {
 function drawNoGame() {
   var p1 = classBox()
   var p2 = classBox()
+  var gameList = $('<ul/>')
+
+  jQuery.getJSON("/listGames", {}, lst => {
+      jQuery.each(lst, (idx, elt) => {
+          var btn = fancyBtn(elt[1])
+          gameList.append($('<li/>').append(btn))
+          btn.click(() => {
+              newGame("getState", { gid: elt[0] })
+          })
+      })
+  })
   var btn = fancyBtn('New game')
             .click(function() {
               newGame('newGame', { player1: $(p1).val(), player2: $(p2).val() })
             })
 
-  $('body').append($('<div/>').append(p1,p2,btn))
+  $('body').append($('<div/>').append(p1,p2,btn, gameList))
 }
 
 

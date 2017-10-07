@@ -22,6 +22,7 @@ executable spectromancer-server
                        template-haskell,
                        snap-core,
                        snap-server,
-                       lens
+                       lens,
+                       time
   default-language:    Haskell2010
 
