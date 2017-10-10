@@ -24,12 +24,16 @@ import Cards(allCards)
 import Turn
 
 
-sendGame :: GameId -> Game -> Log -> Snap ()
-sendGame gid g f = do snapIO (mapM_ print (f []))
-                      sendJSON $ JS.object [ "game" .= g
-                                           , "log"  .= f []
-                                           , "gid"  .= gid
-                                           ]
+sendGame :: GameId -> Game -> Log -> GameFinished -> Snap ()
+sendGame gid g f w =
+  do snapIO (mapM_ print (f []))
+     sendJSON $ JS.object [ "game" .= g
+                          , "log"  .= f []
+                          , "gid"  .= gid
+                          , "winner" .= (case w of
+                                           NotFinished -> Nothing
+                                           Winner who  -> Just who)
+                          ]
 
 sendError :: Text -> Log -> Snap ()
 sendError t l = badInput t -- (Text.unwords (t : map (Text.pack . show) []))
@@ -42,7 +46,7 @@ snapGameM s gid m =
          case err of
            GameNotFound -> notFound
            GameError err -> sendError err id
-       Right (g,l) -> sendGame gid g l
+       Right (g,l,w) -> sendGame gid g l w
 
 
 main :: IO ()
@@ -78,7 +82,7 @@ snapNewGame self =
         do g   <- newGameIO ("Player 3", c1) ("Player 4", c2)
            gid <- addNewGame self g
            return (gid,g)
-     sendGame gid game id
+     sendGame gid game id NotFinished
 
 snapListGames :: ServerState -> Snap ()
 snapListGames self =

@@ -10,7 +10,8 @@ function makeTurn(url,info,tgt) {
 
   function draw() {
     drawEvents(newG.log, function() {
-      $('body').empty().append(drawNewGame(),drawGame(newG.game))
+      $('body').empty().append( drawNewGame(newG.winner)
+                              , drawGame(newG.game,newG.winner))
     })
   }
 
@@ -37,6 +38,7 @@ function makeTurn(url,info,tgt) {
     console.log(err.statusText)
     errMsg = err.statusText
     newG = oldGame
+    newG.log = []
     draw()
   });
 
@@ -207,7 +209,7 @@ function drawDeckRow(p,row,who) {
   return dom
 }
 
-function drawPlayer(p,r) {
+function drawPlayer(p,r,winner) {
   var dom = $('<div/>')
             .attr('id',r)
             .css('background-color','rgba(0,0,0,0.5)')
@@ -216,11 +218,18 @@ function drawPlayer(p,r) {
             .css('margin', '20px')
             .css('border-radius','10px')
 
-  var pref = r === 'caster' ? '> ' : ''
+  var wins = r == winner
+  if (wins) dom.css('background-image','url("img/winner-bg.gif")')
+
+  var pref = wins? "Winner: " : (r === 'caster' ? '> ' : '')
 
   var name = $('<h3/>')
+              .addClass('name')
              .css('text-align','center')
              .text(pref + p.name + ' (' + p.life + ')')
+
+  if (wins) name.css('background-color','rgba(0,0,0,0.8)')
+
   dom.append(name)
 
   var deckTable = $('<table/>')
@@ -257,7 +266,7 @@ function drawArena(p1,p2,r1,r2) {
   return dom
 }
 
-function drawGame(g) {
+function drawGame(g,winner) {
   var left = g.current
   var right = g.other
   var leftR = 'caster'
@@ -270,10 +279,12 @@ function drawGame(g) {
   }
 
   return $('<table/>')
+         .css('margin-left','auto')
+         .css('margin-right','auto')
          .append($('<tr/>')
-                .append( $('<td/>').append(drawPlayer(left,leftR))
+                .append( $('<td/>').append(drawPlayer(left,leftR,winner))
                        , $('<td/>').append(drawArena(left,right,leftR,rightR))
-                       , $('<td/>').append(drawPlayer(right, rightR))
+                       , $('<td/>').append(drawPlayer(right, rightR,winner))
                        ))
 }
 

@@ -172,7 +172,6 @@ checkGameWon =
         | otherwise                          -> return ()
 
 
-
 -- | Activate actions on creatures that just died, and possibly end the game.
 checkDeath :: GameM ()
 checkDeath =

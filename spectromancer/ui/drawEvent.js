@@ -1,5 +1,6 @@
 
 function drawEvents(evs,k) {
+
   var swapped = false
 
   var inProgress = 0
@@ -15,6 +16,10 @@ function drawEvents(evs,k) {
   
   function swapWizard(who) {
     return who === 'caster' ? 'opponent' : 'caster'
+  }
+
+  function getWizardNameBox(who) {
+    return $('#' + getWizard(who) + ' .name')
   }
 
   function getLoc(l) {

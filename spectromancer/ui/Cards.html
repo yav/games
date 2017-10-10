@@ -36,7 +36,7 @@ function classBox() {
                               )
 }
 
-function drawNewGame() {
+function drawNewGame(finished) {
 
   var helpBox = $('<div/>')
                 .attr('id','helpBox')
@@ -44,7 +44,8 @@ function drawNewGame() {
                 .css('color','white')
                 .css('background-color','rgba(0,0,0,0.5)')
                 .css('border-radius','5px')
-                .css('max-width','60em')
+                .css('width','60em')
+                .css('display','inline-block')
                 .css('padding','0.5em')
                 .css('overflow','auto')
                 .text(errMsg)
@@ -56,16 +57,24 @@ function drawNewGame() {
     helpBtn.text(helpMode? 'Click to play' : 'Click to see help')
   })
 
-  var skip = fancyBtn('Skip Turn')
+  var skip
+  if (finished) {
+    skip = fancyBtn('Play again!')
+           .click(function() {
+              window.location.href = 'Cards.html'
+           })
+  } else {
+  skip = fancyBtn('Skip Turn')
            .click(function() {
                makeTurn("/skipTurn", {}, undefined)
            })
+  }
 
 
 
   return $('<div/>')
          .css('color','white')
-         .append(helpBtn, skip, helpBox)
+         .append(helpBtn, skip, $('<br/>'), helpBox)
 }
 
 function newGame(m,opts) {
@@ -74,15 +83,14 @@ function newGame(m,opts) {
   jQuery.getJSON(m,opts,function(res) {
     oldGame = res
     gameID = res.gid
-    var gid = $('<span/>').text('game: ' + gameID)
-    b.append(gid, drawGame(res.game))
+    b.append(drawGame(res.game))
   })
 }
 
 function drawNoGame() {
   var p1 = classBox()
   var p2 = classBox()
-  var gameList = $('<ul/>')
+  var gameList = $('<ul/>').css('list-style-type','none')
 
   jQuery.getJSON("/listGames", {}, lst => {
       jQuery.each(lst, (idx, elt) => {
@@ -113,7 +121,10 @@ $(document).ready(function() {
 .disabled { opacity: 0.5; }
 body {
   color: white;
+  background-color: black;
   background-image: url("img/background.jpg");
+  text-align: center;
+  background-repeat: no-repeat;
  }
 </style>
 <head>

@@ -5,6 +5,7 @@ module ServerState
   , addNewGame
   , updateGame
   , GameException(..)
+  , GameFinished(..)
   , GameId
   , listGames
   ) where
@@ -93,20 +94,22 @@ listGames (ServerState s) =
               p2class = activeGame ag ^. otherPlayer . playerClass
           in p1class <> " vs. " <> p2class
 
+data GameFinished = NotFinished | Winner Who
+
 -- | Perform the monadic computation in the given game context, and
 -- return the new state of the corresponding game.
 -- Throws 'GameException' if something goes wrong.
-updateGame :: ServerState -> GameId -> GameM () -> IO (Game,Log)
+updateGame :: ServerState -> GameId -> GameM () -> IO (Game,Log,GameFinished)
 updateGame (ServerState ref) gid m =
   do now <- getCurrentTime
-     res <- atomicModifyIORef' ref (upd now)
+     (res,f) <- atomicModifyIORef' ref (upd now)
      case res of
        Left err -> throwIO err
-       Right ok -> return ok
+       Right (g,l) -> return (g,l,f)
   where
   upd now ps =
     case Map.lookup gid (activeGames ps) of
-      Nothing -> (ps, Left GameNotFound)
+      Nothing -> (ps, (Left GameNotFound, NotFinished))
       Just ag ->
         case runGame (activeGame ag) m of
 
@@ -115,7 +118,7 @@ updateGame (ServerState ref) gid m =
             let newAg = ag { lastActivity = now }
                 newPs = ps { activeGames = Map.insert gid newAg (activeGames ps)
                            }
-            in (newPs, Left (GameError err))
+            in (newPs, (Left (GameError err), NotFinished))
 
           -- The game finished, add it to the finish list
           (GameStopped (GameWonBy w),g,l) ->
@@ -124,14 +127,14 @@ updateGame (ServerState ref) gid m =
                                                 (finishedGames ps)
                            , activeGames = Map.delete gid (activeGames ps)
                            }
-            in (newPs, Right (g, l))
+            in (newPs, (Right (g, l), Winner w))
 
           -- We made some progress, jus update the active game
           (GameOn _, g, l) ->
             let newAg = ActiveGame { activeGame = g , lastActivity = now }
                 newPs = ps { activeGames = Map.insert gid newAg (activeGames ps)
                            }
-            in (newPs, Right (g,l))
+            in (newPs, (Right (g,l), NotFinished))
 
 
 
