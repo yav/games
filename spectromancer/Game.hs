@@ -101,7 +101,7 @@ newPlayer :: Text -> Class -> Deck -> Who -> Gen Player
 newPlayer name cls deck w =
   do initialMana <- genInitialMana (w == Caster) deck 
      return Player { _playerName   = name
-                   , _playerLife   = 1 -- 60
+                   , _playerLife   = 60
                    , _playerActive = Map.empty
                    , _playerDeck   = Map.mapWithKey dc deck
                    , _playerPower  = initialMana
