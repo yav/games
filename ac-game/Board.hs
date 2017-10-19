@@ -4,7 +4,6 @@ module Board
   , boardNew
   , boardTiles
   , boardPawns
-  , boardLocOwner
   , boardHasLoc
 
   , Pawns
@@ -17,7 +16,6 @@ module Board
   , TileLoc, PawnLoc(..)
   , pawnTiles
   , pawnTilePower
-  , pawnDistance
 
   , InfluenceMap
   , addInfluence
@@ -30,18 +28,20 @@ import Data.Map(Map)
 import qualified Data.Map as Map
 import Control.Lens(makeLenses, (^.), (^?), ix)
 import qualified Data.Text as Text
+import Data.Ratio(Ratio, (%))
 
 import Util.Perhaps
 
 import Basics
 
+-- | A region, containing an action to perform.
 type TileLoc = (Int,Int)
 
+-- | The location of a pawn, it may be a region or a road location.
 data PawnLoc = PawnLoc Int Int
   deriving (Eq,Ord,Show)
 
-
-
+-- | The current arrangement of the baord.
 data Board = Board
   { _boardTiles   :: Map TileLoc Tile
     -- ^ The tiles on the board.
@@ -51,9 +51,17 @@ data Board = Board
     -- The front is the top of the stack.
   }
 
-type Pawns = Map PawnLoc [Pawn]
+-- | The pawns on the map.  Each location may have multiple pawn stacks,
+-- if the pawns ended up sharing a space.
+type Pawns = Map PawnLoc [PawnStack]
+-- XXX support for pawn upgrades
 
-$(makeLenses 'Board)
+$(makeLenses ''Board)
+
+
+
+
+
 
 testLayout :: Map TileLoc Tile
 testLayout = Map.fromList
@@ -71,16 +79,10 @@ testLayout = Map.fromList
 boardNew :: Map TileLoc Tile -> Board
 boardNew ts = Board { _boardTiles = ts, _boardPawns = Map.empty }
 
+-- | Is the given location on the baord.
 boardHasLoc :: Board -> PawnLoc -> Bool
 boardHasLoc b l = any present (pawnTiles l)
   where present x = Map.member x (b ^. boardTiles)
-
--- | Get the player who owns a particular location, if any.
-boardLocOwner :: PawnLoc -> Board -> Maybe PlayerId
-boardLocOwner l b =
-  do ps <- b ^? boardPawns . ix l
-     ps ^? ix 0 . pawnPlayer
-
 
 -- | Remove a pawn for a player from a location.
 -- If theere are multiple pawns, then remove the top one (i.e.,
@@ -112,24 +114,9 @@ newPawn l p = addPawn l (pawnNew p)
 
 --------------------------------------------------------------------------------
 
-{- | Here's a diagram explaining the geometry:
-
-@
-  *-*-*
-  |\|/|
-1 b-d-*
-  |/|\|
-0 a-c-*
-  0 1
-@
-
-'PawnLoc' @(x,y)@ refers to:
-
-  * Both even:          vertex
-  * @x@ even, @y@ odd:  vertical edge
-  * @x@ odd,  @y@ even: horizontal edge
-  * Both odd:           face
--}
+-- | Tiles where a pawn might have influence.  Note that this produces
+-- the location of all tiles around the pawn,
+-- even ones that are not not the board.
 pawnTiles :: PawnLoc -> [TileLoc]
 pawnTiles (PawnLoc x y) = (x',y') : more
   where
@@ -148,41 +135,34 @@ pawnTiles (PawnLoc x y) = (x',y') : more
       (False,False) -> []
 
 -- | Influence exeretd by a pawn on the board.
-pawnTilePower :: PawnLoc -> Pawn -> (Int, [TileLoc])
-pawnTilePower loc p = (p^.pawnPower `div` length locs, locs)
+pawnTilePower :: PawnLoc -> Pawn -> (Influence, [TileLoc])
+pawnTilePower loc p = (pawnCurPower p % length locs, locs)
   where locs = pawnTiles loc
 
--- | Streight-line distance between two locations.
--- Note that this does not account for the layout of the board
--- (e.g., gaps, obstacles, etc.)
-pawnDistance :: PawnLoc -> PawnLoc -> Int
-pawnDistance (PawnLoc x y) (PawnLoc a b) = max (abs (x - a)) (abs (y - b))
 
--- | Who controls the tiles on the map,
--- and by who much.
-type InfluenceMap = Map TileLoc (PlayerId,Int)
+-- | For each tile, how much influence does each player have.
+type InfluenceMap = Map TileLoc (Map PlayerId Influence)
+
+type Influence = Ratio Int
 
 -- | Add some influence to a particular tile on the map.
-addInfluence :: PlayerId -> Int -> TileLoc -> InfluenceMap -> InfluenceMap
+addInfluence :: PlayerId -> Influence -> TileLoc -> InfluenceMap -> InfluenceMap
 addInfluence p x
   | x <= 0    = const id
   | otherwise = Map.alter $ \mb ->
+    Just $
     case mb of
-      Nothing -> Just (p,x)
-      Just (p1,y)
-        | p == p1 -> Just (p, x + y)
-        | otherwise ->
-          case compare x y of
-            GT -> Just (p, x - y)
-            EQ -> Nothing
-            LT -> Just (p1, y - x)
+      Nothing -> Map.singleton p x
+      Just mp -> Map.insertWith (+) p x mp
 
 -- | Compute who controls each location on the map.
 influenceMap :: Pawns -> InfluenceMap
 influenceMap = Map.foldrWithKey upd Map.empty
   where
-  upd l ps mp = foldr onePawn mp ps
+  upd l ps mp = foldr onePawnStack mp ps
     where
+    onePawnStack
+
     onePawn p mp1 = foldr (addInfluence (p^.pawnPlayer) x) mp1 tps
       where (x,tps) = pawnTilePower l p
 

@@ -1,14 +1,14 @@
 {-# Language TemplateHaskell #-}
 module Basics where
 
-import Control.Lens(makeLenses, (%~))
+import Control.Lens(makeLenses, (%~), (^.))
 
 type PlayerId = Int
 
 data Pawn = Pawn
-  { _pawnPlayer :: !PlayerId
-  , _pawnPower  :: !Int
-  , _pawnSpeed  :: !Int
+  { _pawnPlayer     :: !PlayerId
+  , _pawnPower      :: !Int
+  , _pawnSpeed      :: !Int
   } deriving Eq
 
 $(makeLenses 'Pawn)
@@ -39,6 +39,9 @@ pawnUpgradePower = pawnPower %~ nextPowerLevel
 
 pawnUpgradeSpeed :: Pawn -> Pawn
 pawnUpgradeSpeed = pawnSpeed %~ nextSpeedLevel
+
+pawnCurPower :: Pawn -> Int
+pawnCurPower p = p ^. pawnPower -- XXX add boosts
 
 
 --------------------------------------------------------------------------------
