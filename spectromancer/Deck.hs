@@ -190,7 +190,7 @@ validMana d e =
   and
   [  not (power Fire < 3 && has fire_priest_of_fire)
   ,  not (power Water < 5 && has water_merfolk_elder)
-  ,  not (power Air < 5 && has earth_elf_hermit)
+  ,  not (power Earth < 5 && has earth_elf_hermit)
   ,  not (power Water > 4 && has sorcery_sacrifice
       && (has water_mind_master || has water_astral_guard)) ]
 
