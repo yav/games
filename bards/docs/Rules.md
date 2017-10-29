@@ -1,7 +1,9 @@
 ﻿Bards
+ -----
 
 
-**Structure of a Turn**
+Structure of a Turn
+===================
 
   1. Remove fan tokens from your previous turn.
   2. Choose a bard for this turn, removing their mask, if any.
@@ -14,7 +16,7 @@ A new bard may start off masked, as long you have a mask for them.
 
 
 The Regions
------------
+===========
 
 **The Pub**  *You made a friend!*
 Take a 1/1 bard from the supply.  You may place it on a later turn.
@@ -38,6 +40,11 @@ Take another turn, but there's no need to remove fans or masks.
 **The Crossroads**  *Close enough.*
 Use the action of one of the orthogonally adjacent regions.
 
+**The Market**
+Place a cube (fan, mask, or provision) on the market, then:
+  1. either take two cubes from the ones on the market, or
+  2. take a cube from the bank.
+
 **The Town Square**  *It is nice to have fans.*
 Gain a fan token.  Fans may be used on future turns to increase a
 bard’s popularity by 1 for a turn.  Multiple fans may be used on the same bard.
@@ -49,17 +56,23 @@ you have a few options:
   3. activate the bard and move them away, or
   4. your bard is captivated and goes to the bottom of the pile.
 
-**XXX?** You may also use fans to cause currently 
-
-
-**The Map Shop**  *You learn a  handy short-cut.*
-Gain a map.   Maps may be discarded to increase a bard’s movement by 2.
-Multiple maps may be discarded to further increase the movement.
+**The Grocer**  *A bard ahs to eat.*
+Gain a provision.   provisions may be discarded to increase a bard’s movement by 2.
+Multiple provisions may be discarded to further increase the movement.
 
 **Masquerade**  *Sometimes it's better to go incognito.*
 Gain a mask.  Masks may be assigned to bards on future turns.  Masked bards
-exert influence as usual, but they cannot dance or make others dance---if
-they end up in the same region as another bard they share the space.  Bards
-stay masked until they are activated again.
+exert influence as usual, but they cannot be captivated by, or captivate other bards.
+A masked bard may enter a location, disregarding the influence of other bards.
+Bards stay masked until they are activated again.
+
+**The Arena**   *Time for a performance!*
+
+A saga has 3 parts, and each part may be **about* or **against** something.
+   1. Choose what kind of parts your saga will have
+   2. For each part, roll a die to pick a topic (1,2: fan; 3,4: mask; 5,6: food)
+      * If the given part is about the topic, then to complete the saga you need to spend the given 
+
+...
 
 
