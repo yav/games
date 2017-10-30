@@ -56,24 +56,24 @@ generatePower =
 
 -- | Do this at the start of each turn.
 startOfTurn :: GameM ()
-startOfTurn = 
-  do forM_ (slotsFor Caster) creatureStartOfTurn 
+startOfTurn =
+  do forM_ (slotsFor Caster) creatureStartOfTurn
      handleRabbit
 
      where handleRabbit =
             do g <- getGame
                let pcls = g ^. player Caster . playerClass
                when (pcls == forest_cards) $
-                 do ext_rab <- findCreature Caster other_magic_rabbit 
+                 do ext_rab <- findCreature Caster other_magic_rabbit
                     mbslot <- randomBlankSlot Caster
                     case (ext_rab, mbslot) of
                       (_, Nothing)    -> return ()
                       (_:_, _)        -> return ()
                       ([], Just slot) ->
-                        do addLog (CreatureSummon slot rabbit) 
+                        do addLog (CreatureSummon slot rabbit)
                            -- updGame_ $ creatureAt slot . mapped .~ rabbit
                            updGame_ $ creatureAt slot .~ Just rabbit
-          
+
            rabbit = newDeckCard Special (getCard other_cards other_magic_rabbit)
 
 
@@ -96,7 +96,7 @@ playCard c mbLoc =
         do g <- getGame
            let isEmissary = deckCardName c == death_emissary_of_dorlak
                isWolf     = deckCardName c == forest_forest_wolf
-           -- XXX: refactor me    
+           -- XXX: refactor me
            case g ^. creatureAt l of
              Nothing | isEmissary ->
                        stopError "Emissary must be played on top of a creature"
@@ -107,9 +107,9 @@ playCard c mbLoc =
                     | isWolf && deckCardName r /= other_magic_rabbit ->
                       stopError "Wolf must be played on top of a rabbit"
                     | isWolf      ->
-                          let ratk = r ^. deckCard 
+                          let ratk = r ^. deckCard
                                         . creatureCard . creatureAttack
-                              wlf = c & deckCard . creatureCard 
+                              wlf = c & deckCard . creatureCard
                                       . creatureAttack .~ ratk
                           in doSummon wlf l
              _ -> do doSummon c l
@@ -153,7 +153,7 @@ summonCreature :: DeckCard -> Location -> Bool -> GameM()
 summonCreature dc l m =
   do updGame_ (creatureAt l .~ Just dc)
      addLog $ CreatureSummon l dc
-     when m $ 
+     when m $
       do mapM_ (`creatureSummoned` l) allSlots
          checkDeath
 

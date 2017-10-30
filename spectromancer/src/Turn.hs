@@ -12,10 +12,17 @@ import Deck
 import CardTypes
 import Effects
 
-newGame :: StdGen -> (Text,Class) -> (Text,Class) -> Game
-newGame rng (name1,class1) (name2,class2) =
-  genRandFun rng $
-    do (deck1, deck2) <- pickDecks class1 class2
+data GameInit = GameInit 
+    { rngSeed :: Int
+    , firstPlayer, secondPlayer :: (Text, Class)
+    } deriving Show
+
+newGame :: GameInit -> Game
+newGame gi =
+  genRandFun (randSource (rngSeed gi)) $
+    do let (name1, class1) = firstPlayer gi
+           (name2, class2) = secondPlayer gi
+       (deck1, deck2) <- pickDecks class1 class2
        p1 <- newPlayer name1 class1 deck1 Caster
        p2 <- newPlayer name2 class2 deck2 Opponent
        return $ \r -> activateCards . initialize $
@@ -32,8 +39,11 @@ newGame rng (name1,class1) (name2,class2) =
 newGameIO :: (Text,Class) -> (Text,Class) -> IO Game
 newGameIO p1 p2 =
   do gen <- randSourceIO
-     return (newGame gen p1 p2)
-
+     let (seed,_) = genRand gen randInt
+     return $ newGame GameInit 
+                      { rngSeed = seed
+                      , firstPlayer = p1
+                      , secondPlayer = p2 }
 
 -- | Compute which cards in the deck are playable this turn and
 -- disable opponents cards

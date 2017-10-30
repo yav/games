@@ -3,7 +3,8 @@ module ServerState
   ( ServerState
   , newServerState
   , addNewGame
-  , updateGame
+  , makeMove
+  , getGameById
   , GameException(..)
   , GameFinished(..)
   , GameId
@@ -19,12 +20,14 @@ import           Control.Exception(Exception(..), throwIO)
 import           Control.Concurrent(threadDelay, forkIO)
 import           Data.Monoid((<>))
 import           Control.Lens((^.))
+import           Control.Monad (msum)
 
 import Util.Random(StdGen, randSourceIO, genRandFun, randIdent)
 import Game
 import GameMonad
 import CardTypes(Who)
-
+import Replay(Move, playMove, ReplayLog, emptyReplay, addReplayMove)
+import Turn(newGame, GameInit)
 
 type GameId = Text
 
@@ -44,6 +47,7 @@ data PureState = PureState
 data ActiveGame = ActiveGame
   { activeGame    :: Game
   , lastActivity  :: UTCTime
+  , replayLog     :: ReplayLog
   }
 
 
@@ -61,10 +65,12 @@ newServerState =
 
      return (ServerState ref)
 
-newActiveGame :: Game -> IO ActiveGame
-newActiveGame game =
+newActiveGame :: GameInit -> IO ActiveGame
+newActiveGame gameInit =
   do now <- getCurrentTime
-     return ActiveGame { activeGame = game, lastActivity = now }
+     return ActiveGame { activeGame = newGame gameInit
+                       , lastActivity = now
+                       , replayLog = emptyReplay gameInit }
 
 addNewGamePure :: ActiveGame -> PureState -> (PureState, GameId)
 addNewGamePure ag ps =
@@ -77,12 +83,11 @@ addNewGamePure ag ps =
          , gid
          )
 
-
-
-addNewGame :: ServerState -> Game -> IO GameId
-addNewGame (ServerState ref) game =
-  do ag <- newActiveGame game
-     atomicModifyIORef' ref (addNewGamePure ag)
+addNewGame :: ServerState -> GameInit -> IO (GameId, Game)
+addNewGame (ServerState ref) gi =
+  do ag <- newActiveGame gi
+     gid <- atomicModifyIORef' ref (addNewGamePure ag)
+     return (gid, activeGame ag)
 
 
 listGames :: ServerState -> IO [(GameId, Text)]
@@ -96,11 +101,35 @@ listGames (ServerState s) =
 
 data GameFinished = NotFinished | Winner Who
 
+makeMove :: ServerState -> GameId -> Move -> IO (Game, Log, GameFinished)
+makeMove s g m = updateGame s g m (playMove m)
+
+findGame :: ServerState -> GameId -> IO (ActiveGame, GameFinished)
+findGame (ServerState ref) g = 
+  do st <- readIORef ref
+     let opts = msum [ do ag <- Map.lookup g (activeGames st)
+                          return (ag, NotFinished)
+                     , do (who, fg) <- Map.lookup g (finishedGames st) 
+                          return (fg, Winner who) ]
+     case opts of
+        Nothing -> throwIO GameNotFound
+        Just g -> return g
+
+getGameById :: ServerState -> GameId -> IO (Game, Log, GameFinished)
+getGameById ss gid =
+  do (ag, status) <- findGame ss gid
+     return (activeGame ag, id, status)
+
+getReplayLogById :: ServerState -> GameId -> IO ReplayLog
+getReplayLogById ss gid =
+  do (ag, _) <- findGame ss gid
+     return (replayLog ag)
+
 -- | Perform the monadic computation in the given game context, and
 -- return the new state of the corresponding game.
 -- Throws 'GameException' if something goes wrong.
-updateGame :: ServerState -> GameId -> GameM () -> IO (Game,Log,GameFinished)
-updateGame (ServerState ref) gid m =
+updateGame :: ServerState -> GameId -> Move -> GameM () -> IO (Game,Log,GameFinished)
+updateGame (ServerState ref) gid mv m =
   do now <- getCurrentTime
      (res,f) <- atomicModifyIORef' ref (upd now)
      case res of
@@ -122,7 +151,10 @@ updateGame (ServerState ref) gid m =
 
           -- The game finished, add it to the finish list
           (GameStopped (GameWonBy w),g,l) ->
-            let newAg = ActiveGame { activeGame = g, lastActivity = now }
+            let newAg = ActiveGame { activeGame = g
+                                   , lastActivity = now
+                                   , replayLog = addReplayMove mv (replayLog ag) 
+                                   }
                 newPs = ps { finishedGames = Map.insert gid (w,newAg)
                                                 (finishedGames ps)
                            , activeGames = Map.delete gid (activeGames ps)
@@ -131,7 +163,10 @@ updateGame (ServerState ref) gid m =
 
           -- We made some progress, jus update the active game
           (GameOn _, g, l) ->
-            let newAg = ActiveGame { activeGame = g , lastActivity = now }
+            let newAg = ActiveGame { activeGame = g
+                                   , lastActivity = now
+                                   , replayLog = addReplayMove mv (replayLog ag) 
+                                   }
                 newPs = ps { activeGames = Map.insert gid newAg (activeGames ps)
                            }
             in (newPs, (Right (g,l), NotFinished))

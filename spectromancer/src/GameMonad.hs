@@ -155,6 +155,8 @@ stopError t = stopGame (Err t)
 
 --------------------------------------------------------------------------------
 
+tag x = "tag" .= (x :: Text) 
+
 instance ToJSON LogEvent where
   toJSON ev = JS.object $
     case ev of
@@ -169,7 +171,18 @@ instance ToJSON LogEvent where
         [ tag "power", "who" .= w, "element" .= e, "amount" .= n ]
       DoSomething l -> [ tag "doSomething", "loc" .= l ]
       CreatureMove l1 l2 -> [ tag "move", "from" .= l1, "to" .= l2 ]
-    where tag x = "tag" .= (x :: Text)
+
+instance ToJSON GameStopped where
+ toJSON st = JS.object $ case st of
+    GameWonBy who -> [ tag "finished"
+                     , "winner" .= who ]
+    Err txt       -> [ tag "error"
+                     , "error" .= txt ]
 
 
-
+instance ToJSON a => ToJSON (GameStatus a) where
+  toJSON st = JS.object $ case st of
+    GameStopped why -> [ tag "stopped"
+                       , "why" .= why ]
+    GameOn s -> [ tag "in_progress"
+                , "data" .=  s ]

@@ -20,9 +20,6 @@ import CardTypes
 import CardIds
 import Deck
 
-
---------------------------------------------------------------------------------
-
 data Game = Game
   { _curPlayer     :: Player
   , _otherPlayer   :: Player
@@ -186,9 +183,6 @@ inhabitedSlots :: Game -> [Location] -> [(Location,DeckCard)]
 inhabitedSlots g slots =
   [ (l,creature) | l <- slots, creature <- maybeToList (g ^. creatureAt l) ]
 
-
-
-
 --------------------------------------------------------------------------------
 -- JSON Serialization
 
@@ -221,4 +215,5 @@ instance ToJSON Game where
     [ "current" .= (g ^. curPlayer)
     , "other"   .= (g ^. otherPlayer)
     ]
+
 
