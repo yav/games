@@ -7,7 +7,6 @@ import Control.Monad(unless)
 import Control.Exception(try)
 import Data.Aeson(toJSON, (.=))
 import qualified Data.Aeson as JS
-import Data.IORef(newIORef, readIORef, writeIORef)
 import Data.Text(Text)
 import qualified Data.Text as Text
 import qualified Data.Map as Map
@@ -20,7 +19,6 @@ import GameMonad
 import Game
 import ServerState
 import CardTypes(cardsToJSON,Location(..))
-import CardIds
 import Cards(allCards)
 import Turn
 import Replay(Move(..))
@@ -38,7 +36,7 @@ sendGame gid g f w =
                           ]
 
 sendError :: Text -> Log -> Snap ()
-sendError t l = badInput t -- (Text.unwords (t : map (Text.pack . show) []))
+sendError t _l = badInput t -- (Text.unwords (t : map (Text.pack . show) []))
 
 
 snapGameM :: ServerState -> GameId -> Maybe Move -> Snap ()
@@ -49,7 +47,7 @@ snapGameM s gid mv =
        Left err ->
          case err of
            GameNotFound -> notFound
-           GameError err -> sendError err id
+           GameError erro -> sendError erro id
        Right (g,l,w) -> sendGame gid g l w
 
 
@@ -80,13 +78,15 @@ snapGetState s =
 
 snapNewGame :: ServerState -> Snap ()
 snapNewGame self =
-  do c1 <- snapCardClass "player1"
-     c2 <- snapCardClass "player2"
+  do p1 <- snapParam "player1"
+     p2 <- snapParam "player2"
+     c1 <- snapCardClass "player1Class"
+     c2 <- snapCardClass "player2Class"
      gen <- snapIO $ randSourceIO
      let (seed,_) = genRand gen randInt
      let gi = GameInit { rngSeed = seed
-                       , firstPlayer = ("Player 1", c1)
-                       , secondPlayer = ("Player 2", c2)
+                       , firstPlayer = (p1, c1)
+                       , secondPlayer = (p2, c2)
                        }
 
      (gid,game) <- snapIO $ addNewGame self gi

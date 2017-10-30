@@ -5,6 +5,7 @@
 <script src="game.js"></script>
 <script src="ui.js"></script>
 <script src="drawEvent.js"></script>
+<script src="players.js"></script>
 <script>
 
 function dumpAllCards() {
@@ -19,6 +20,17 @@ function dumpAllCards() {
     })
   })
 }
+
+function playerBox() {
+  function val(x) { return $('<option/>').attr('value',x).text(x) }
+  var sel = $('<select/>')
+  jQuery.each(players, function(ix,p) {
+    sel.append(val(p))
+  })
+
+  return sel
+}
+
 
 function classBox() {
   function val(x) { return $('<option/>').attr('value',x).text(x) }
@@ -88,6 +100,8 @@ function newGame(m,opts) {
 }
 
 function drawNoGame() {
+  var p1Name = playerBox()
+  var p2Name = playerBox()
   var p1 = classBox()
   var p2 = classBox()
   var gameList = $('<ul/>').css('list-style-type','none')
@@ -103,10 +117,14 @@ function drawNoGame() {
   })
   var btn = fancyBtn('New game')
             .click(function() {
-              newGame('newGame', { player1: $(p1).val(), player2: $(p2).val() })
+              newGame('newGame', { player1: $(p1Name).val()
+                                 , player2: $(p2Name).val()
+                                 , player1Class: $(p1).val()
+                                 , player2Class: $(p2).val()
+                                  })
             })
 
-  $('body').append($('<div/>').append(p1,p2,btn, gameList))
+  $('body').append($('<div/>').append(p1Name,p1,p2,p2Name,btn, gameList))
 }
 
 

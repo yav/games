@@ -23,6 +23,7 @@ import Deck
 data Game = Game
   { _curPlayer     :: Player
   , _otherPlayer   :: Player
+  , _leftPlayer    :: Who
   , _gameRNG       :: StdGen
   } deriving Show
 
@@ -214,6 +215,7 @@ instance ToJSON Game where
   toJSON g = JS.object
     [ "current" .= (g ^. curPlayer)
     , "other"   .= (g ^. otherPlayer)
+    , "left"    .= (g ^. leftPlayer)
     ]
 
 

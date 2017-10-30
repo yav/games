@@ -1,7 +1,4 @@
 packages:
-  hyperborea
-  elements
-  MK
   game-utils
   spectromancer
 

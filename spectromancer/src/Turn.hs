@@ -28,12 +28,12 @@ newGame gi =
        return $ \r -> activateCards . initialize $
                         Game { _curPlayer   = p1
                              , _otherPlayer = p2
+                             , _leftPlayer  = Caster
                              , _gameRNG     = r  }
 
     where
       initialize g = 
         let (_, g', _) = runGame g startOfTurn in g'
-           
 
 
 newGameIO :: (Text,Class) -> (Text,Class) -> IO Game
@@ -83,7 +83,8 @@ postTurn =
      g1 <- getGame
      setGame $ activateCards
              $ g1 & curPlayer   .~ g1 ^. otherPlayer
-                 & otherPlayer .~ g1 ^. curPlayer
+                  & otherPlayer .~ g1 ^. curPlayer
+                  & leftPlayer  %~ theOtherOne
      addLog SwapPlayers
      generatePower
      -- XXX: enable creatures...

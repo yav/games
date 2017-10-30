@@ -95,9 +95,10 @@ listGames (ServerState s) =
   do st <- readIORef s
      return [(gid, pickName a) | (gid, a) <- Map.toList (activeGames st)]
   where pickName ag =
-          let p1class = activeGame ag ^. curPlayer . playerClass
-              p2class = activeGame ag ^. otherPlayer . playerClass
-          in p1class <> " vs. " <> p2class
+          let g = activeGame ag
+              lab who = let p = activeGame ag ^. who
+                        in p ^. playerName <> " with " <> p ^. playerClass
+          in lab curPlayer <> " vs. " <> lab otherPlayer
 
 data GameFinished = NotFinished | Winner Who
 
@@ -179,6 +180,9 @@ data GameException = GameNotFound
 
 instance Exception GameException
 
+
+--------------------------------------------------------------------------------
+-- Garbage collect inactive games
 
 performGC :: UTCTime {- ^ Current time -} ->
              NominalDiffTime {- ^ Expireation time -} ->

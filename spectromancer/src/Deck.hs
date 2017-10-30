@@ -166,8 +166,7 @@ hasCard ds x = case find ((x ==) . view cardName) ds of
 
 bucketize :: Int -> Int -> (Int, Int) -> Gen [Int]
 bucketize n s (mn, mx) =
-  do let lb = s - mn * n
-     rands <- replicateM (n - 1) (randInRange mn mx)
+  do rands <- replicateM (n - 1) (randInRange mn mx)
      let r =  (s - sum rands)
          valid x = mn <= x && x <= mx
 
@@ -176,8 +175,7 @@ bucketize n s (mn, mx) =
 randBuckets :: Int -> Int -> (Int, Int) -> Gen [Int]
 randBuckets n s (mn, mx) =
   do b <- bucketize n s (mn, mx)
-     s <- shuffle b
-     return s
+     shuffle b
 
 initialMana :: Int -> Gen (Map Element Int)
 initialMana s =

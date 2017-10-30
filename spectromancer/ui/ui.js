@@ -271,7 +271,8 @@ function drawGame(g,winner) {
   var right = g.other
   var leftR = 'caster'
   var rightR = 'opponent'
-  if (left.name.localeCompare(right.name) > 0) {
+
+  if (g.left === 'opponent') {
     left = g.other
     right = g.current
     leftR = 'opponent'
