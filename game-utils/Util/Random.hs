@@ -6,6 +6,7 @@ module Util.Random
 
   , shuffle
   , oneOf
+  , randInt
   , randInRange
   , randIdent
   , randStdGen
@@ -75,6 +76,9 @@ oneOf xs = do let (l,h) = bounds as
 
 randInRange :: Int -> Int -> Gen Int
 randInRange l h = Gen (\g -> Rand.randomR (l,h) g)
+
+randInt :: Gen Int
+randInt = Gen Rand.random
 
 -- | Keep running the random generator, until it generates
 -- something that satisfies the predicate.  Note that this

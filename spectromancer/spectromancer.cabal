@@ -5,12 +5,18 @@ version:             0.1.0.0
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable spectromancer-server
-  hs-source-dirs:      .
-  main-is:             Main.hs
+library
+  hs-source-dirs:      src
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  other-modules:       Cards,Deck,CardTypes,CardIds,
-                       Util.Snap,Util.Random,Util.JSON
+  exposed-modules:     Cards,Deck,
+                       CardTypes,
+                       CardIds,
+                       Effects,
+                       Game,
+                       GameMonad,
+                       Turn,
+                       ServerState,
+                       Replay
   build-depends:       base,
                        random,
                        array, 
@@ -20,9 +26,23 @@ executable spectromancer-server
                        bytestring,
                        vector,
                        template-haskell,
+                       lens,
+                       time,
+                       game-utils
+  default-language:    Haskell2010
+
+executable spectromancer-server
+  hs-source-dirs:      .
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base,
+                       spectromancer,
+                       aeson,
+                       text,
+                       containers,
                        snap-core,
                        snap-server,
-                       lens,
-                       time
+                       game-utils
+                       
   default-language:    Haskell2010
 

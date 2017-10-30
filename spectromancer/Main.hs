@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 
 import Util.Snap(sendJSON, snapIO, badInput, notFound,
                     snapParam, snapParamSimpleEnum)
+import Util.Random(randInt, randSourceIO, genRand)
 
 import GameMonad
 import Game
@@ -22,6 +23,7 @@ import CardTypes(cardsToJSON,Location(..))
 import CardIds
 import Cards(allCards)
 import Turn
+import Replay(Move(..))
 
 
 sendGame :: GameId -> Game -> Log -> GameFinished -> Snap ()
@@ -38,9 +40,11 @@ sendGame gid g f w =
 sendError :: Text -> Log -> Snap ()
 sendError t l = badInput t -- (Text.unwords (t : map (Text.pack . show) []))
 
-snapGameM :: ServerState -> GameId -> GameM () -> Snap ()
-snapGameM s gid m =
-  do mb <- snapIO (try (updateGame s gid m))
+
+snapGameM :: ServerState -> GameId -> Maybe Move -> Snap ()
+snapGameM s gid mv =
+  do let doThis = maybe (getGameById s gid) (makeMove s gid) mv
+     mb <- snapIO (try doThis)
      case mb of
        Left err ->
          case err of
@@ -72,16 +76,20 @@ snapGetState :: ServerState -> Snap ()
 snapGetState s =
   do gid <- snapGameId
      snapIO $ print gid
-     snapGameM s gid (return ())
+     snapGameM s gid Nothing
 
 snapNewGame :: ServerState -> Snap ()
 snapNewGame self =
   do c1 <- snapCardClass "player1"
      c2 <- snapCardClass "player2"
-     (gid,game) <- snapIO $
-        do g   <- newGameIO ("Player 3", c1) ("Player 4", c2)
-           gid <- addNewGame self g
-           return (gid,g)
+     gen <- snapIO $ randSourceIO
+     let (seed,_) = genRand gen randInt
+     let gi = GameInit { rngSeed = seed
+                       , firstPlayer = ("Player 1", c1)
+                       , secondPlayer = ("Player 2", c2)
+                       }
+
+     (gid,game) <- snapIO $ addNewGame self gi
      sendGame gid game id NotFinished
 
 snapListGames :: ServerState -> Snap ()
@@ -94,12 +102,12 @@ snapPlayCard self =
   do g  <- snapGameId
      e  <- snapParamSimpleEnum "element"
      c  <- snapParam "card"
-     snapGameM self g (turnPlayCard e c Nothing)
+     snapGameM self g (Just (PlayCard e c Nothing))
 
 snapSkipTurn :: ServerState -> Snap ()
 snapSkipTurn self =
   do g <- snapGameId
-     snapGameM self g (turnSkip)
+     snapGameM self g (Just SkipTurn)
 
 snapPlayTargetedCard :: ServerState -> Snap ()
 snapPlayTargetedCard s =
@@ -109,7 +117,7 @@ snapPlayTargetedCard s =
      l <- snapParam "loc"
      w <- snapParamSimpleEnum "who"
      snapGameM s g
-       (turnPlayCard e c (Just Location { locWho = w, locWhich = l }))
+       (Just $ PlayCard e c (Just Location { locWho = w, locWhich = l }))
 
 --------------------------------------------------------------------------------
 
