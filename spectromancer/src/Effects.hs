@@ -489,10 +489,11 @@ castSpell c mbTgt =
     , (demonic_hellfire, damageSpell $ \dmg ->
         do damageCreatures Effect (dmg 13) $ slotsFor Opponent
            g <- getGame
-           let cnt = sum $ (\(_,dc) -> if dc ^. deckCardLife == 0 then 1 else 0) 
+           let cnt = sum $ (\(_,dc) -> if dc ^. deckCardLife == 0
+                                          then 1 else 0)
                            <$> inhabitedSlots g (slotsFor Opponent)
-           changePower Caster Special cnt)
-    
+           changePower Caster Fire cnt)
+
     ]
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
@@ -790,10 +791,9 @@ damageCreature dmg amt l =
     , (illusion_wall_of_reflection, \c ->
       do dmgDone <- doDamage' c amt
          doWizardDamage (theOtherOne $ locWho l) c dmgDone)
-    , (forest_angry_angry_bear, \_ ->
-        if amt > 0
-          then changeCreatureAttack l 1
-          else return ())
+    , (forest_angry_angry_bear, \c ->
+        do when (amt > 0) (changeCreatureAttack l 1)
+           doDamage c amt)
     ]
   modAbilities = Map.fromList
     [ (holy_holy_guard, \me oth ->
@@ -1071,7 +1071,7 @@ creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
 creatureModifyAttack (l,d) (l1,c)
   | isWall d = 0
   | name == fire_orc_chieftain && isNeighbor l l1 = 2
-  | name == fire_minotaur_commander && ours = 1
+  | name == fire_minotaur_commander && ours && l /= l1 = 1
   | name == golem_golem_instructor && ours && deckCardName d == other_golem = 2
   | deckCardName d == goblin's_goblin_hero && isNeighbor l l1 = 2
   | otherwise = 0
