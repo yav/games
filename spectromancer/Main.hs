@@ -22,6 +22,7 @@ import CardTypes(cardsToJSON,Location(..))
 import Cards(allCards)
 import Turn
 import Replay(Move(..))
+import GameStats(winner)
 
 
 sendGame :: GameId -> Game -> Log -> GameFinished -> Snap ()
@@ -32,7 +33,7 @@ sendGame gid g f w =
                           , "gid"  .= gid
                           , "winner" .= (case w of
                                            NotFinished -> Nothing
-                                           Winner who  -> Just who)
+                                           Winner fg   -> Just (winner fg))
                           ]
 
 sendError :: Text -> Log -> Snap ()

@@ -16,11 +16,12 @@ library
                        GameMonad,
                        Turn,
                        ServerState,
-                       Replay
+                       Replay,
+                       GameStats
   build-depends:       base,
                        random,
-                       array, 
-                       containers, 
+                       array,
+                       containers,
                        aeson,
                        text,
                        bytestring,
@@ -43,6 +44,6 @@ executable spectromancer-server
                        snap-core,
                        snap-server,
                        game-utils
-                       
+
   default-language:    Haskell2010
 

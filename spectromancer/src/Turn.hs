@@ -12,7 +12,7 @@ import Deck
 import CardTypes
 import Effects
 
-data GameInit = GameInit 
+data GameInit = GameInit
     { rngSeed :: Int
     , firstPlayer, secondPlayer :: (Text, Class)
     } deriving Show

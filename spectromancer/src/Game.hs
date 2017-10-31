@@ -35,7 +35,7 @@ data Player = Player
   , _playerPower   :: Map Element Int
   , _playerActive  :: Map Slot DeckCard
   , _playerName    :: Text
-  , _playerClass   :: Text
+  , _playerClass   :: Class
   } deriving Show
 
 type Slot = Int
