@@ -6,6 +6,7 @@ import qualified Data.Map as Map
 import           Data.Text (Text)
 import           Data.List(delete,sort,maximumBy)
 import           Data.Function(on)
+import           Data.Maybe(fromMaybe)
 import Control.Monad(when,unless,forM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf, randInRange)
@@ -329,6 +330,8 @@ castSpell c mbTgt =
            g <- getGame
            healOwner $
               sum [ 2 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife <= 0 ])
+
+    -- Holy spells
     , (holy_divine_justice, damageSpell $ \dmg ->
         do tgt <- casterTarget
            healCreature tgt 12
@@ -346,16 +349,18 @@ castSpell c mbTgt =
       )
 
 
+    -- Mechanical spells
     , (mechanical_overtime, changePower Caster Special 1)
     , (mechanical_cannonade, damageSpell $ \dmg ->
         damageCreatures Effect (dmg 19) (slotsFor Opponent))
 
 
+    -- Illusion
     , (illusion_madness, damageSpell $ \dmg ->
       do g <- getGame
          let opp  = inhabitedSlots g (slotsFor Opponent)
-         forM_ opp $ \(cl, cc) -> 
-           do let damage = dmg. fromIntegral . (getAttackPower g) $ (cl, cc)
+         forM_ opp $ \(cl, cc) ->
+           do let damage = dmg . fromIntegral . (getAttackPower g) $ (cl, cc)
               damageCreature Effect damage cl)
     , (illusion_hypnosis, damageSpell $ \dmg ->
         furySpell dmg Opponent)
@@ -467,11 +472,15 @@ castSpell c mbTgt =
            destroyCreature tgt
            damageCreatures Effect (dmg 11) (delete tgt $ slotsFor Opponent))
 
+    -- Forest spells
     , (forest_ritual_of_the_forest,
         do atk <- getRabbitAttack Caster
            let amt = 5 + atk
            healOwner amt 
            forM_ (slotsFor Caster) $ \l -> healCreature l amt)
+
+
+      -- Demonic Spells
     , (demonic_explosion, damageSpell $ \dmg ->
         do tgt <- casterTarget
            destroyCreature tgt
@@ -494,7 +503,23 @@ castSpell c mbTgt =
                            <$> inhabitedSlots g (slotsFor Opponent)
            changePower Caster Fire cnt)
 
+
+    -- Control Spells
+    , (control_poisonous_cloud, damageSpell $ \dmg ->
+        do forM_ allElements $ \p -> changePower Opponent p (-1)
+           g <- getGame
+           let opp = inhabitedSlots g (slotsFor Opponent)
+           forM_ opp $ \(cl, cc) ->
+             do let life    = cc ^. deckCardLife
+                    baseDmg = div (life + 1) 2    -- half round up
+                    damage  = dmg (fromIntegral baseDmg)
+                damageCreature Effect damage cl)
+
+    , (control_weakness, damageSpell $ \dmg ->
+        do forM_ allElements (\e -> changePower Opponent e (-1))
+           doWizardDamage Opponent c (dmg 3))
     ]
+
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
 randomBlankSlot who =
@@ -736,7 +761,8 @@ creatureDied = creatureReact
 
   ]
 
-data DamageSource = Attack | Effect
+data DamageSource = Attack Location   -- ^ Attack from creature in this slot
+                  | Effect
 
 -- | Call this whenever a creatures leaves the board (either death
 -- or destruction).  We use it to notify the UI that this happen,
@@ -768,8 +794,7 @@ destroyCreature l =
 -- if it wishes to.
 damageCreature :: DamageSource -> Int -> Location -> GameM ()
 damageCreature dmg amt l =
-  do g <- getGame
-     mb <- getCreatureAt l
+  do mb <- getCreatureAt l
      case mb of
        Nothing -> return ()
        Just c ->
@@ -777,50 +802,56 @@ damageCreature dmg amt l =
         -- take...
          case Map.lookup (deckCardName c) abilities of
            Just act -> act c
-           Nothing  -> doDamage c (damageMods g amt)
+           Nothing  -> doDamage c amt
   where
   abilities = Map.fromList
     [ (water_giant_turtle, \c -> doDamage c (amt - 5))
     , (water_ice_golem, \c -> case dmg of
-                                Attack -> doDamage c amt
-                                _      -> return ())
+                                Attack _ -> doDamage c amt
+                                _        -> return ())
+
+
     , (mechanical_steel_golem, \c -> case dmg of
-                                       Attack -> doDamage c (amt - 1)
-                                       _      -> return())
+                                       Attack _ -> doDamage c (amt - 1)
+                                       _        -> return())
+
+
     , (illusion_phantom_warrior, \c -> doDamage c (min 1 amt))
     , (illusion_wall_of_reflection, \c ->
       do dmgDone <- doDamage' c amt
          doWizardDamage (theOtherOne $ locWho l) c dmgDone)
+
     , (forest_angry_angry_bear, \c ->
         do when (amt > 0) (changeCreatureAttack l 1)
            doDamage c amt)
+
+
+    , (control_mindstealer, \c ->
+        case dmg of
+          Attack l1 | isOpposing l l1 -> damageCreature (Attack l1) amt l1
+          _ -> doDamage c amt)
     ]
+
+  -- Allows for other cards to adjust the amount of damage done.
   modAbilities = Map.fromList
-    [ (holy_holy_guard, \me oth ->
-        if isNeighbor me oth then (subtract 2) else id)
+    [ (holy_holy_guard, \oth -> if isNeighbor l oth then -2 else 0)
     ]
 
-  creatureOr g lc m b =
-    case cat of
-      Nothing -> b
-      Just cr ->
-        case Map.lookup (deckCardName cr) m of
-          Nothing -> b
-          Just ent -> ent
-    where
-      cat = g ^. creatureAt lc
+  -- Compute how location `lc` affects the damage that we should do.
+  otherDamageMod g lc =
+    fromMaybe 0 $
+      do cr <- g ^. creatureAt lc
+         f  <- Map.lookup (deckCardName cr) modAbilities
+         return (f lc)
 
-  damageMods g =
-    foldr (.) id (abils)
-    where
-      nullAbil _ _ = id
-      otherSlots = delete l allSlots
-      abils = map (\lc -> (creatureOr g lc modAbilities nullAbil) lc l) otherSlots
 
   doDamage c am = doDamage' c am >> return ()
 
-  doDamage' c am =
-    do let dmgDone = min (c ^. deckCardLife) (max 0 am)
+  -- XXX: damageMods
+  doDamage' c am0 =
+    do g <- getGame
+       let am = sum (am0 : map (otherDamageMod g) (delete l allSlots))
+           dmgDone = min (c ^. deckCardLife) (max 0 am)
            c'      = c & deckCardLife %~ subtract dmgDone
        addLog (ChangeLife l (negate dmgDone))
        updGame_ (creatureAt l .~ Just c')
@@ -891,18 +922,27 @@ performCreatureAttack l =
         || SkipNextAttack `elem` c ^. deckCardMods -> return ()
 
          | otherwise  ->
-           do addLog (CreatureAttack l)
-              let p = getAttackPower g (l,c)
-              case Map.lookup (deckCardName c) abilities of
-                Just act -> act c p
-                Nothing  ->
-                  do let loc = oppositeOf l
-                     case g ^. creatureAt loc of
-                       Nothing -> doWizardDamage otherWizard c p
-                       Just _  -> damageCreature Attack p loc
-              checkDeath
+           do diabledByHorror <- checkHorrors c
+              unless diabledByHorror $
+                do addLog (CreatureAttack l)
+                   let p = getAttackPower g (l,c)
+                   case Map.lookup (deckCardName c) abilities of
+                     Just act -> act c p
+                     Nothing  ->
+                       do let loc = oppositeOf l
+                          case g ^. creatureAt loc of
+                            Nothing -> doWizardDamage otherWizard c p
+                            Just _  -> damageCreature (Attack l) p loc
+                   checkDeath
   where
   otherWizard = theOtherOne (locWho l)
+
+  checkHorrors c =
+    do hs <- findCreature Opponent control_ancient_horror
+       if null hs
+          then return False
+          else do p <- withGame (player Opponent . elementPower Special)
+                  return (c ^. deckCard . cardCost < p)
 
   abilities = Map.fromList
     [ (earth_hydra, damageEveryone)
@@ -915,13 +955,13 @@ performCreatureAttack l =
              Nothing ->
                do damaged <- doWizardDamage' otherWizard c p
                   when damaged (changePower (locWho l) Special 2)
-             _ -> damageCreature Attack p opp)
+             _ -> damageCreature (Attack l) p opp)
     , (demonic_threeheaded_demon, damageEveryone)
     ]
 
   damageEveryone c p =
     do doWizardDamage otherWizard c p
-       damageCreatures Attack p (slotsFor otherWizard)
+       damageCreatures (Attack l) p (slotsFor otherWizard)
 
 -- | Damage the creatures in the given location.
 damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()

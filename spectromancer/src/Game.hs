@@ -90,6 +90,7 @@ isWall d = deckCardName d `elem` walls
   where walls = [ fire_wall_of_fire
                 , illusion_wall_of_reflection
                 , air_wall_of_lightning
+                , control_damping_tower
                 ]
 
 

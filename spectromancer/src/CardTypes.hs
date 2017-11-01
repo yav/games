@@ -67,7 +67,7 @@ isSpell = not . isCreature
 --------------------------------------------------------------------------------
 
 data Who      = Caster | Opponent
-                deriving (Eq,Ord,Show,Enum,Bounded)
+                deriving (Eq,Ord,Show,Read,Enum,Bounded)
 
 theOtherOne :: Who -> Who
 theOtherOne w =

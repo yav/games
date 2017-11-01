@@ -31,12 +31,22 @@ finishGame gWin gStart gEnd = FinishedGame
   p2 = player Opponent
 
 
-
 data FinishedGame = FinishedGame
   { player1, player2 :: Text
   , class1, class2   :: Class
   , winnerName       :: Text
   , winner           :: Who
-  } deriving Show
+  } deriving (Read,Show)
+
+
+parseFinishedGames :: String -> [FinishedGame]
+parseFinishedGames inp =
+  case reads inp of
+    [] -> []
+    (x,rest) : _ -> x : parseFinishedGames rest
+
+loadFinishedGames :: FilePath -> IO [FinishedGame]
+loadFinishedGames file = parseFinishedGames <$> readFile file
+
 
 
