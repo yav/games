@@ -662,11 +662,19 @@ creatureSummonEffect (l,c) =
     , (forest_bee_queen,
         let bee = newDeckCard Special (getCard other_cards other_bee_soldier)
         in summonLR l bee)
+
+    -- Demonic
     , (demonic_greater_demon,
           do fp <- withGame (player Caster . elementPower Fire)
              let dmg = min 10 fp
              doWizardDamage Opponent c dmg
              damageCreatures Effect dmg (slotsFor Opponent))
+
+    -- Control
+    , (control_ancient_witch,
+        mapM_ (\p -> changePower Opponent p (-2)) allElements)
+    , (control_ancient_giant,
+        modGame (playerCardNum Opponent) (subtract 1))
     ]
 
 skipNextAttack :: Location -> GameM ()
@@ -720,7 +728,7 @@ creatureReact ab = \cl tgtl ->
 
 
 
--- | Actions take by another creature, when a creature is summoned.
+-- | Actions taken by another creature, when a creature is summoned.
 -- (e.g., "Dwarven Riflemen")
 creatureSummoned ::
   Location {- ^ actor -} ->

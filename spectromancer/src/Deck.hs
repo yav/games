@@ -180,8 +180,7 @@ randBuckets n s (mn, mx) =
 initialMana :: Int -> Gen (Map Element Int)
 initialMana s =
   do pl <- randBuckets 4 s (3, 6)
-     return $
-        Map.fromList $ (Special, 2) : zip [Fire, Earth, Air, Water] pl
+     return (Map.fromList $ (Special, 2) : zip [Fire, Earth, Air, Water] pl)
 
 validMana :: Deck -> (Map Element Int) -> Bool
 validMana d e =

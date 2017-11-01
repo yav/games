@@ -28,14 +28,18 @@ data Game = Game
   } deriving Show
 
 data Player = Player
-  { _playerLife    :: Int
-  , _playerDeck    :: Map Element [DeckCard]
-                      -- ^ The cards of the same element should be sorted
-                      -- by cost, cheapest first.
-  , _playerPower   :: Map Element Int
-  , _playerActive  :: Map Slot DeckCard
-  , _playerName    :: Text
-  , _playerClass   :: Class
+  { _playerLife         :: Int
+  , _playerDeck         :: Map Element [DeckCard]
+                           -- ^ The cards of the same element should be sorted
+                           -- by cost, cheapest first.
+  , _playerPower        :: Map Element Int
+  , _playerActive       :: Map Slot DeckCard
+  , _playerName         :: Text
+  , _playerClass        :: Class
+  , _playerPlayCardNum  :: Int
+    -- ^ How many cards can we play. At the beginning of a turn,
+    -- this usually gets set to 1, however sometimes it may become negative
+    -- if the player is forced to skip playing a card.
   } deriving Show
 
 type Slot = Int
@@ -53,6 +57,7 @@ data DeckCard = DeckCard
 -- | Some sort of temporary modification to a deck card
 data DeckCardMod = SkipNextAttack | AttackBoost Int
   deriving (Show,Eq,Ord)
+
 
 $(makeLenses ''Game)
 $(makeLenses ''Player)
@@ -95,18 +100,18 @@ isWall d = deckCardName d `elem` walls
 
 
 
--- This is in Gen to generate random starting powers...
+-- | This is in Gen to generate random starting powers.
 newPlayer :: Text -> Class -> Deck -> Who -> Gen Player
 newPlayer name cls deck w =
   do initialMana <- genInitialMana (w == Caster) deck 
-     return Player { _playerName   = name
-                   , _playerLife   = 60
-                   , _playerActive = Map.empty
-                   , _playerDeck   = Map.mapWithKey dc deck
-                   , _playerPower  = initialMana
-                   , _playerClass  = cls
+     return Player { _playerName        = name
+                   , _playerLife        = 60
+                   , _playerActive      = Map.empty
+                   , _playerDeck        = Map.mapWithKey dc deck
+                   , _playerPower       = initialMana
+                   , _playerClass       = cls
+                   , _playerPlayCardNum = 0
                    }
-
   where dc e cs = map (newDeckCard e) cs
 
 replaceCardList :: Text -> DeckCard -> [DeckCard] -> [DeckCard]
@@ -150,6 +155,10 @@ creatures = playerActive . itraversed
 
 playerCreaturesAt :: [Slot] -> Traversal' Player DeckCard
 playerCreaturesAt ls = creatures . indices (`elem` ls)
+
+-- | How many cards do we have left to play.
+playerCardNum :: Who -> Lens' Game Int
+playerCardNum w = player w . playerPlayCardNum
 
 
 -- Applicative f => (Who -> Player -> f Player) -> (Game -> f Game)

@@ -14,6 +14,7 @@ module GameMonad
   , updGame_
   , updPlayer_
   , withGame
+  , modGame
 
   , getCreatureAt
   , getCreaturesFor
@@ -119,6 +120,12 @@ withGame :: Lens' Game a -> GameM a
 withGame l =
   do g <- getGame
      return (g ^. l)
+
+modGame :: Lens' Game a -> (a -> a) -> GameM ()
+modGame l f =
+  do g <- getGame
+     setGame (g & l %~ f)
+
 
 getCreaturesFor :: Who -> GameM [(Location,DeckCard)]
 getCreaturesFor w =

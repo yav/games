@@ -1,10 +1,11 @@
-{-# Language OverloadedStrings #-}
+{-# Language OverloadedStrings, MultiWayIf #-}
 module Turn where
 
 import Data.Text(Text)
 import Util.Random
 import qualified Data.Map as Map
-import Control.Lens( (^.), (.~), (%~), (&), ix, (^?) )
+import Control.Lens( Lens', (^.), (.~), (%~), (&), ix, (^?) )
+import Control.Monad(when)
 
 import Game
 import GameMonad
@@ -26,13 +27,13 @@ newGame gi =
        p1 <- newPlayer name1 class1 deck1 Caster
        p2 <- newPlayer name2 class2 deck2 Opponent
        return $ \r -> activateCards . initialize $
-                        Game { _curPlayer   = p1
+                        Game { _curPlayer   = p1 & playerPlayCardNum .~ 1
                              , _otherPlayer = p2
                              , _leftPlayer  = Caster
                              , _gameRNG     = r  }
 
     where
-      initialize g = 
+      initialize g =
         let (_, g', _) = runGame g startOfTurn in g'
 
 
@@ -87,21 +88,30 @@ postTurn =
                   & leftPlayer  %~ theOtherOne
      addLog SwapPlayers
      generatePower
+     modGame (playerCardNum Caster) (+1) -- you get to play 1 card
      -- XXX: enable creatures...
      startOfTurn
- 
+     n <- withGame (playerCardNum Caster)
+     when (n <= 0) postTurn   -- We had nothing to do this turn...
 
 turnSkip :: GameM ()
-turnSkip = postTurn
-  
+turnSkip = turnAction (return ())
 
 turnPlayCard :: Element -> Int -> Maybe Location -> GameM ()
 turnPlayCard el cardNum mbTgt =
   do g <- getGame
      case g ^? player Caster . playerDeck . ix el . ix cardNum of
        Nothing -> stopError "No such card"
-       Just c  -> do playCard c mbTgt
-                     postTurn
+       Just c  -> turnAction (playCard c mbTgt)
 
+turnAction :: GameM () -> GameM ()
+turnAction a =
+  do n <- withGame (playerCardNum Caster)
+     if | n < 1     -> stopError "No more turns."
+        | n == 1    -> do a
+                          modGame (playerCardNum Caster) (subtract 1)
+                          postTurn
+        | otherwise -> do a
+                          modGame (playerCardNum Caster) (subtract 1)
 
 
