@@ -1,7 +1,7 @@
 {-# Language OverloadedStrings, RecordWildCards #-}
 import Snap.Core(Snap,route)
 import Snap.Http.Server (quickHttpServe)
-import Snap.Util.FileServe(serveDirectory)
+import Snap.Util.FileServe(serveDirectory, serveFile)
 import Control.Applicative ((<|>))
 import Control.Monad(unless)
 import Control.Exception(try)
@@ -64,6 +64,7 @@ main =
             , ("playTargetedCard", snapPlayTargetedCard s)
             , ("skipTurn", snapSkipTurn s)
             , ("listGames", snapListGames s)
+            , ("/", serveFile "ui/Play.html")
             ]
            <|> serveDirectory "ui"
 
