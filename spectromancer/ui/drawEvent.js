@@ -76,6 +76,7 @@ function drawEvents(evs,k) {
                   .css('padding','5px')
                   .text(ev.amount)
          $('body').append(msg)
+         changeSlotLife(getWizard(ev.loc.who), ev.loc.slot, ev.amount)
          msg.animate({ left: "-=20px", top: "-=20px", opacity: '0' }
                     , 1000
                     , 'swing'
@@ -84,7 +85,8 @@ function drawEvents(evs,k) {
          return
 
       case 'wizardLife':
-        var lab = $('#' + getWizard(ev.who))
+        var r = getWizard(ev.who)
+        var lab = $('#' + r)
         var pos = lab.offset()
         var msg = $('<div/>')
                   .css('position','absolute')
@@ -104,8 +106,8 @@ function drawEvents(evs,k) {
                     , 'swing'
                     , next
                     )
- 
-        return
+         changeWizLife(r, ev.amount)
+         return
 
 
       case 'die':
@@ -120,7 +122,7 @@ function drawEvents(evs,k) {
           var ch1 = "-=50px"
           var ch2 = "+=50px"
         }
-        
+
         getLoc(ev.loc).css('z-index','100')
                       .animate({left: ch1})
                       .animate({left: ch2}, next)
@@ -174,7 +176,8 @@ function drawEvents(evs,k) {
         return
 
       case 'power':
-        var el = $('#' + getWizard(ev.who) + '_' + ev.element)
+        var r = getWizard(ev.who)
+        var el = $('#' + r + '_' + ev.element)
         var loc = el.offset()
         var dom = $('<div/>')
                   .css('display','inline-block')
@@ -187,6 +190,7 @@ function drawEvents(evs,k) {
         ++inProgress
         dom.animate( { left: '-=20px', top: '-=20px', opacity: 0 }
                    , 'slow', 'swing', endAnimation)
+        changeWizPow(r,ev.element, ev.amount)
         setTimeout(next,0)
         return
 
