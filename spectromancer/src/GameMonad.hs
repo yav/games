@@ -2,44 +2,56 @@
 module GameMonad
   ( GameStatus(..)
   , GameStopped(..)
+
+
   , GameM
+  , runGame
+
+   -- * Logging
+  , addLog
   , Log, LogEvent(..)
 
-  , runGame
+   -- * Interruptions
   , stopGame
   , stopError
+  , checkGameWon
+
+    -- * Acces to game
   , getGame
   , setGame
   , updGame
   , updGame_
-  , updPlayer_
   , withGame
-  , modGame
 
+  -- * Modify a player
+  , wizUpd_
+  , wizChangeLife
+  , wizChangePower
+
+  -- * The Battlefield
+
+  -- ** Summoning
+  , summonCreature
+  , summonLR
+
+  -- ** Access to creatures
   , getCreatureAt
   , getCreaturesFor
   , findCreature
   , whenCreature
 
-  , changeCreatureAttack
-  , moveCreature
-  , healCreature
-  , healOwner
-  , changePower
+  -- ** Modifying summoned creatures
+  , creatureChangeLife
+  , creatureChangeLife_
+  , creatureChangeAttack
+  , creatureMove
+  , creatureSkipNextAttack
 
-  , checkGameWon
-  , summonCreature
-  , summonLR
-
+  -- * Randomness
   , randomBlankSlot
   , randomPower
   , randomCreature
-
-  , skipNextAttack
-
-  , addLog
   , random
-
   ) where
 
 import Control.Monad(ap,liftM,unless,when)
@@ -113,8 +125,13 @@ setGame g = GameM (\_ -> (GameOn (), g, id))
 
 addLog :: LogEvent -> GameM ()
 addLog l = GameM (\g -> (GameOn (), g, (l :)))
+--------------------------------------------------------------------------------
+
+
+
 
 --------------------------------------------------------------------------------
+-- Modifications and acces to the game
 
 updGame_ :: (Game -> Game) -> GameM ()
 updGame_ f =
@@ -128,23 +145,35 @@ updGame f =
      setGame g1
      return a
 
--- | Do something random
-random :: Gen a -> GameM a
-random gen = updGame $ \g -> let (a,rnd1) = genRand (g ^. gameRNG) gen
-                             in (a, g & gameRNG .~ rnd1)
-
-
-
 withGame :: Lens' Game a -> GameM a
 withGame l =
   do g <- getGame
      return (g ^. l)
+--------------------------------------------------------------------------------
 
-modGame :: Lens' Game a -> (a -> a) -> GameM ()
-modGame l f =
+
+--------------------------------------------------------------------------------
+-- Stop game
+
+stopError :: Text -> GameM a
+stopError t = stopGame (Err t)
+
+
+-- | Is this a finished game?
+checkGameWon :: GameM ()
+checkGameWon =
   do g <- getGame
-     setGame (g & l %~ f)
+     if | g ^. otherPlayer . playerLife <= 0 -> stopGame (GameWonBy Caster)
+        | g ^. curPlayer   . playerLife <= 0 -> stopGame (GameWonBy Opponent)
+        | otherwise                          -> return ()
+--------------------------------------------------------------------------------
 
+
+
+
+
+--------------------------------------------------------------------------------
+-- Getting creatures from battlefield
 
 getCreaturesFor :: Who -> GameM [(Location,DeckCard)]
 getCreaturesFor w =
@@ -160,6 +189,31 @@ findCreature w t = filter matches <$> getCreaturesFor w
   where matches (_,d) = deckCardName d == t
 
 
+
+getCreatureAt :: Location -> GameM (Maybe DeckCard)
+getCreatureAt l = withGame (creatureAt l)
+
+whenCreature :: Location -> (DeckCard -> GameM ()) -> GameM ()
+whenCreature l k =
+  do mb <- getCreatureAt l
+     case mb of
+       Nothing -> return ()
+       Just d  -> k d
+--------------------------------------------------------------------------------
+
+
+
+
+--------------------------------------------------------------------------------
+-- Summoning
+
+summonCreature :: DeckCard -> Location -> GameM()
+summonCreature dc l =
+  do updGame_ (creatureAt l .~ Just dc)
+     addLog $ CreatureSummon l dc
+
+
+
 summonLR :: Location -> DeckCard -> GameM ()
 summonLR ctr smn =
   do let place l' = when (onBoard l') $
@@ -171,28 +225,14 @@ summonLR ctr smn =
                          Just _  -> return ()
      place (leftOf ctr)
      place (rightOf ctr)
+--------------------------------------------------------------------------------
 
 
 
-updPlayer_ :: Who -> (Player -> Player) -> GameM ()
-updPlayer_ w f = updGame_ (player w %~ f)
 
-getCreatureAt :: Location -> GameM (Maybe DeckCard)
-getCreatureAt l = withGame (creatureAt l)
-
-whenCreature :: Location -> (DeckCard -> GameM ()) -> GameM ()
-whenCreature l k =
-  do mb <- getCreatureAt l
-     case mb of
-       Nothing -> return ()
-       Just d  -> k d
-
-stopError :: Text -> GameM a
-stopError t = stopGame (Err t)
-
-
-changeCreatureAttack :: Location -> Int -> GameM ()
-changeCreatureAttack l amt =
+--------------------------------------------------------------------------------
+creatureChangeAttack :: Location -> Int -> GameM ()
+creatureChangeAttack l amt =
   whenCreature l $ \c ->
      do let c1 = c & atk %~ (+amt)
             atk = deckCard . creatureCard . creatureAttack . mapped
@@ -201,8 +241,8 @@ changeCreatureAttack l amt =
 -- | Move a creature from one location to another.
 -- Fails of the source location does not have a creature, or
 -- the target location is occupied, or outside the board.
-moveCreature :: Location -> Location -> GameM ()
-moveCreature lFrom lTo =
+creatureMove :: Location -> Location -> GameM ()
+creatureMove lFrom lTo =
   do mbC <- withGame (creatureAt lFrom)
      c   <- case mbC of
               Nothing -> stopError "Nothing to move"
@@ -219,40 +259,63 @@ moveCreature lFrom lTo =
               )
 
 
-healCreature :: Location -> Int -> GameM ()
-healCreature l n =
-  whenCreature l $ \d ->
-  do let maxLife = d ^. deckCardOrig.creatureCard.creatureLife
-         curLife = d ^. deckCardLife
-         newLife = min (curLife + n) maxLife
-         change  = newLife - curLife
-     updGame_ (creatureAt l .~ Just (d & deckCardLife .~ newLife))
-     addLog (ChangeLife l change)
+creatureChangeLife_ :: Location -> Int -> GameM ()
+creatureChangeLife_ l n = creatureChangeLife l n >> return ()
 
-healOwner :: Int -> GameM ()
-healOwner n =
-  do updGame_ (player Caster . playerLife %~ (+n))
-     addLog (ChangeWizardLife Caster n)
 
-changePower :: Who -> Element -> Int -> GameM ()
-changePower w e i =
-  do updPlayer_ w (elementPower e %~ upd)
+-- | Change the life of a creature.  Returns the actual change in life
+creatureChangeLife :: Location -> Int -> GameM Int
+creatureChangeLife l n =
+  do mb <- getCreatureAt l
+     case mb of
+       Nothing -> return 0
+       Just d ->
+         do let maxLife = d ^. deckCardOrig . creatureCard . creatureLife
+                curLife = d ^. deckCardLife
+                newLife = max 0 (min (curLife + n) maxLife)
+                change  = newLife - curLife
+            unless (change == 0) $
+             do updGame_ (creatureAt l .~ Just (d & deckCardLife .~ newLife))
+                addLog (ChangeLife l change)
+            return change
+
+
+creatureSkipNextAttack :: Location -> GameM ()
+creatureSkipNextAttack l =
+  updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
+--------------------------------------------------------------------------------
+
+
+
+--------------------------------------------------------------------------------
+wizUpd_ :: Who -> (Player -> Player) -> GameM ()
+wizUpd_ w f = updGame_ (player w %~ f)
+
+
+wizChangeLife :: Who -> Int -> GameM ()
+wizChangeLife w a =
+  do updGame_ (player w . playerLife %~ (+a))
+     addLog (ChangeWizardLife w a)
+
+
+wizChangePower :: Who -> Element -> Int -> GameM ()
+wizChangePower w e i =
+  do wizUpd_ w (elementPower e %~ upd)
      addLog (PowerChange w e i)
   where upd x = max 0 (x + i)
-
--- | Is this a finished game?
-checkGameWon :: GameM ()
-checkGameWon =
-  do g <- getGame
-     if | g ^. otherPlayer . playerLife <= 0 -> stopGame (GameWonBy Caster)
-        | g ^. curPlayer   . playerLife <= 0 -> stopGame (GameWonBy Opponent)
-        | otherwise                          -> return ()
+--------------------------------------------------------------------------------
 
 
-summonCreature :: DeckCard -> Location -> GameM()
-summonCreature dc l =
-  do updGame_ (creatureAt l .~ Just dc)
-     addLog $ CreatureSummon l dc
+
+
+
+--------------------------------------------------------------------------------
+
+-- | Do something random
+random :: Gen a -> GameM a
+random gen = updGame $ \g -> let (a,rnd1) = genRand (g ^. gameRNG) gen
+                             in (a, g & gameRNG .~ rnd1)
+
 
 randomBlankSlot :: Who -> GameM (Maybe Location)
 randomBlankSlot who =
@@ -272,17 +335,17 @@ randomCreature who =
        cs -> do s <- random (oneOf cs)
                 return (Just Location { locWho = who, locWhich = s })
 
+
 randomPower :: GameM Element
 randomPower = random (oneOf allElements)
-
-skipNextAttack :: Location -> GameM ()
-skipNextAttack l =
-  updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
+--------------------------------------------------------------------------------
 
 
 
 
 --------------------------------------------------------------------------------
+-- Export to JS
+
 
 tag :: JS.KeyValue kv => Text -> kv
 tag x = "tag" .= (x :: Text) 

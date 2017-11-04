@@ -1,5 +1,5 @@
 {-# Language OverloadedStrings, MultiWayIf #-}
-module Turn(newGame, GameInit(..), turnSkip, turnPlayCard) where
+module Turn(GameInit(..), newGame, turnSkip, turnPlayCard) where
 
 import Data.Text(Text)
 import Util.Random
@@ -58,10 +58,10 @@ turnAction a =
   do n <- withGame (playerCardNum Caster)
      if | n < 1     -> stopError "No more turns."
         | n == 1    -> do a
-                          modGame (playerCardNum Caster) (subtract 1)
+                          updGame_ (playerCardNum Caster %~ subtract 1)
                           postTurn
         | otherwise -> do a
-                          modGame (playerCardNum Caster) (subtract 1)
+                          updGame_ (playerCardNum Caster %~ subtract 1)
 
 -- | This is what happens at the end of a player's turn---when they've
 -- played all the cards they could play.
@@ -76,7 +76,7 @@ postTurn =
 newTurn :: GameM ()
 newTurn =
   do generatePower
-     modGame (playerCardNum Caster) (+1) -- you get to play 1 card
+     updGame_ (playerCardNum Caster %~ (+1)) -- you get to play 1 card
      startOfTurn
      n <- withGame (playerCardNum Caster)
      when (n <= 0) postTurn -- We don't get to do anything this turn: finish up
@@ -104,7 +104,7 @@ generatePower =
          changes     = Map.fromListWith (+)
                           (baseGrowth ++ ourEffects ++ theirEffect)
 
-     forM_ (Map.toList changes) $ \(el,n) -> changePower Caster el n
+     forM_ (Map.toList changes) $ \(el,n) -> wizChangePower Caster el n
 
 -- | Special effects that happen at the beginning of a turn.
 startOfTurn :: GameM ()
@@ -117,7 +117,7 @@ endOfTurn :: GameM ()
 endOfTurn =
   do mapM_ creatureEndOfTurn (slotsFor Caster)
      -- XXX: be more selective, when more mods?
-     updPlayer_ Caster (creatures %~ deckCardRmMods (\_ -> True))
+     wizUpd_ Caster (creatures %~ deckCardRmMods (\_ -> True))
 
 
 
