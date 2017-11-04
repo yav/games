@@ -1,5 +1,12 @@
-{-# Language MultiWayIf, OverloadedStrings #-}
-module Effects where
+{-# Language OverloadedStrings #-}
+module Effects
+  ( maybeSpawnRabbit
+  , creatureModifyPowerGrowth
+  , creatureStartOfTurn
+  , playCard
+  , creaturePerformAttack
+  , creatureEndOfTurn
+  ) where
 
 import           Data.Map ( Map )
 import qualified Data.Map as Map
@@ -18,7 +25,6 @@ import Game
 import GameMonad
 import Deck(Element(..),allElements)
 
-import Debug.Trace
 
 
 {-
@@ -35,56 +41,158 @@ After an action is resolved we need to do:
   8) Caster's creature's die, which may cause further effects.
 -}
 
---------------------------------------------------------------------------------
--- Main phases of a turn
 
-generatePower :: GameM ()
-generatePower =
-  do ours   <- map snd <$> getCreaturesFor Caster
-     theirs <- map snd <$> getCreaturesFor Opponent
-
-     let baseGrowth  = zip allElements (repeat 1)
-         ourEffects  = concatMap (creatureModifyPowerGrowth Caster) ours
-         theirEffect = concatMap (creatureModifyPowerGrowth Opponent) theirs
-         changes     = Map.fromListWith (+)
-                          (baseGrowth ++ ourEffects ++ theirEffect)
-
-     forM_ (Map.toList changes) $ \(el,n) -> changePower Caster el n
-      {-
-         addPower p  = p & playerPower %~ Map.unionWith (+) changes
-
-     updPlayer_ Caster addPower -}
-
--- | Do this at the start of each turn.
-startOfTurn :: GameM ()
-startOfTurn =
-  do forM_ (slotsFor Caster) creatureStartOfTurn
-     handleRabbit
-
-     where handleRabbit =
-            do g <- getGame
-               let pcls = g ^. player Caster . playerClass
-               when (pcls == forest_cards) $
-                 do ext_rab <- findCreature Caster other_magic_rabbit
-                    mbslot <- randomBlankSlot Caster
-                    case (ext_rab, mbslot) of
-                      (_, Nothing)    -> return ()
-                      (_:_, _)        -> return ()
-                      ([], Just slot) ->
-                        do addLog (CreatureSummon slot rabbit)
-                           -- updGame_ $ creatureAt slot . mapped .~ rabbit
-                           updGame_ $ creatureAt slot .~ Just rabbit
-
-           rabbit = newDeckCard Special (getCard other_cards other_magic_rabbit)
+-- | Special start of turn even for the forest cards:
+-- if we don't have a rabbit, make one.
+maybeSpawnRabbit :: GameM ()
+maybeSpawnRabbit =
+ do pcls <- withGame (player Caster . playerClass)
+    when (pcls == forest_cards) $
+      do ext_rab <- findCreature Caster other_magic_rabbit
+         mbslot <- randomBlankSlot Caster
+         case (ext_rab, mbslot) of
+           (_, Nothing)    -> return ()
+           (_:_, _)        -> return ()
+           ([], Just slot) ->
+             do let rabbit = newDeckCard Special
+                                        (getCard other_cards other_magic_rabbit)
+                addLog (CreatureSummon slot rabbit)
+                updGame_ $ creatureAt slot .~ Just rabbit
 
 
--- | Do this at the end of each turn.
-endOfTurn :: GameM ()
-endOfTurn =
-  do mapM_ creatureEndOfTurn (slotsFor Caster)
-     -- XXX: be more selective, when more mods?
-     updPlayer_ Caster (creatures %~ deckCardRmMods (\_ -> True))
 
+-- | Compute changes in power growth due to the presence of this creature
+-- for either the caster or the opponent.
+creatureModifyPowerGrowth :: Who -> DeckCard -> [(Element,Int)]
+creatureModifyPowerGrowth w c =
+  case Map.lookup (deckCardName c) abilities of
+    Just (w',es) | w' == w -> es
+    _                      -> []
+  where
+  abilities = Map.fromList
+    [ (fire_priest_of_fire,   (Caster, [(Fire,1)]))
+    , (fire_fire_elemental,   (Caster, [(Fire,1)]))
+
+    , (water_merfolk_elder,   (Caster,   [(Air,1)]))
+    , (water_water_elemental, (Caster,   [(Water,1)]))
+    , (water_mind_master,     (Caster,   [ (e, 1) | e <- allElements ]))
+    , (water_astral_guard,    (Opponent, [ (e,-1) | e <- allElements ]))
+
+    , (air_air_elemental,     (Caster, [(Air,1)]))
+
+    , (earth_earth_elemental, (Caster, [(Earth,1)]))
+    , (earth_elf_hermit,      (Caster, [(Earth,2)]))
+
+    , (mechanical_dwarven_craftsman, (Caster, [(Special, 1)]))
+
+    , (demonic_demon_quartermaster, (Caster, [(Special, 1)]))
+    ]
+
+
+-- | How is the cost of a played card affected by the active creatures.
+creatureModifyCost ::
+  DeckCard            {- ^ Card that is being played -} ->
+  DeckCard            {- ^ Opponent's creature affecting the cost -} ->
+  Int                 {- ^ Change to the cost -}
+creatureModifyCost c dc = Map.findWithDefault 0 (deckCardName dc) $
+  Map.fromList
+    [ (control_goblin_shaman, if isSpell (c ^. deckCard) then 1 else 0)
+    , (control_damping_tower, 1)
+    ]
+
+
+
+-- | Special abilities that activate at the start of a player's turn.
+creatureStartOfTurn :: Location {- ^ Location ot check for effect -} ->
+                       GameM ()
+creatureStartOfTurn l =
+  whenCreature l $ \c ->
+  do updGame_ (creatureAt l . mapped . deckCardEnabled .~ True)-- now can attack
+     let name = deckCardName c
+     case Map.lookup name abilities of
+       Nothing -> return ()
+       Just act ->
+         do addLog (DoSomething l)
+            act
+            checkDeath
+  where
+  card = do mb <- withGame (creatureAt l)
+            case mb of
+              Nothing -> stopError "[bug] Creature disappeared!"
+              Just c  -> return c
+
+  abilities =
+    Map.fromList
+      [ (fire_goblin_berserker,
+           do damageCreature Effect 2 (leftOf l)
+              damageCreature Effect 2 (rightOf l)
+        )
+
+      , (water_sea_sprite, card >>= \c -> doWizardDamage Caster c 2)
+
+      , (air_wall_of_lightning, card >>= \c -> doWizardDamage Opponent c 4)
+
+
+      , (earth_elven_healer, healOwner 3)
+      , (earth_troll, healCreature l 4)
+      , (earth_master_healer,
+            do healOwner 3
+               forM_ (slotsFor Caster) $ \s -> healCreature s 3)
+
+      , (earth_hydra, healCreature l 4)
+
+
+      , (mechanical_ornithopter, damageCreatures Effect 2 (slotsFor Opponent))
+      , (mechanical_cannon, 
+          do g <- getGame
+             let oppCr = inhabitedSlots g (slotsFor Opponent)
+             case oppCr of
+              [] -> return ()
+              _  -> do
+                let compareLife = (compare `on` (\(_,c1) -> c1 ^. deckCardLife))
+                    (lh,_) = (maximumBy compareLife oppCr)
+                damageCreatures Effect 8 [lh]
+        )
+
+
+      , (illusion_oracle,
+          do p <- withGame (player Caster . elementPower Special)
+             c <- card
+             doWizardDamage Opponent c p)
+
+      , (goblin's_ratmaster,
+            do damageCreatures Effect 6 (slotsFor Opponent)
+               el <- randomPower
+               changePower Caster el (-3))
+
+
+      , (chaos_insanian_peacekeeper,
+          do amt <- random (randInRange 1 6) 
+             healOwner amt)
+      , (chaos_insanian_berserker,
+          do amt <- random (randInRange 1 6)
+             c <- card
+             doWizardDamage Opponent c amt)
+      , (chaos_insanian_shaman,
+          do elt <- random $ oneOf allElements
+             changePower Opponent elt (-2))
+      , (chaos_insanian_lord,
+          do elt <- random $ oneOf allElements
+             changePower Caster elt 2)
+      , (chaos_insanian_catapult,
+          do mbtgt <- randomCreature Opponent
+             case mbtgt of
+               Nothing  -> return ()
+               Just tgt -> damageCreature Effect 10 tgt)
+
+
+      , (other_magic_rabbit, changeCreatureAttack l 1)
+      ]
+
+
+
+
+-- | Playe a card---either spell or summon creature.
 playCard :: DeckCard -> Maybe Location -> GameM ()
 playCard c mbLoc =
   case (c ^. deckCard . cardEffect, mbLoc) of
@@ -150,27 +258,6 @@ playCard c mbLoc =
               $ slotsFor Opponent
 
 
-summonCreature :: DeckCard -> Location -> Bool -> GameM()
-summonCreature dc l m =
-  do updGame_ (creatureAt l .~ Just dc)
-     addLog $ CreatureSummon l dc
-     when m $
-      do mapM_ (`creatureSummoned` l) allSlots
-         checkDeath
-
--- | Do the attack phase of a turn.
-creaturesAttack :: GameM ()
-creaturesAttack = mapM_ performCreatureAttack (slotsFor Caster)
-
---------------------------------------------------------------------------------
-
--- | Is this a finished game?
-checkGameWon :: GameM ()
-checkGameWon =
-  do g <- getGame
-     if | g ^. otherPlayer . playerLife <= 0 -> stopGame (GameWonBy Caster)
-        | g ^. curPlayer   . playerLife <= 0 -> stopGame (GameWonBy Opponent)
-        | otherwise                          -> return ()
 
 
 -- | Activate actions on creatures that just died, and possibly end the game.
@@ -181,20 +268,17 @@ checkDeath =
      mapM_ checkCreature (slotsFor Caster)
   where
   checkCreature l =
-    do mb <- getCreatureAt l
-       case mb of
-         Just c | c ^. deckCardLife <= 0 ->
-            do updPlayer_ (locWho l) (creatureInSlot (locWhich l) .~ Nothing)
-               creatureDie (l,c)
-               mapM_ (`creatureDied` l) allSlots
-         _  -> return ()
+    whenCreature l $ \c ->
+      when (c ^. deckCardLife <= 0) $
+        do updPlayer_ (locWho l) (creatureInSlot (locWhich l) .~ Nothing)
+           creatureDie (l,c)
+           mapM_ (`creatureDied` l) allSlots
 
 
 
 
 
---------------------------------------------------------------------------------
-
+-- | Implementations of spell cards.
 castSpell :: DeckCard -> Maybe Location -> GameM ()
 castSpell c mbTgt =
   case Map.lookup (deckCardName c) spells of
@@ -231,7 +315,7 @@ castSpell c mbTgt =
            scaling = product (map creatureModifySpellDamageMul cs)
            add     = sum (map (creatureModifySpellDamageAdd Caster) cs)
                      + sum (map (creatureModifySpellDamageAdd Opponent) es)
-       traceShow (scaling,add) $ k (\d -> ceiling (d * scaling) + add)
+       k (\d -> ceiling (d * scaling) + add)
 
   furySpell dmg w =
     do g <- getGame
@@ -521,47 +605,12 @@ castSpell c mbTgt =
     ]
 
 
-randomBlankSlot :: Who -> GameM (Maybe Location)
-randomBlankSlot who =
-  do as <- withGame (player who . playerActive)
-     let free = [ s | s <- take slotNum [ 0 .. ], not (s `Map.member` as) ]
-     case free of
-       [] -> return Nothing
-       _  -> do s <- random (oneOf free)
-                return (Just Location { locWho = who, locWhich = s })
-
-randomCreature :: Who -> GameM (Maybe Location)
-randomCreature who =
-  do as <- withGame (player who . playerActive)
-     case Map.keys as of
-       [] -> return Nothing
-       cs -> do s <- random (oneOf cs)
-                return (Just Location { locWho = who, locWhich = s })
-
-randomPower :: GameM Element
-randomPower = random (oneOf allElements)
-
-summonLR :: Location -> DeckCard -> GameM ()
-summonLR ctr smn =
-  do let place l' = when (onBoard l') $
-                   do mb <- withGame (creatureAt l')
-                      case mb of
-                         Nothing ->
-                           do updGame_ (creatureAt l' .~ Just smn)
-                              addLog (CreatureSummon l' smn)
-                         Just _  -> return ()
-     place (leftOf ctr)
-     place (rightOf ctr)
 
 
---------------------------------------------------------------------------------
--- Things that can happen to summoned creatures
-
+-- | Things that happen when this thing is summoned.
 creatureSummonEffect :: (Location,DeckCard) -> GameM ()
 creatureSummonEffect (l,c) =
-  case Map.lookup (deckCardName c) abilities of
-    Nothing  -> return ()
-    Just act -> act
+  Map.findWithDefault (return ()) (deckCardName c) abilities
   where
   abilities = Map.fromList
     [ (fire_fire_drake,
@@ -677,10 +726,6 @@ creatureSummonEffect (l,c) =
         modGame (playerCardNum Opponent) (subtract 1))
     ]
 
-skipNextAttack :: Location -> GameM ()
-skipNextAttack l =
-  updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
-
 
 beastBorn :: Text -> GameM ()
 beastBorn x =
@@ -707,7 +752,7 @@ beastAbilityMap = Map.fromList
 
 
 
-
+-- | Common pattern for creature reactions.
 creatureReact ::
   [(Text, (Location,DeckCard) -> Location -> GameM ())]
                                               {- ^ Special abilities -} ->
@@ -902,7 +947,7 @@ creatureDie (l,c) =
     , (demonic_lemure,
         let lr = newDeckCard Special
                    (getCard other_cards other_scrambled_lemure)
-         in leave >> summonCreature lr l False)
+         in leave >> summonCreature lr l)
     , (demonic_ergodemon,
         do forM_ allElements $ \elt ->
              changePower (theOtherOne $ locWho l) elt (-1)
@@ -911,16 +956,16 @@ creatureDie (l,c) =
     , (demonic_demon_quartermaster,
         let sq = newDeckCard Special
                     (getCard other_cards other_enraged_quartermaster)
-         in leave >> summonCreature sq l False)
+         in leave >> summonCreature sq l)
     , (demonic_threeheaded_demon,
         let da = newDeckCard Special (getCard other_cards other_demon_apostate)
-         in leave >> summonCreature da l False)
+         in leave >> summonCreature da l)
     ]
 
 
 -- | The creature at the given location performs its attack, if any.
-performCreatureAttack :: Location -> GameM ()
-performCreatureAttack l =
+creaturePerformAttack :: Location -> GameM ()
+creaturePerformAttack l =
   do g <- getGame
      case g ^. creatureAt l of
        Nothing -> return ()
@@ -975,17 +1020,6 @@ performCreatureAttack l =
 damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
 damageCreatures ty amt ls = mapM_ (damageCreature ty amt) ls
 
-healOwner :: Int -> GameM ()
-healOwner n =
-  do updGame_ (player Caster . playerLife %~ (+n))
-     addLog (ChangeWizardLife Caster n)
-
-
-changePower :: Who -> Element -> Int -> GameM ()
-changePower w e i =
-  do updPlayer_ w (elementPower e %~ upd)
-     addLog (PowerChange w e i)
-  where upd x = max 0 (x + i)
 
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
                   DeckCard {- ^ This is the attacker (creature or spell) -} ->
@@ -1074,43 +1108,6 @@ getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
 
 
 
--- | How is the cost of a played card affected by the active creatures.
-creatureModifyCost ::
-  DeckCard            {- ^ Card that is being played -} ->
-  DeckCard            {- ^ Opponent's creature affecting the cost -} ->
-  Int                 {- ^ Change to the cost -}
-creatureModifyCost c dc = Map.findWithDefault 0 (deckCardName dc) $
-  Map.fromList
-    [ (control_goblin_shaman, if isSpell (c ^. deckCard) then 1 else 0)
-    , (control_damping_tower, 1)
-    ]
-
-
--- | Compute changes in power growth due to the presence of this creature
--- for either the caster or the opponent.
-creatureModifyPowerGrowth :: Who -> DeckCard -> [(Element,Int)]
-creatureModifyPowerGrowth w c =
-  case Map.lookup name abilities of
-    Just (w',es) | w' == w -> es
-    _                      -> []
-  where
-  name = deckCardName c
-
-  abilities = Map.fromList
-    [ (fire_priest_of_fire,   (Caster, [(Fire,1)]))
-    , (fire_fire_elemental,   (Caster, [(Fire,1)]))
-
-    , (water_merfolk_elder,   (Caster,   [(Air,1)]))
-    , (water_water_elemental, (Caster,   [(Water,1)]))
-    , (water_mind_master,     (Caster,   [ (e, 1) | e <- allElements ]))
-    , (water_astral_guard,    (Opponent, [ (e,-1) | e <- allElements ]))
-
-    , (air_air_elemental,     (Caster, [(Air,1)]))
-    , (earth_earth_elemental, (Caster, [(Earth,1)]))
-    , (earth_elf_hermit,      (Caster, [(Earth,2)]))
-    , (mechanical_dwarven_craftsman, (Caster, [(Special, 1)]))
-    , (demonic_demon_quartermaster, (Caster, [(Special, 1)]))
-    ]
 
 -- | Compute changes to the attack value of a speicif creature.
 creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
@@ -1153,86 +1150,6 @@ creatureModifySpellDamageMul c =
 
 
 -- | Do something at the beginning of the owner's turn.
-creatureStartOfTurn :: Location -> GameM ()
-creatureStartOfTurn l =
-  do mb <- withGame (creatureAt l)
-     case mb of
-       Nothing -> return ()
-       Just c ->
-         do let name = deckCardName c
-            updGame_ (creatureAt l . mapped . deckCardEnabled .~ True)
-            case Map.lookup name abilities of
-              Nothing -> return ()
-              Just act ->
-                do addLog (DoSomething l)
-                   act
-                   checkDeath
-  where
-  card = do mb <- withGame (creatureAt l)
-            case mb of
-              Nothing -> stopError "[bug] Creature disappeared!"
-              Just c  -> return c
-
-  abilities =
-    Map.fromList
-      [ (fire_goblin_berserker,
-           do damageCreature Effect 2 (leftOf l)
-              damageCreature Effect 2 (rightOf l)
-        )
-
-      , (water_sea_sprite, card >>= \c -> doWizardDamage Caster c 2)
-
-      , (air_wall_of_lightning, card >>= \c -> doWizardDamage Opponent c 4)
-
-      , (earth_elven_healer, healOwner 3)
-      , (earth_troll, healCreature l 4)
-
-      , (earth_master_healer,
-            do healOwner 3
-               forM_ (slotsFor Caster) $ \s -> healCreature s 3)
-
-      , (earth_hydra, healCreature l 4)
-      , (mechanical_ornithopter, damageCreatures Effect 2 (slotsFor Opponent))
-      , (mechanical_cannon, 
-          do g <- getGame
-             let oppCr = inhabitedSlots g (slotsFor Opponent)
-             case oppCr of
-              [] -> return ()
-              _  -> do
-                let compareLife = (compare `on` (\(_,c1) -> c1 ^. deckCardLife))
-                    (lh,_) = (maximumBy compareLife oppCr)
-                damageCreatures Effect 8 [lh]
-        )
-      , (illusion_oracle,
-          do p <- withGame (player Caster . elementPower Special)
-             c <- card
-             doWizardDamage Opponent c p)
-
-      , (goblin's_ratmaster,
-            do damageCreatures Effect 6 (slotsFor Opponent)
-               el <- randomPower
-               changePower Caster el (-3))
-      , (chaos_insanian_peacekeeper,
-          do amt <- random (randInRange 1 6) 
-             healOwner amt)
-      , (chaos_insanian_berserker,
-          do amt <- random (randInRange 1 6)
-             c <- card
-             doWizardDamage Opponent c amt)
-      , (chaos_insanian_shaman,
-          do elt <- random $ oneOf allElements
-             changePower Opponent elt (-2))
-      , (chaos_insanian_lord,
-          do elt <- random $ oneOf allElements
-             changePower Caster elt 2)
-      , (chaos_insanian_catapult,
-          do mbtgt <- randomCreature Opponent
-             case mbtgt of
-               Nothing  -> return ()
-               Just tgt -> damageCreature Effect 10 tgt)
-      , (other_magic_rabbit, changeCreatureAttack l 1)
-      ]
-
 creatureEndOfTurn :: Location -> GameM ()
 creatureEndOfTurn l =
   whenCreature l $ \c ->
@@ -1262,43 +1179,6 @@ creatureEndOfTurn l =
                 do updGame_ (creatureAt slt .~ Just sld)
                    addLog (CreatureSummon slt sld))
     ]
-
-healCreature :: Location -> Int -> GameM ()
-healCreature l n =
-  whenCreature l $ \d ->
-  do let maxLife = d ^. deckCardOrig.creatureCard.creatureLife
-         curLife = d ^. deckCardLife
-         newLife = min (curLife + n) maxLife
-         change  = newLife - curLife
-     updGame_ (creatureAt l .~ Just (d & deckCardLife .~ newLife))
-     addLog (ChangeLife l change)
-
--- | Move a creature from one location to another.
--- Fails of the source location does not have a creature, or
--- the target location is occupied, or outside the board.
-moveCreature :: Location -> Location -> GameM ()
-moveCreature lFrom lTo =
-  do mbC <- withGame (creatureAt lFrom)
-     c   <- case mbC of
-              Nothing -> stopError "Nothing to move"
-              Just c  -> return c
-     mbTGT <- withGame (creatureAt lTo)
-     case mbTGT of
-       Nothing -> return ()
-       Just _ -> stopError "Cannot move on top of other creatures."
-     unless (onBoard lTo) $
-       stopError "The creature cannot move outside the board"
-     addLog (CreatureMove lFrom lTo)
-     updGame_ ( (creatureAt lFrom .~ Nothing)
-              . (creatureAt lTo   .~ Just c)
-              )
-
-changeCreatureAttack :: Location -> Int -> GameM ()
-changeCreatureAttack l amt =
-  whenCreature l $ \c ->
-     do let c1 = c & atk %~ (+amt)
-            atk = deckCard . creatureCard . creatureAttack . mapped
-        updGame_ $ creatureAt l .~ Just c1
 
 
 getRabbitAttack :: Who -> GameM Int

@@ -1,4 +1,4 @@
-{-# Language Rank2Types, OverloadedStrings #-}
+{-# Language Rank2Types, OverloadedStrings, MultiWayIf #-}
 module GameMonad
   ( GameStatus(..)
   , GameStopped(..)
@@ -21,18 +21,37 @@ module GameMonad
   , findCreature
   , whenCreature
 
+  , changeCreatureAttack
+  , moveCreature
+  , healCreature
+  , healOwner
+  , changePower
+
+  , checkGameWon
+  , summonCreature
+  , summonLR
+
+  , randomBlankSlot
+  , randomPower
+  , randomCreature
+
+  , skipNextAttack
+
   , addLog
   , random
 
   ) where
 
-import Control.Monad(ap,liftM)
-import Control.Lens(Lens',(^.),(%~),(&),(.~))
+import Control.Monad(ap,liftM,unless,when)
+import Control.Lens(Lens',(^.),(%~),(&),(.~),mapped)
 import Data.Maybe(catMaybes)
 import Util.Random(Gen,genRand)
 import Data.Text(Text)
 import Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
+import qualified Data.Map as Map
+
+import Util.Random(oneOf)
 
 import CardTypes
 import Deck
@@ -141,6 +160,18 @@ findCreature w t = filter matches <$> getCreaturesFor w
   where matches (_,d) = deckCardName d == t
 
 
+summonLR :: Location -> DeckCard -> GameM ()
+summonLR ctr smn =
+  do let place l' = when (onBoard l') $
+                   do mb <- withGame (creatureAt l')
+                      case mb of
+                         Nothing ->
+                           do updGame_ (creatureAt l' .~ Just smn)
+                              addLog (CreatureSummon l' smn)
+                         Just _  -> return ()
+     place (leftOf ctr)
+     place (rightOf ctr)
+
 
 
 updPlayer_ :: Who -> (Player -> Player) -> GameM ()
@@ -160,8 +191,100 @@ stopError :: Text -> GameM a
 stopError t = stopGame (Err t)
 
 
+changeCreatureAttack :: Location -> Int -> GameM ()
+changeCreatureAttack l amt =
+  whenCreature l $ \c ->
+     do let c1 = c & atk %~ (+amt)
+            atk = deckCard . creatureCard . creatureAttack . mapped
+        updGame_ $ creatureAt l .~ Just c1
+
+-- | Move a creature from one location to another.
+-- Fails of the source location does not have a creature, or
+-- the target location is occupied, or outside the board.
+moveCreature :: Location -> Location -> GameM ()
+moveCreature lFrom lTo =
+  do mbC <- withGame (creatureAt lFrom)
+     c   <- case mbC of
+              Nothing -> stopError "Nothing to move"
+              Just c  -> return c
+     mbTGT <- withGame (creatureAt lTo)
+     case mbTGT of
+       Nothing -> return ()
+       Just _ -> stopError "Cannot move on top of other creatures."
+     unless (onBoard lTo) $
+       stopError "The creature cannot move outside the board"
+     addLog (CreatureMove lFrom lTo)
+     updGame_ ( (creatureAt lFrom .~ Nothing)
+              . (creatureAt lTo   .~ Just c)
+              )
+
+
+healCreature :: Location -> Int -> GameM ()
+healCreature l n =
+  whenCreature l $ \d ->
+  do let maxLife = d ^. deckCardOrig.creatureCard.creatureLife
+         curLife = d ^. deckCardLife
+         newLife = min (curLife + n) maxLife
+         change  = newLife - curLife
+     updGame_ (creatureAt l .~ Just (d & deckCardLife .~ newLife))
+     addLog (ChangeLife l change)
+
+healOwner :: Int -> GameM ()
+healOwner n =
+  do updGame_ (player Caster . playerLife %~ (+n))
+     addLog (ChangeWizardLife Caster n)
+
+changePower :: Who -> Element -> Int -> GameM ()
+changePower w e i =
+  do updPlayer_ w (elementPower e %~ upd)
+     addLog (PowerChange w e i)
+  where upd x = max 0 (x + i)
+
+-- | Is this a finished game?
+checkGameWon :: GameM ()
+checkGameWon =
+  do g <- getGame
+     if | g ^. otherPlayer . playerLife <= 0 -> stopGame (GameWonBy Caster)
+        | g ^. curPlayer   . playerLife <= 0 -> stopGame (GameWonBy Opponent)
+        | otherwise                          -> return ()
+
+
+summonCreature :: DeckCard -> Location -> GameM()
+summonCreature dc l =
+  do updGame_ (creatureAt l .~ Just dc)
+     addLog $ CreatureSummon l dc
+
+randomBlankSlot :: Who -> GameM (Maybe Location)
+randomBlankSlot who =
+  do as <- withGame (player who . playerActive)
+     let free = [ s | s <- take slotNum [ 0 .. ], not (s `Map.member` as) ]
+     case free of
+       [] -> return Nothing
+       _  -> do s <- random (oneOf free)
+                return (Just Location { locWho = who, locWhich = s })
+
+
+randomCreature :: Who -> GameM (Maybe Location)
+randomCreature who =
+  do as <- withGame (player who . playerActive)
+     case Map.keys as of
+       [] -> return Nothing
+       cs -> do s <- random (oneOf cs)
+                return (Just Location { locWho = who, locWhich = s })
+
+randomPower :: GameM Element
+randomPower = random (oneOf allElements)
+
+skipNextAttack :: Location -> GameM ()
+skipNextAttack l =
+  updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
+
+
+
+
 --------------------------------------------------------------------------------
 
+tag :: JS.KeyValue kv => Text -> kv
 tag x = "tag" .= (x :: Text) 
 
 instance ToJSON LogEvent where
