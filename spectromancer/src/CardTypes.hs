@@ -1,26 +1,64 @@
 {-# Language OverloadedStrings, RecordWildCards, TemplateHaskell, Rank2Types #-}
-module CardTypes where
+module CardTypes
+  ( -- * Cards
+    Card(..), Class
+  , cardName
+  , cardDescription
+  , cardImage
+  , cardCost
+  , cardType
+  , cardTarget
+  , creatureCard
+
+  , CardType(..)
+  , isCreature, isSpell
+
+  , CreatureCard(..)
+  , creatureAttack
+  , creatureLife
+
+  , Target(..)
+
+  -- * Players
+  , Who(..)
+  , theOtherOne
+
+  -- * Locations
+  , Location(..)
+  , slotNum
+
+  -- ** Construction
+  , leftOf
+  , rightOf
+  , oppositeOf
+  , slotsFor
+  , allSlots
+
+  -- ** Queries
+  , isNeighbor
+  , sameSide
+  , onBoard
+  , isOpposing
+  )
+  where
 
 import           Data.Text(Text)
-import           Data.Map(Map)
-import qualified Data.Map as Map
 import qualified Data.Aeson as JS
 import           Data.Aeson (ToJSON(..), (.=))
 import           Control.Lens(Lens',lens,makeLenses,(^.))
 
-type Category = Text
-type Cards    = Map Category [Card]
+type Class    = Text
 
 data Card = Card
   { _cardName        :: Text
   , _cardDescription :: Text
   , _cardImage       :: FilePath
   , _cardCost        :: Int
-  , _cardEffect      :: CardEffect
+  , _cardType        :: CardType
   , _cardTarget      :: Target
   } deriving Show
 
-data CardEffect = Spell | Creature CreatureCard
+data CardType = Spell | Creature CreatureCard
   deriving Show
 
 data CreatureCard = CreatureCard
@@ -28,25 +66,27 @@ data CreatureCard = CreatureCard
   , _creatureLife        :: Int
   } deriving Show
 
-data Target = NoTarget          -- ^ Spell has no target
-            | TargetOpponent's  -- ^ Spell needs an opponent's creature
+-- | Targets for cards.  This is most important for spells,
+-- but some creatures also need to played in specific ways.
+data Target = NoTarget          -- ^ Card has no target
+            | TargetOpponent's  -- ^ Card needs an opponent's creature
             | TargetOpponent'sNormal
-              -- ^ Spell needs an opponent's creature,
-              -- which belongs to Air, Fair, Water, or Earth
+              -- ^ Card needs an opponent's creature,
+              -- which belongs to Air, Fire, Water, or Earth
 
-            | TargetCaster's    -- ^ Spell needs a caster's creature
-            | TargetCreature    -- ^ Spell needs someone's creature
-            | TargetCasterBlank -- ^ Spell needs a caster's blank slot
+            | TargetCaster's    -- ^ Card needs a caster's creature
+            | TargetCreature    -- ^ Card needs someone's creature
+            | TargetCasterBlank -- ^ Card needs a caster's blank slot
   deriving Show
+
 
 makeLenses ''Card
 makeLenses ''CreatureCard
 
+-- | Treat a card as a creature card.
+-- WARNING: Fails if this is used on a spell.
 creatureCard :: Lens' Card CreatureCard
-creatureCard = cardEffect . creatureAspect
-
-creatureAspect :: Lens' CardEffect CreatureCard
-creatureAspect = lens getC setC
+creatureCard = cardType . lens getC setC
   where
   getC c =
     case c of
@@ -56,25 +96,34 @@ creatureAspect = lens getC setC
   setC _ c = Creature c
 
 
+-- | Is this a crature card.
 isCreature :: Card -> Bool
-isCreature c = case c ^. cardEffect of
+isCreature c = case c ^. cardType of
                  Creature {} -> True
                  Spell {}    -> False
 
+-- | Is this a spell card.
 isSpell :: Card -> Bool
 isSpell = not . isCreature
 
 --------------------------------------------------------------------------------
 
-data Who      = Caster | Opponent
+-- | Identifies the players.
+data Who      = Caster      -- ^ The player who is taking the current turn.
+              | Opponent    -- ^ The player who is not currently playing.
                 deriving (Eq,Ord,Show,Read,Enum,Bounded)
 
+-- | Compute the othe player.
 theOtherOne :: Who -> Who
 theOtherOne w =
   case w of
     Caster   -> Opponent
     Opponent -> Caster
 
+
+--------------------------------------------------------------------------------
+
+-- | A location on the battle field.
 data Location = Location { locWho :: Who, locWhich :: Int }
                 deriving (Eq,Ord,Show)
 
@@ -89,30 +138,39 @@ rightOf l = l { locWhich = locWhich l + 1 }
 oppositeOf :: Location -> Location
 oppositeOf l = l { locWho = theOtherOne (locWho l) }
 
+-- | How many slots are there on the battlefield.
 slotNum :: Int
 slotNum = 6
 
+-- | Is this location on the board?
 onBoard :: Location -> Bool
 onBoard l = 0 <= slot && slot < slotNum
   where slot = locWhich l
 
+-- | All locations for one of the player.
 slotsFor :: Who -> [ Location ]
 slotsFor locWho = map mk (take slotNum [ 0 .. ])
   where mk locWhich = Location { .. }
 
+-- | All locations in the game.
 allSlots :: [ Location ]
 allSlots = slotsFor Caster ++ slotsFor Opponent
 
+-- | Are these two locations next to each other, on the same side.
 isNeighbor :: Location -> Location -> Bool
-isNeighbor loc1 loc2 = locWho loc1 == locWho loc2 &&
-                              abs (locWhich loc1 - locWhich loc2) == 1
+isNeighbor loc1 loc2 = sameSide loc1 loc2 &&
+                       abs (locWhich loc1 - locWhich loc2) == 1
 
+-- | Are these two locations on the same side.
 sameSide :: Location -> Location -> Bool
 sameSide l1 l2 = locWho l1 == locWho l2
 
+-- | Are these two locations opposing each other.
 isOpposing :: Location -> Location -> Bool
 isOpposing loc1 loc2 = not (sameSide loc1 loc2) &&
                         locWhich loc1 == locWhich loc2
+
+--------------------------------------------------------------------------------
 
 instance ToJSON Location where
   toJSON l = JS.object [ "who" .= locWho l, "slot" .= locWhich l ]
@@ -132,7 +190,7 @@ instance ToJSON Card where
              , "cost"        .= (c ^. cardCost)
              , "target"      .= (c ^. cardTarget)
              ]
-    special = case c ^. cardEffect of
+    special = case c ^. cardType of
                 Spell -> [ "type" .= ("spell" :: Text) ]
                 Creature ct ->
                   [ "type"   .= ("creature" :: Text)
@@ -151,8 +209,6 @@ instance ToJSON Target where
       TargetCasterBlank       -> "catser_blank"
       TargetCreature          -> "any_creature"
 
-cardsToJSON :: Cards -> JS.Value
-cardsToJSON cs = JS.object [ k .= v | (k,v) <- Map.toList cs ]
 
 
 

@@ -56,8 +56,7 @@ maybeSpawnRabbit =
            ([], Just slot) ->
              do let rabbit = newDeckCard Special
                                         (getCard other_cards other_magic_rabbit)
-                addLog (CreatureSummon slot rabbit)
-                updGame_ $ creatureAt slot .~ Just rabbit
+                summonCreature rabbit slot
 
 
 
@@ -195,7 +194,7 @@ creatureStartOfTurn l =
 -- | Playe a card---either spell or summon creature.
 playCard :: DeckCard -> Maybe Location -> GameM ()
 playCard c mbLoc =
-  case (c ^. deckCard . cardEffect, mbLoc) of
+  case (c ^. deckCard . cardType , mbLoc) of
     (Spell {}, mb) -> do cost <- checkCost
                          castSpell c mb
                          payCost cost
@@ -237,8 +236,7 @@ playCard c mbLoc =
                      destroyCreature l
 
                      let c1 = dc & deckCardEnabled .~ False
-                     updGame_ (creatureAt l .~ Just c1)
-                     addLog (CreatureSummon l c1)
+                     summonCreature c1 l
                      creatureSummonEffect (l,c1)
                      payCost cost
                      checkDeath
@@ -688,9 +686,7 @@ creatureSummonEffect (l,c) =
          do let addFriend = do mb <- randomBlankSlot (locWho l)
                                case mb of
                                  Nothing -> return ()
-                                 Just l' ->
-                                    do updGame_ (creatureAt l' .~ Just c)
-                                       addLog (CreatureSummon l' c)
+                                 Just l' -> summonCreature c l'
             addFriend
             addFriend)
 
@@ -1166,9 +1162,7 @@ creatureEndOfTurn l =
             mbNew <- randomBlankSlot (locWho l)
             case mbNew of
               Nothing  -> return ()
-              Just slt ->
-                do updGame_ (creatureAt slt .~ Just sld)
-                   addLog (CreatureSummon slt sld))
+              Just slt -> summonCreature sld slt)
     ]
 
 

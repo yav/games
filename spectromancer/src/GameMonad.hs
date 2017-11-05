@@ -1,11 +1,9 @@
 {-# Language Rank2Types, OverloadedStrings, MultiWayIf #-}
 module GameMonad
-  ( GameStatus(..)
-  , GameStopped(..)
-
-
+  ( runGame
   , GameM
-  , runGame
+  , GameStatus(..)
+  , GameStopped(..)
 
    -- * Logging
   , addLog
@@ -175,6 +173,7 @@ checkGameWon =
 --------------------------------------------------------------------------------
 -- Getting creatures from battlefield
 
+-- | Get all creatures for one of the players.
 getCreaturesFor :: Who -> GameM [(Location,DeckCard)]
 getCreaturesFor w =
   do let slots = slotsFor w
@@ -184,15 +183,16 @@ getCreaturesFor w =
   addSlot _ Nothing  = Nothing
   addSlot l (Just x) = Just (l,x)
 
+-- | Find the creatures with the given name.
 findCreature :: Who -> Text -> GameM [(Location,DeckCard)]
 findCreature w t = filter matches <$> getCreaturesFor w
   where matches (_,d) = deckCardName d == t
 
-
-
+-- | Get the creature at the given location.
 getCreatureAt :: Location -> GameM (Maybe DeckCard)
 getCreatureAt l = withGame (creatureAt l)
 
+-- | Execute the action if the given location is occupied.
 whenCreature :: Location -> (DeckCard -> GameM ()) -> GameM ()
 whenCreature l k =
   do mb <- getCreatureAt l
@@ -207,22 +207,21 @@ whenCreature l k =
 --------------------------------------------------------------------------------
 -- Summoning
 
+-- | Place the given card on the location.
 summonCreature :: DeckCard -> Location -> GameM()
 summonCreature dc l =
   do updGame_ (creatureAt l .~ Just dc)
      addLog $ CreatureSummon l dc
 
 
-
+-- | Place the given card in the slots neighbouring the locaton.
 summonLR :: Location -> DeckCard -> GameM ()
 summonLR ctr smn =
   do let place l' = when (onBoard l') $
-                   do mb <- withGame (creatureAt l')
-                      case mb of
-                         Nothing ->
-                           do updGame_ (creatureAt l' .~ Just smn)
-                              addLog (CreatureSummon l' smn)
-                         Just _  -> return ()
+                    do mb <- withGame (creatureAt l')
+                       case mb of
+                          Nothing -> summonCreature smn l'
+                          Just _  -> return ()
      place (leftOf ctr)
      place (rightOf ctr)
 --------------------------------------------------------------------------------
@@ -231,6 +230,10 @@ summonLR ctr smn =
 
 
 --------------------------------------------------------------------------------
+
+
+
+-- | Modify the attack value of a creature.
 creatureChangeAttack :: Location -> Int -> GameM ()
 creatureChangeAttack l amt =
   whenCreature l $ \c ->
@@ -259,6 +262,7 @@ creatureMove lFrom lTo =
               )
 
 
+-- | Adjust the life of a creature.
 creatureChangeLife_ :: Location -> Int -> GameM ()
 creatureChangeLife_ l n = creatureChangeLife l n >> return ()
 
@@ -280,6 +284,7 @@ creatureChangeLife l n =
             return change
 
 
+-- | Creature does not attack this turn.
 creatureSkipNextAttack :: Location -> GameM ()
 creatureSkipNextAttack l =
   updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
@@ -288,16 +293,20 @@ creatureSkipNextAttack l =
 
 
 --------------------------------------------------------------------------------
+
+-- | Update one of the players.
 wizUpd_ :: Who -> (Player -> Player) -> GameM ()
 wizUpd_ w f = updGame_ (player w %~ f)
 
 
+-- | Change the player's life.
 wizChangeLife :: Who -> Int -> GameM ()
 wizChangeLife w a =
   do updGame_ (player w . playerLife %~ (+a))
      addLog (ChangeWizardLife w a)
 
 
+-- | Change the player's power in the given element.
 wizChangePower :: Who -> Element -> Int -> GameM ()
 wizChangePower w e i =
   do wizUpd_ w (elementPower e %~ upd)
@@ -317,6 +326,7 @@ random gen = updGame $ \g -> let (a,rnd1) = genRand (g ^. gameRNG) gen
                              in (a, g & gameRNG .~ rnd1)
 
 
+-- | Select a random blank location, if any.
 randomBlankSlot :: Who -> GameM (Maybe Location)
 randomBlankSlot who =
   do as <- withGame (player who . playerActive)
@@ -327,6 +337,7 @@ randomBlankSlot who =
                 return (Just Location { locWho = who, locWhich = s })
 
 
+-- | Select a random creature for one of the players, if any.
 randomCreature :: Who -> GameM (Maybe Location)
 randomCreature who =
   do as <- withGame (player who . playerActive)
@@ -336,6 +347,7 @@ randomCreature who =
                 return (Just Location { locWho = who, locWhich = s })
 
 
+-- | Select a random power element.
 randomPower :: GameM Element
 randomPower = random (oneOf allElements)
 --------------------------------------------------------------------------------
