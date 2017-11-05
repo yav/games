@@ -155,7 +155,7 @@ creatureStartOfTurn l =
 
 
       , (illusion_oracle,
-          do p <- withGame (player Caster . elementPower Special)
+          do p <- withGame (player Caster . playerPower Special)
              c <- card
              doWizardDamage Opponent c p)
 
@@ -246,7 +246,7 @@ playCard c mbLoc =
   checkCost = do g <- getGame
                  let base = c ^. deckCard . cardCost
                      cost = base + extraCost g
-                     have = g ^. player Caster . elementPower el
+                     have = g ^. player Caster . playerPower el
                  when (cost > have) (stopError "Card needs more power")
                  return cost
 
@@ -339,7 +339,7 @@ castSpell c mbTgt =
                                             (delete t (slotsFor Opponent))
       )
     , (fire_armageddon, damageSpell $ \dmg ->
-                        do fp <- withGame (player Caster . elementPower Fire)
+                        do fp <- withGame (player Caster . playerPower Fire)
                            let d = dmg (8 + fromIntegral fp)
                            doWizardDamage Opponent c d
                            damageCreatures Effect d allSlots)
@@ -357,7 +357,7 @@ castSpell c mbTgt =
              damageCreature Effect (dmg 6) tgt)
 
     , (air_lightning_bolt, damageSpell $ \dmg ->
-         do p <- withGame (player Caster . elementPower Air)
+         do p <- withGame (player Caster . playerPower Air)
             doWizardDamage Opponent c (dmg (fromIntegral p + 5)))
 
     , (air_chain_lightning, damageSpell $ \dmg ->
@@ -371,7 +371,7 @@ castSpell c mbTgt =
                                 creatureChangeLife_ tgt 8
                                 wizChangeLife Caster 8)
     , (earth_rejuvenation,
-        do p <- withGame (player Caster . elementPower Earth)
+        do p <- withGame (player Caster . playerPower Earth)
            wizChangeLife Caster (2 * p))
     , (earth_stone_rain,  damageSpell $ \dmg ->
         do damageCreatures Effect (dmg 25) allSlots)
@@ -406,7 +406,7 @@ castSpell c mbTgt =
       )
 
     , (other_rage_of_souls, damageSpell $ \dmg ->
-        do p <- withGame (player Caster . elementPower Special)
+        do p <- withGame (player Caster . playerPower Special)
            let opp = slotsFor Opponent
            damageCreatures Effect (dmg (fromIntegral p + 9)) opp
            g <- getGame
@@ -536,7 +536,7 @@ castSpell c mbTgt =
                     .~ deckCardAddMod (AttackBoost 3) cr)
     , (sorcery_mana_burn, damageSpell $ \dmg ->
         do g <- getGame
-           let eltList = [ (g ^. player Opponent . elementPower e, e)
+           let eltList = [ (g ^. player Opponent . playerPower e, e)
                          | e <- allElements ]
                (amt, elt) = maximumBy (compare `on` fst) eltList
  
@@ -625,10 +625,10 @@ creatureSummonEffect (l,c) =
     , (water_water_elemental, wizChangeLife Caster 10)
 
     , (air_griffin,
-        do p <- withGame (player Caster . elementPower Air)
+        do p <- withGame (player Caster . playerPower Air)
            when (p >= 5) (doWizardDamage Opponent c 5))
     , (air_faerie_sage,
-        do p <- withGame (player Caster . elementPower Earth)
+        do p <- withGame (player Caster . playerPower Earth)
            wizChangeLife Caster (min 10 p))
     , (air_air_elemental, doWizardDamage Opponent c 8)
     , (air_titan, damageCreature Effect 15 (oppositeOf l))
@@ -710,7 +710,7 @@ creatureSummonEffect (l,c) =
 
     -- Demonic
     , (demonic_greater_demon,
-          do fp <- withGame (player Caster . elementPower Fire)
+          do fp <- withGame (player Caster . playerPower Fire)
              let dmg = min 10 fp
              doWizardDamage Opponent c dmg
              damageCreatures Effect dmg (slotsFor Opponent))
@@ -925,7 +925,7 @@ creatureDie (l,c) =
     [ (air_phoenix,
          do leave
             wizUpd_ (locWho l) $ \p ->
-              if p ^. elementPower Fire >= 10
+              if p ^. playerPower Fire >= 10
                 then let newCard = c & deckCard .~ (c ^. deckCardOrig)
                      in  p & creatureInSlot (locWhich l) .~ Just newCard
                  else p)
@@ -982,7 +982,7 @@ creaturePerformAttack l =
     do hs <- findCreature Opponent control_ancient_horror
        if null hs
           then return False
-          else do p <- withGame (player Opponent . elementPower Special)
+          else do p <- withGame (player Opponent . playerPower Special)
                   return (c ^. deckCard . cardCost < p)
 
   abilities = Map.fromList
@@ -1091,8 +1091,7 @@ getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
 
              | otherwise -> error "[bug]: Missing base attack"
 
-  elemental s = g ^. player owner . elementPower s
-
+  elemental s = g ^. player owner . playerPower s
 
 
 

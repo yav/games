@@ -25,6 +25,7 @@ module CardTypes
 
   -- * Locations
   , Location(..)
+  , Slot
   , slotNum
 
   -- ** Construction
@@ -47,7 +48,8 @@ import qualified Data.Aeson as JS
 import           Data.Aeson (ToJSON(..), (.=))
 import           Control.Lens(Lens',lens,makeLenses,(^.))
 
-type Class    = Text
+type Class  = Text
+type Slot   = Int
 
 data Card = Card
   { _cardName        :: Text
@@ -124,7 +126,7 @@ theOtherOne w =
 --------------------------------------------------------------------------------
 
 -- | A location on the battle field.
-data Location = Location { locWho :: Who, locWhich :: Int }
+data Location = Location { locWho :: Who, locWhich :: Slot }
                 deriving (Eq,Ord,Show)
 
 -- | Note that this might return a location outside the board.

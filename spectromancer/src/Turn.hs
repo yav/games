@@ -13,30 +13,12 @@ import Deck
 import CardTypes
 import Effects
 
--- | Information needed for starting a new game.
-data GameInit = GameInit
-    { rngSeed :: Int
-    , firstPlayer, secondPlayer :: (Text, Class)
-    } deriving Show
 
 -- | Setup a new game value.
 newGame :: GameInit -> Game
-newGame gi =
-  genRandFun (randSource (rngSeed gi)) $
-    do let (name1, class1) = firstPlayer gi
-           (name2, class2) = secondPlayer gi
-       (deck1, deck2) <- pickDecks class1 class2
-       p1 <- newPlayer name1 class1 deck1 Caster
-       p2 <- newPlayer name2 class2 deck2 Opponent
-       return $ \r -> activateCards . initialize $
-                        Game { _curPlayer   = p1 & playerPlayCardNum .~ 1
-                             , _otherPlayer = p2
-                             , _leftPlayer  = Caster
-                             , _gameRNG     = r  }
-
-    where
-      initialize g =
-        let (_, g', _) = runGame g startOfTurn in g'
+newGame = activateCards . initialize . gameNew
+  where
+  initialize g = let (_, g', _) = runGame g startOfTurn in g'
 
 
 -- | The player chose to not play a card.
@@ -86,10 +68,11 @@ newTurn =
 swapPlayers :: GameM ()
 swapPlayers =
   do updGame_ $ \g1 -> activateCards $
-                       g1 & curPlayer   .~ g1 ^. otherPlayer
-                          & otherPlayer .~ g1 ^. curPlayer
-                          & leftPlayer  %~ theOtherOne
+                       g1 & player Caster   .~ g1 ^. player Opponent
+                          & player Opponent .~ g1 ^. player Caster
+                          & firstPlayerStart %~ theOtherOne
      addLog SwapPlayers
+
 
 
 -- | Power generation at the start of a player's turn.
@@ -129,8 +112,8 @@ endOfTurn =
 -- XXX: we can be smarter here by doing a bit of simulation to look ahead.
 activateCards :: Game -> Game
 activateCards g =
-  g & curPlayer   . eachCard . deckCardEnabled .~ True
-    & otherPlayer . eachCard . deckCardEnabled .~ False
+  g & player Caster   . eachCard . deckCardEnabled .~ True
+    & player Opponent . eachCard . deckCardEnabled .~ False
 
     {-
   where
@@ -153,6 +136,6 @@ activateCards g =
           not (Map.null curCreatures && Map.null oppCreatures)
 
   curCreatures = curP ^. playerActive
-  oppCreatures = g    ^. otherPlayer . playerActive
+  oppCreatures = g    ^. player Opponent . playerActive
 -}
 

@@ -23,9 +23,9 @@ import           Control.Lens((^.))
 import           Control.Monad (msum)
 
 import Util.Random(StdGen, randSourceIO, genRandFun, randIdent)
-import Game
+import Game hiding (rngSeed)
 import GameMonad
-import CardTypes(Who)
+import CardTypes(Who(..))
 import Replay(Move, playMove, ReplayLog, emptyReplay, addReplayMove)
 import Turn(newGame, GameInit)
 import GameStats(finishGame,FinishedGame)
@@ -100,9 +100,9 @@ listGames (ServerState s) =
   do st <- readIORef s
      return [(gid, pickName a) | (gid, a) <- Map.toList (activeGames st)]
   where pickName ag =
-          let lab who = let p = activeGame ag ^. who
+          let lab who = let p = activeGame ag ^. player who
                         in p ^. playerName <> " with " <> p ^. playerClass
-          in lab curPlayer <> " vs. " <> lab otherPlayer
+          in lab Caster <> " vs. " <> lab Opponent
 
 data GameFinished = NotFinished | Winner FinishedGame
 

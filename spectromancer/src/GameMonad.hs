@@ -161,8 +161,8 @@ stopError t = stopGame (Err t)
 checkGameWon :: GameM ()
 checkGameWon =
   do g <- getGame
-     if | g ^. otherPlayer . playerLife <= 0 -> stopGame (GameWonBy Caster)
-        | g ^. curPlayer   . playerLife <= 0 -> stopGame (GameWonBy Opponent)
+     if | g ^. player Opponent . playerLife <= 0 -> stopGame (GameWonBy Caster)
+        | g ^. player Caster . playerLife <= 0 -> stopGame (GameWonBy Opponent)
         | otherwise                          -> return ()
 --------------------------------------------------------------------------------
 
@@ -309,7 +309,7 @@ wizChangeLife w a =
 -- | Change the player's power in the given element.
 wizChangePower :: Who -> Element -> Int -> GameM ()
 wizChangePower w e i =
-  do wizUpd_ w (elementPower e %~ upd)
+  do wizUpd_ w (playerPower e %~ upd)
      addLog (PowerChange w e i)
   where upd x = max 0 (x + i)
 --------------------------------------------------------------------------------
