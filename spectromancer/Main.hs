@@ -18,7 +18,7 @@ import Util.Random(randInt, randSourceIO, genRand)
 import GameMonad
 import Game
 import ServerState
-import CardTypes(cardsToJSON,Location(..))
+import CardTypes(Location(..))
 import Cards(allCards)
 import Turn
 import Replay(Move(..))
@@ -57,8 +57,7 @@ main =
   do s <- newServerState
      quickHttpServe $
           route
-            [ ("getCards", snapGetCards)
-            , ("getState", snapGetState s)
+            [ ("getState", snapGetState s)
             , ("newGame",  snapNewGame s)
             , ("playCard", snapPlayCard s)
             , ("playTargetedCard", snapPlayTargetedCard s)
@@ -69,8 +68,6 @@ main =
            <|> serveDirectory "ui"
 
 
-snapGetCards :: Snap ()
-snapGetCards = sendJSON (cardsToJSON allCards)
 
 snapGetState :: ServerState -> Snap ()
 snapGetState s =

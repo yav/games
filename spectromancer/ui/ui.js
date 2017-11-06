@@ -4,6 +4,8 @@ var helpMode = false
 var oldGame = null
 var errMsg = null
 
+var stats = { caster: {}, opponent: {} }
+
 function makeTurn(url,info,tgt) {
   var newG = null
   var animFinished = false
@@ -178,7 +180,7 @@ function drawCard(c) {
     grp.append(img('ramka1.png')
               .css('z-index','2'))
     grp.append(stat(c.cost,7,76,'black'))
-    grp.append(stat(c.life,77,75,'green'))
+    grp.append(stat(c.life,77,75,'green').addClass('life'))
     grp.append(stat(c.attack,76,10,'red'))
   }
 
@@ -197,7 +199,10 @@ function drawDeckRow(p,row,who) {
   var dom = $('<tr/>')
   var pow = $('<td/>')
             .attr('id',who + '_' + row)
-            .text(row + ': ' + p.power[row])
+
+  var val = $('<span/>').addClass('power').text(p.power[row])
+  stats[who][row] = p.power[row]
+  pow.append($('<span/>').text(row + ': '), val)
   dom.append(pow)
   jQuery.each(p.deck[row], function(ix,card) {
     var x = drawDeckCard(card,who)
@@ -207,6 +212,21 @@ function drawDeckRow(p,row,who) {
     dom.append($('<td/>').append(x))
   })
   return dom
+}
+
+function changeWizLife(r,x) {
+  stats[r].life += x
+  $('#' + r + " .life").text(stats[r].life)
+}
+
+function changeWizPow(r,el,x) {
+  stats[r][el] += x
+  $('#' + r + '_' + el).find('.power').text(stats[r][el])
+}
+
+function changeSlotLife(r,l,x) {
+  stats[r][l] += x
+  $('#' + r + '_' + l).find('.life').text(stats[r][l])
 }
 
 function drawPlayer(p,r,winner) {
@@ -223,10 +243,16 @@ function drawPlayer(p,r,winner) {
 
   var pref = wins? "Winner: " : (r === 'caster' ? '> ' : '')
 
+  var lifeBox = $('<span/>').addClass('life').text(p.life)
+  stats[r].life = p.life
+
   var name = $('<h3/>')
               .addClass('name')
              .css('text-align','center')
-             .text(pref + p.name + ' (' + p.life + ')')
+             .append($('<span/>').text(pref + p.name + ' (')
+                    , lifeBox
+                    ,$('<span/>').text(')')
+                    )
 
   if (wins) name.css('background-color','rgba(0,0,0,0.8)')
 
@@ -243,9 +269,11 @@ function drawPlayer(p,r,winner) {
 }
 
 function drawArenaField(act,r,i,al) {
-  return drawDeckCard(act,r).attr('id', r + '_' + i)
+  var c = drawDeckCard(act,r).attr('id', r + '_' + i)
                             .addClass(al)
                             .click(setTarget(act, r, i))
+  if (act !== null) stats[r][i] = act.card.life
+  return c
 }
 
 function drawArena(p1,p2,r1,r2) {

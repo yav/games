@@ -1,5 +1,9 @@
 {-# Language OverloadedStrings #-}
-module Deck (Deck, pickDecks, Element(..), allElements, Class, genInitialMana) where
+module Deck
+  ( pickDecks
+  , genInitialMana
+  , Deck, Class, Element(..), allElements
+  ) where
 
 import Data.List(find)
 import Data.Map(Map)
@@ -11,12 +15,11 @@ import Control.Monad(replicateM)
 
 import Util.Random(Gen,shuffle,randInRange)
 
-import CardTypes(cardName,Card)
+import CardTypes(cardName,Card,Class)
 import Cards(allCards)
 import CardIds
 
 type Deck = Map Element [ Card ]
-type Class = Text
 
 data Element = Fire | Water | Air | Earth | Special
                 deriving (Show,Eq,Ord,Enum,Bounded)
@@ -68,6 +71,7 @@ pickCategory el =
 
 
 
+-- | Select initial decks for the players, based on their classes.
 pickDecks :: Class -> Class -> Gen (Deck,Deck)
 pickDecks special1 special2 =
   do let toC xs c           = map ((allCards Map.! c) !!) xs
@@ -194,7 +198,9 @@ validMana d e =
   where has c = any (\cs -> hasCard cs c) (Map.elems d)
         power elt = e Map.! elt
 
-genInitialMana :: Bool -> Deck -> Gen (Map Element Int)
+-- | Generate initial power assignment for the given deck.
+genInitialMana :: Bool {- ^ Is this for the first player? -} ->
+                  Deck -> Gen (Map Element Int)
 genInitialMana isFirst deck =
   do m <- initialMana amt
      if validMana deck m then return m else genInitialMana isFirst deck
