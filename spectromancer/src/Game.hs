@@ -45,22 +45,25 @@ module Game
 
   , deckCardName
   , deckCardLife
+  , deckCardChangeAttack
   , isWall
 
   -- ** Card modifications
   , deckCardAddMod
   , deckCardRmMods
+  , deckCardAgeMods
   , DeckCardMod(..)
+  , ModDuration(..)
   )
   where
 
-import Data.Map(Map)
+import           Data.Map(Map)
 import qualified Data.Map as Map
-import Data.Text(Text)
+import           Data.Text(Text)
 import qualified Data.Text as Text
-import Data.Aeson (ToJSON(..), (.=))
+import           Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
-import Data.Maybe(maybeToList)
+import Data.Maybe(maybeToList,mapMaybe)
 
 import Control.Lens( makeLenses, (^.), (.~), Lens',Traversal', at, non, (&)
                    , (%~), mapped
@@ -91,6 +94,7 @@ data Game = Game
   -- ^ Used to resolve random events.
   } deriving Show
 
+
 data Player = Player
   { _playerLife         :: Int
   , _playerDeck         :: Map Element [DeckCard]
@@ -113,13 +117,20 @@ data DeckCard = DeckCard
   , _deckCardElement      :: Element   -- ^ Card's element
   , _deckCard             :: Card      -- ^ Current version of the card
   , _deckCardEnabled      :: Bool      -- ^ Is it currently playable
-  , _deckCardMods         :: [DeckCardMod]
+  , _deckCardMods         :: [(DeckCardMod,ModDuration)]
     -- ^ Temporary modifications
   } deriving Show
 
 -- | Some sort of temporary modification to a deck card
-data DeckCardMod = SkipNextAttack | AttackBoost Int
+data DeckCardMod = SkipNextAttack
+                 | AttackBoost Int
+                 | Immune
   deriving (Show,Eq,Ord)
+
+data ModDuration = UntilEndOfTurn Int -- ^ last for so many turns;
+                                      -- 0 means until the end of this turn
+                 | UntilNextAttack
+                    deriving (Eq,Show)
 
 
 $(makeLenses ''Game)
@@ -163,13 +174,21 @@ deckCardName :: DeckCard -> Text
 deckCardName c = c ^. deckCardOrig . cardName
 
 -- | Add a new modification to card
-deckCardAddMod :: DeckCardMod -> DeckCard -> DeckCard
+deckCardAddMod :: (DeckCardMod,ModDuration) -> DeckCard -> DeckCard
 deckCardAddMod m d = d & deckCardMods %~ (m:)
 
 -- | Remove the mods for which the predicate returns 'True'.
-deckCardRmMods :: (DeckCardMod -> Bool) {- ^ Which ones to remove -} ->
+deckCardRmMods :: ((DeckCardMod,ModDuration) -> Bool) {- ^ Which ones to remove -} ->
                   DeckCard -> DeckCard
 deckCardRmMods p d = d & deckCardMods %~ filter (not . p)
+
+deckCardAgeMods :: DeckCard -> DeckCard
+deckCardAgeMods d = d & deckCardMods %~ mapMaybe updMod
+  where updMod (t,x) =
+           case x of
+             UntilEndOfTurn n | n <= 0 -> Nothing
+                              | otherwise -> Just (t,UntilEndOfTurn (n-1))
+             UntilNextAttack -> Just (t,UntilNextAttack)
 
 
 -- | Is this card a wall.
@@ -254,6 +273,12 @@ creatureAt l = player (locWho l) . creatureInSlot (locWhich l)
 
 deckCardLife :: Lens' DeckCard Int
 deckCardLife = deckCard . creatureCard . creatureLife
+
+deckCardChangeAttack :: Int -> DeckCard -> DeckCard
+deckCardChangeAttack n =
+  deckCard . creatureCard . creatureAttack . mapped %~ (+ n)
+
+
 
 
 inhabitedSlots :: Game -> [Location] -> [(Location,DeckCard)]

@@ -7,6 +7,7 @@ module GameMonad
 
    -- * Logging
   , addLog
+  , doSomething
   , Log, LogEvent(..)
 
    -- * Interruptions
@@ -44,6 +45,11 @@ module GameMonad
   , creatureChangeAttack
   , creatureMove
   , creatureSkipNextAttack
+
+  , creatureMod
+  , creatureRmMod
+  , creatureGetMods
+  , creatureTemporaryAttackBoost
 
   -- * Randomness
   , randomBlankSlot
@@ -123,9 +129,12 @@ setGame g = GameM (\_ -> (GameOn (), g, id))
 
 addLog :: LogEvent -> GameM ()
 addLog l = GameM (\g -> (GameOn (), g, (l :)))
+
 --------------------------------------------------------------------------------
 
 
+doSomething :: Location -> GameM ()
+doSomething l = addLog (DoSomething l)
 
 
 --------------------------------------------------------------------------------
@@ -147,6 +156,8 @@ withGame :: Lens' Game a -> GameM a
 withGame l =
   do g <- getGame
      return (g ^. l)
+
+
 --------------------------------------------------------------------------------
 
 
@@ -232,6 +243,25 @@ summonLR ctr smn =
 --------------------------------------------------------------------------------
 
 
+-- | Change the creature's attack until the end of the turn.
+creatureMod :: Location -> DeckCardMod -> ModDuration -> GameM ()
+creatureMod l x y =
+  updGame_ $ creatureAt l . mapped %~ deckCardAddMod (x,y)
+
+-- | Remove mods that mathch the preidcate.
+creatureRmMod :: Location -> ((DeckCardMod,ModDuration) -> Bool) -> GameM ()
+creatureRmMod l p = updGame_ $ creatureAt l . mapped %~ deckCardRmMods p
+
+creatureGetMods :: Location -> GameM [(DeckCardMod, ModDuration)]
+creatureGetMods l =
+  do mb <- withGame (creatureAt l)
+     return (maybe [] (\x -> x ^. deckCardMods) mb)
+
+creatureTemporaryAttackBoost :: Location -> Int -> GameM ()
+creatureTemporaryAttackBoost l amt =
+  creatureMod l (AttackBoost amt) (UntilEndOfTurn 0)
+
+
 
 -- | Modify the attack value of a creature.
 creatureChangeAttack :: Location -> Int -> GameM ()
@@ -287,7 +317,7 @@ creatureChangeLife l n =
 -- | Creature does not attack this turn.
 creatureSkipNextAttack :: Location -> GameM ()
 creatureSkipNextAttack l =
-  updGame_ (creatureAt l . mapped %~ deckCardAddMod SkipNextAttack)
+  updGame_ (creatureAt l . mapped %~ deckCardAddMod (SkipNextAttack,UntilEndOfTurn 1))
 --------------------------------------------------------------------------------
 
 

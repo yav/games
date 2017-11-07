@@ -1,8 +1,6 @@
 {-# Language OverloadedStrings, MultiWayIf #-}
 module Turn(GameInit(..), newGame, turnSkip, turnPlayCard) where
 
-import Data.Text(Text)
-import Util.Random
 import qualified Data.Map as Map
 import Control.Lens( (^.), (.~), (%~), (&), ix, (^?) )
 import Control.Monad(when, forM_)
@@ -18,7 +16,10 @@ import Effects
 newGame :: GameInit -> Game
 newGame = activateCards . initialize . gameNew
   where
-  initialize g = let (_, g', _) = runGame g startOfTurn in g'
+  initialize g = let (_, g', _) = runGame g setupGame in g'
+  setupGame = do maybeSpawnGolem Caster
+                 maybeSpawnGolem Opponent
+                 startOfTurn
 
 
 -- | The player chose to not play a card.
@@ -99,8 +100,7 @@ startOfTurn =
 endOfTurn :: GameM ()
 endOfTurn =
   do mapM_ creatureEndOfTurn (slotsFor Caster)
-     -- XXX: be more selective, when more mods?
-     wizUpd_ Caster (creatures %~ deckCardRmMods (\_ -> True))
+     wizUpd_ Caster (creatures %~ deckCardAgeMods)
 
 
 

@@ -1,6 +1,7 @@
 {-# Language OverloadedStrings #-}
 module Effects
   ( maybeSpawnRabbit
+  , maybeSpawnGolem
   , creatureModifyPowerGrowth
   , creatureStartOfTurn
   , playCard
@@ -11,10 +12,11 @@ module Effects
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text (Text)
-import           Data.List(delete,sort,maximumBy)
+import           Data.List(delete,sort,maximumBy,partition)
 import           Data.Function(on)
+import           Data.Foldable(for_)
 import           Data.Maybe(fromMaybe)
-import Control.Monad(when,unless,forM_)
+import Control.Monad(when,unless,forM_,replicateM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped)
 import Util.Random(oneOf, randInRange)
 
@@ -57,6 +59,23 @@ maybeSpawnRabbit =
              do let rabbit = newDeckCard Special
                                         (getCard other_cards other_magic_rabbit)
                 summonCreature rabbit slot
+
+
+-- | Special start of turn even for the forest cards:
+-- if we don't have a rabbit, make one.
+maybeSpawnGolem :: Who -> GameM (Maybe Location)
+maybeSpawnGolem who =
+ do pcls <- withGame (player who . playerClass)
+    if pcls == golem_cards
+      then
+        do mbSlot <- randomBlankSlot who
+           for_ mbSlot $ \slot ->
+             do let golem = newDeckCard Special
+                          (getCard other_cards other_golem)
+                summonCreature golem slot
+           return mbSlot
+      else return Nothing
+
 
 
 
@@ -111,7 +130,7 @@ creatureStartOfTurn l =
      case Map.lookup name abilities of
        Nothing -> return ()
        Just act ->
-         do addLog (DoSomething l)
+         do doSomething l
             act
             checkDeath
   where
@@ -409,9 +428,8 @@ castSpell c mbTgt =
         do p <- withGame (player Caster . playerPower Special)
            let opp = slotsFor Opponent
            damageCreatures Effect (dmg (fromIntegral p + 9)) opp
-           g <- getGame
-           wizChangeLife Caster $
-              sum [ 2 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife <= 0 ])
+           (_,deaths) <- countLiving opp
+           wizChangeLife Caster (2 * deaths))
 
     -- Holy spells
     , (holy_divine_justice, damageSpell $ \dmg ->
@@ -424,12 +442,9 @@ castSpell c mbTgt =
     , (holy_wrath_of_god, damageSpell $ \dmg ->
         do let opp = slotsFor Opponent
            damageCreatures Effect (dmg 12) opp
-           g <- getGame
-           let srv = sum $
-                 [ 1 | (_,d) <- inhabitedSlots g opp, d ^. deckCardLife > 0 ]
-           wizChangePower Caster Special srv
+           (alive,_) <- countLiving opp
+           wizChangePower Caster Special alive
       )
-
 
     -- Mechanical spells
     , (mechanical_overtime, wizChangePower Caster Special 1)
@@ -466,7 +481,7 @@ castSpell c mbTgt =
           do (l,d) <- findBeast beast_wolverine
              let maxLife = d ^. deckCardOrig.creatureCard.creatureLife
                  d1 = d & deckCard.creatureCard.creatureLife .~ maxLife
-                        & deckCard.creatureCard.creatureAttack.mapped %~ (+2)
+                        & deckCardChangeAttack 2
              updGame_ (creatureAt l .~ Just d1))
     , (beast's_natural_healing,
         forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 18)
@@ -533,22 +548,22 @@ castSpell c mbTgt =
             whenCreature l $ \cr ->
               do creatureChangeLife_ l 100000
                  updGame_ $ creatureAt l . mapped 
-                    .~ deckCardAddMod (AttackBoost 3) cr)
+                    .~ deckCardAddMod (AttackBoost 3, UntilEndOfTurn 0) cr)
     , (sorcery_mana_burn, damageSpell $ \dmg ->
         do g <- getGame
            let eltList = [ (g ^. player Opponent . playerPower e, e)
                          | e <- allElements ]
                (amt, elt) = maximumBy (compare `on` fst) eltList
- 
+
            damageCreatures Effect (dmg (fromIntegral amt)) (slotsFor Opponent)
            wizChangePower Opponent elt (-3))
+
     , (sorcery_sonic_boom, damageSpell $ \dmg ->
         do doWizardDamage Opponent c (dmg 11)
            forM_ (slotsFor Opponent) $ \l ->
-              do damageCreature Effect (dmg 11) l 
-                 whenCreature l $ \cr ->
-                    updGame_ $ creatureAt l . mapped 
-                             .~ deckCardAddMod (SkipNextAttack) cr)
+              do damageCreature Effect (dmg 11) l
+                 creatureSkipNextAttack l)
+
     , (sorcery_disintegrate, damageSpell $ \dmg ->
         do tgt <- opponentTarget
            destroyCreature tgt
@@ -567,6 +582,7 @@ castSpell c mbTgt =
         do tgt <- casterTarget
            destroyCreature tgt
            damageCreature Effect (dmg 28) (oppositeOf tgt))
+
     , (demonic_power_chains, damageSpell $ \dmg ->
         do tgt <- opponentTarget
            damageCreature Effect (dmg 12) tgt
@@ -577,13 +593,11 @@ castSpell c mbTgt =
                 stopError "Power chains must target a base creature"
                      | otherwise -> 
                         wizChangePower Opponent (a ^. deckCardElement) (-3))
+
     , (demonic_hellfire, damageSpell $ \dmg ->
         do damageCreatures Effect (dmg 13) $ slotsFor Opponent
-           g <- getGame
-           let cnt = sum $ (\(_,dc) -> if dc ^. deckCardLife == 0
-                                          then 1 else 0)
-                           <$> inhabitedSlots g (slotsFor Opponent)
-           wizChangePower Caster Fire cnt)
+           (_,deaths) <- countLiving (slotsFor Opponent)
+           wizChangePower Caster Fire deaths)
 
 
     -- Control Spells
@@ -600,8 +614,25 @@ castSpell c mbTgt =
     , (control_weakness, damageSpell $ \dmg ->
         do forM_ allElements (\e -> wizChangePower Opponent e (-1))
            doWizardDamage Opponent c (dmg 3))
-    ]
 
+    -- Golem Spells
+    , (golem_golems_frenzy, damageSpell $ \dmg ->
+        do damageCreatures Effect (dmg 3) (slotsFor Opponent)
+           (_,deaths) <- countLiving (slotsFor Opponent)
+           (l,_) <- getGolem
+           creatureTemporaryAttackBoost l (deaths * 3))
+
+    , (golem_golems_justice, damageSpell $ \dmg ->
+        do damageCreatures Effect (dmg 4) (slotsFor Opponent)
+           (l,_) <- getGolem
+           creatureChangeLife_ (leftOf l) 4
+           creatureChangeLife_ (rightOf l) 4)
+
+    , (golem_army_upgrade,
+        do for_ (slotsFor Caster) (`creatureChangeLife_` 3)
+           (l,_) <- getGolem
+           creatureChangeAttack l 2)
+    ]
 
 
 
@@ -720,6 +751,20 @@ creatureSummonEffect (l,c) =
         mapM_ (\p -> wizChangePower Opponent p (-2)) allElements)
     , (control_ancient_giant,
         updGame_ (playerCardNum Opponent %~ subtract 1))
+
+    -- Golem
+    , (golem_golem_guide,
+        do (golem_loc, _) <- getGolem
+           doSomething l
+           creatureMove golem_loc l
+           summonCreature c golem_loc)
+
+    , (golem_guardian_statue, creatureMod l Immune UntilNextAttack)
+
+    , (golem_dark_sculptor,
+        do g <- getGame
+           let dmg = length (inhabitedSlots g allSlots)
+           damageCreatures Effect dmg (slotsFor Opponent))
     ]
 
 
@@ -762,7 +807,7 @@ creatureReact ab = \cl tgtl ->
        Just c ->
          case Map.lookup (deckCardName c) abilities of
            Nothing  -> return ()
-           Just act -> do addLog (DoSomething cl)
+           Just act -> do doSomething cl
                           act (cl,c) tgtl
   where
   abilities = Map.fromList ab
@@ -834,10 +879,13 @@ creatureLeave (l,d) =
 destroyCreature :: Location -> GameM ()
 destroyCreature l =
   whenCreature l $ \c ->
-    do updGame_ (creatureAt l .~ Nothing)
-       creatureLeave (l,c)
+    if (deckCardName c == other_golem)
+      then creatureKill l >> return ()
+      else do updGame_ (creatureAt l .~ Nothing)
+              creatureLeave (l,c)
 
-
+damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
+damageCreatures dmg amt = mapM_ (damageCreature dmg amt)
 
 -- | The creature at this location (if any) should take some damage,
 -- if it wishes to.
@@ -875,6 +923,15 @@ damageCreature dmg amt l =
         case dmg of
           Attack l1 | isOpposing l l1 -> damageCreature (Attack l1) amt l1
           _ -> doDamage amt)
+
+    , (golem_guardian_statue,
+         do ms <- map fst <$> creatureGetMods l
+            unless (Immune `elem` ms) (doDamage amt))
+
+    , (other_golem,
+        case dmg of
+          Attack {} -> doDamage amt
+          _         -> return ())
     ]
 
   -- Allows for other cards to adjust the amount of damage done.
@@ -922,16 +979,24 @@ creatureDie (l,c) =
   leave = creatureLeave (l,c)
 
   abilities = Map.fromList $
-    [ (air_phoenix,
+    [
+      -- Air
+      (air_phoenix,
          do leave
             wizUpd_ (locWho l) $ \p ->
               if p ^. playerPower Fire >= 10
                 then let newCard = c & deckCard .~ (c ^. deckCardOrig)
                      in  p & creatureInSlot (locWhich l) .~ Just newCard
                  else p)
+
+    -- Holy
     , (holy_monk, wizChangePower (locWho l) Special 2 >> leave)
+
+    -- Forest
     , (forest_bee_queen, doWizardDamage (theOtherOne (locWho l)) c 3 >> leave)
     , (other_bee_soldier, doWizardDamage (theOtherOne (locWho l)) c 3 >> leave )
+
+    -- Demonic
     , (demonic_lemure,
         let lr = newDeckCard Special
                    (getCard other_cards other_scrambled_lemure)
@@ -948,6 +1013,16 @@ creatureDie (l,c) =
     , (demonic_threeheaded_demon,
         let da = newDeckCard Special (getCard other_cards other_demon_apostate)
          in leave >> summonCreature da l)
+
+    -- Golem
+    , (other_golem,
+         do leave
+            let newGolem = c & deckCardLife .~
+                           c ^. deckCardOrig . creatureCard . creatureLife
+            Just newLoc <- randomBlankSlot (locWho l)
+            summonCreature newGolem newLoc
+            doSomething newLoc
+            doWizardDamage (locWho newLoc) c 10)
     ]
 
 
@@ -960,7 +1035,7 @@ creaturePerformAttack l =
        Just c
          | isWall c
         || not (c ^. deckCardEnabled)
-        || SkipNextAttack `elem` c ^. deckCardMods -> return ()
+        || SkipNextAttack `elem` map fst (c ^. deckCardMods) -> return ()
 
          | otherwise  ->
            do diabledByHorror <- checkHorrors c
@@ -969,14 +1044,18 @@ creaturePerformAttack l =
                    let p = getAttackPower g (l,c)
                    case Map.lookup (deckCardName c) abilities of
                      Just act -> act c p
-                     Nothing  ->
-                       do let loc = oppositeOf l
-                          case g ^. creatureAt loc of
-                            Nothing -> doWizardDamage otherWizard c p
-                            Just _  -> damageCreature (Attack l) p loc
+                     Nothing  -> normalAttack c p
+                   creatureRmMod l ((UntilNextAttack ==) . snd)
                    checkDeath
   where
   otherWizard = theOtherOne (locWho l)
+
+  normalAttack c p =
+    do g <- getGame
+       let loc = oppositeOf l
+       case g ^. creatureAt loc of
+         Nothing -> doWizardDamage otherWizard c p
+         Just _  -> damageCreature (Attack l) p loc
 
   checkHorrors c =
     do hs <- findCreature Opponent control_ancient_horror
@@ -984,6 +1063,7 @@ creaturePerformAttack l =
           then return False
           else do p <- withGame (player Opponent . playerPower Special)
                   return (c ^. deckCard . cardCost < p)
+
 
   abilities = Map.fromList
     [ (earth_hydra, damageEveryone)
@@ -998,15 +1078,25 @@ creaturePerformAttack l =
                   when damaged (wizChangePower (locWho l) Special 2)
              _ -> damageCreature (Attack l) p opp)
     , (demonic_threeheaded_demon, damageEveryone)
+    , (other_golem, \c p ->
+        do extra_attacks <- length <$> findCreature Caster golem_golem_handler
+           replicateM_ (1 + extra_attacks) (normalAttack c p)
+      )
     ]
 
   damageEveryone c p =
     do doWizardDamage otherWizard c p
        damageCreatures (Attack l) p (slotsFor otherWizard)
 
--- | Damage the creatures in the given location.
-damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
-damageCreatures ty amt ls = mapM_ (damageCreature ty amt) ls
+
+countLiving :: [Location] -> GameM (Int,Int) -- How many lived, and died
+countLiving ls =
+  do g <- getGame
+     let (deads,alives) = partition (\(_,dc) -> (dc ^. deckCardLife) <= 0)
+                                   (inhabitedSlots g ls)
+     return (length alives, length deads)
+
+
 
 
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
@@ -1071,7 +1161,7 @@ getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
 
   modChange = sum [boostModVal m | m <- c ^. deckCardMods]
 
-  boostModVal (AttackBoost k) = k
+  boostModVal (AttackBoost k,_) = k
   boostModVal _ = 0
 
   name  = deckCardName c
@@ -1141,7 +1231,7 @@ creatureEndOfTurn l =
   whenCreature l $ \c ->
     case Map.lookup (deckCardName c) abilities of
       Nothing  -> return ()
-      Just act -> do addLog (DoSomething l)
+      Just act -> do doSomething l
                      act
   where
   abilities = Map.fromList
@@ -1175,3 +1265,11 @@ getRabbitAttack w =
           Nothing -> return 0
           Just _  -> do g <- getGame
                         return (getAttackPower g (l,r))
+
+-- | Find out golem
+getGolem :: GameM (Location,DeckCard)
+getGolem = do xs <- findCreature Caster other_golem
+              case xs of
+                [x] -> return x
+                _ -> error "Missing golem; or multiple ones."
+
