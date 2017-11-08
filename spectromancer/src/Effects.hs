@@ -876,14 +876,6 @@ creatureLeave (l,d) =
                                   $ newDeckCard Special (d ^. deckCardOrig))
 
 
-destroyCreature :: Location -> GameM ()
-destroyCreature l =
-  whenCreature l $ \c ->
-    if (deckCardName c == other_golem)
-      then creatureKill l >> return ()
-      else do updGame_ (creatureAt l .~ Nothing)
-              creatureLeave (l,c)
-
 damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
 damageCreatures dmg amt = mapM_ (damageCreature dmg amt)
 
@@ -956,6 +948,16 @@ damageCreature dmg amt l =
 
 
 
+-- | Remove a creature from the game, without activating its death handler.
+destroyCreature :: Location -> GameM ()
+destroyCreature l =
+  whenCreature l $ \c ->
+    if deckCardName c == other_golem
+      then creatureKill l >> return ()
+      else do updGame_ (creatureAt l .~ Nothing)
+              creatureLeave (l,c)
+
+-- | Remove a creature from the game, and invoke its death handler, if any.
 creatureKill :: Location -> GameM Int
 creatureKill l =
   do mb <- withGame (creatureAt l)
