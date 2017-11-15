@@ -632,6 +632,20 @@ castSpell c mbTgt =
         do for_ (slotsFor Caster) (`creatureChangeLife_` 3)
            (l,_) <- getGolem
            creatureChangeAttack l 2)
+
+    -- Spirit Spells
+    , (spirit_divine_meddling, damageSpell $ \dmg ->
+        do forM_ [ Fire, Air, Earth, Water ] $ \el -> wizChangePower Caster el 2
+           doWizardDamage Opponent c (dmg 10))
+    , (spirit_divine_justice, damageSpell $ \dmg ->
+        do tgt <- casterTarget
+           creatureChangeLife_ tgt 12
+           damageCreatures Effect (dmg 12) (delete tgt allSlots))
+    , (spirit_rage_of_god, damageSpell $ \dmg ->
+         do damageCreatures Effect (dmg 12) (slotsFor Opponent)
+            (lived,_) <- countLiving (slotsFor Opponent)
+            when (lived > 0) $
+              doWizardDamage Opponent c (dmg (fromIntegral (3 * lived))))
     ]
 
 
@@ -765,6 +779,13 @@ creatureSummonEffect (l,c) =
         do g <- getGame
            let dmg = length (inhabitedSlots g allSlots)
            damageCreatures Effect dmg (slotsFor Opponent))
+
+    -- Spirit
+    , (spirit_crusader, forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 2)
+    , (spirit_angel, wizChangePower Caster Special 3)
+    , (spirit_angel_of_war,
+         do damageCreatures Effect 8 (slotsFor Opponent)
+            forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 8)
     ]
 
 
@@ -836,6 +857,9 @@ creatureSummoned = creatureReact
              case mb of
                Nothing -> return () -- oh no, we have nowhere to run!
                Just l  -> creatureMove cl l)
+
+    , (spirit_templar, \(cl,c) sl ->
+        when (isNeighbor cl sl) (doWizardDamage (theOtherOne (locWho cl)) c 4))
     ]
 
 
@@ -852,7 +876,8 @@ creatureDied = creatureReact
   , (goblin's_goblin_looter, \(cl,_) _ ->
       do el <- randomPower
          wizChangePower (locWho cl) el 1)
-
+  , (spirit_holy_avenger, \(cl,_) died ->
+      when (isNeighbor cl died) (creatureChangeAttack cl 2))
   ]
 
 data DamageSource = Attack Location   -- ^ Attack from creature in this slot
