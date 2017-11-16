@@ -28,6 +28,7 @@ module GameMonad
   , wizChangePower
 
   -- * The Battlefield
+  , countLiving
 
   -- ** Summoning
   , summonCreature
@@ -38,6 +39,10 @@ module GameMonad
   , getCreaturesFor
   , findCreature
   , whenCreature
+
+  -- ** React
+  , creatureReact
+
 
   -- ** Modifying summoned creatures
   , creatureChangeLife
@@ -61,6 +66,7 @@ module GameMonad
 import Control.Monad(ap,liftM,unless,when)
 import Control.Lens(Lens',(^.),(%~),(&),(.~),mapped)
 import Data.Maybe(catMaybes)
+import Data.List(partition)
 import Util.Random(Gen,genRand)
 import Data.Text(Text)
 import Data.Aeson (ToJSON(..), (.=))
@@ -318,6 +324,40 @@ creatureChangeLife l n =
 creatureSkipNextAttack :: Location -> GameM ()
 creatureSkipNextAttack l =
   updGame_ (creatureAt l . mapped %~ deckCardAddMod (SkipNextAttack,UntilEndOfTurn 1))
+
+
+-- | Common pattern for creature reactions.
+creatureReact ::
+  [(Text, (Location,DeckCard) -> Location -> GameM ())]
+                                              {- ^ Special abilities -} ->
+  Location {- ^ Creature that is reacting -} ->
+  Location {- ^ Location of the arget causing the reaction -} ->
+  GameM ()
+creatureReact ab = \cl tgtl ->
+  do mb <- getCreatureAt cl
+     case mb of
+       Nothing -> return ()
+       Just c ->
+         case Map.lookup (deckCardName c) abilities of
+           Nothing  -> return ()
+           Just act -> do doSomething cl
+                          act (cl,c) tgtl
+  where
+  abilities = Map.fromList ab
+
+
+
+-- | Count how many of the given slots contain living things, and
+-- how many contain dead things.
+countLiving :: [Location] -> GameM (Int,Int) -- ^ How many lived, and died
+countLiving ls =
+  do g <- getGame
+     let (deads,alives) = partition (\(_,dc) -> (dc ^. deckCardLife) <= 0)
+                                   (inhabitedSlots g ls)
+     return (length alives, length deads)
+
+
+
 --------------------------------------------------------------------------------
 
 

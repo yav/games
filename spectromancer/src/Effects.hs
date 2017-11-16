@@ -12,7 +12,7 @@ module Effects
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text (Text)
-import           Data.List(delete,sort,maximumBy,partition)
+import           Data.List(delete,sort,maximumBy)
 import           Data.Function(on)
 import           Data.Foldable(for_)
 import           Data.Maybe(fromMaybe)
@@ -107,17 +107,6 @@ creatureModifyPowerGrowth w c =
     ]
 
 
--- | How is the cost of a played card affected by the active creatures.
-creatureModifyCost ::
-  DeckCard            {- ^ Card that is being played -} ->
-  DeckCard            {- ^ Opponent's creature affecting the cost -} ->
-  Int                 {- ^ Change to the cost -}
-creatureModifyCost c dc = Map.findWithDefault 0 (deckCardName dc) $
-  Map.fromList
-    [ (control_goblin_shaman, if isSpell (c ^. deckCard) then 1 else 0)
-    , (control_damping_tower, 1)
-    ]
-
 
 
 -- | Special abilities that activate at the start of a player's turn.
@@ -210,86 +199,19 @@ creatureStartOfTurn l =
 
 
 
--- | Playe a card---either spell or summon creature.
-playCard :: DeckCard -> Maybe Location -> GameM ()
-playCard c mbLoc =
-  case (c ^. deckCard . cardType , mbLoc) of
-    (Spell {}, mb) -> do cost <- checkCost
-                         castSpell c mb
-                         payCost cost
-                         checkDeath
-    (Creature {}, Just l)
-      | locWho l == Caster && locWhich l >= 0 && locWhich l < slotNum ->
-        do g <- getGame
-           let isEmissary = deckCardName c == death_emissary_of_dorlak
-               isWolf     = deckCardName c == forest_forest_wolf
-           -- XXX: refactor me
-           case g ^. creatureAt l of
-             Nothing | isEmissary ->
-                       stopError "Emissary must be played on top of a creature"
-                     | isWolf     ->
-                       stopError "Wolf must be played on top of a rabbit"
-             Just r | not isEmissary && not isWolf ->
-                      stopError "Creature must be played on an empty space"
-                    | isWolf && deckCardName r /= other_magic_rabbit ->
-                      stopError "Wolf must be played on top of a rabbit"
-                    | isWolf      ->
-                          let ratk = r ^. deckCard
-                                        . creatureCard . creatureAttack
-                              wlf = c & deckCard . creatureCard
-                                      . creatureAttack .~ ratk
-                          in doSummon wlf l
-             _ -> do doSummon c l
-    _ -> stopError "Card needs an approprate target"
-
-  where
-  el = c ^. deckCardElement
-
-  payCost cost = wizChangePower Caster el (negate cost)
-
-  doSummon dc l = do cost <- checkCost
-
-                     -- Normally, this should be empty, but in the
-                     -- case of Dorlak or the wolf, we should first destroy
-                     -- the creature, and perform death effects, if any.
-                     destroyCreature l
-
-                     let c1 = dc & deckCardEnabled .~ False
-                     summonCreature c1 l
-                     creatureSummonEffect (l,c1)
-                     payCost cost
-                     checkDeath
-                     mapM_ (`creatureSummoned` l) allSlots
-                     checkDeath
-
-  checkCost = do g <- getGame
-                 let base = c ^. deckCard . cardCost
-                     cost = base + extraCost g
-                     have = g ^. player Caster . playerPower el
-                 when (cost > have) (stopError "Card needs more power")
-                 return cost
-
-  extraCost g = sum
-              $ map (creatureModifyCost c . snd)
-              $ inhabitedSlots g
-              $ slotsFor Opponent
+-- | How is the cost of a played card affected by the active creatures.
+creatureModifyCost ::
+  DeckCard            {- ^ Card that is being played -} ->
+  DeckCard            {- ^ Opponent's creature affecting the cost -} ->
+  Int                 {- ^ Change to the cost -}
+creatureModifyCost c dc = Map.findWithDefault 0 (deckCardName dc) $
+  Map.fromList
+    [ (control_goblin_shaman, if isSpell (c ^. deckCard) then 1 else 0)
+    , (control_damping_tower, 1)
+    ]
 
 
 
-
--- | Activate actions on creatures that just died, and possibly end the game.
-checkDeath :: GameM ()
-checkDeath =
-  do checkGameWon
-     mapM_ checkCreature (slotsFor Opponent)
-     mapM_ checkCreature (slotsFor Caster)
-  where
-  checkCreature l =
-    whenCreature l $ \c ->
-      when (c ^. deckCardLife <= 0) $
-        do wizUpd_ (locWho l) (creatureInSlot (locWhich l) .~ Nothing)
-           creatureDie (l,c)
-           mapM_ (`creatureDied` l) allSlots
 
 
 
@@ -384,7 +306,7 @@ castSpell c mbTgt =
            damageCreatures Effect (dmg 9) (slotsFor Opponent))
 
     , (air_tornado, do tgt <- opponentTarget
-                       destroyCreature tgt)
+                       creatureDestroy tgt)
 
     , (earth_natures_ritual, do tgt <- casterTarget
                                 creatureChangeLife_ tgt 8
@@ -413,11 +335,14 @@ castSpell c mbTgt =
              Nothing -> stopError "We need a target creature"
              Just cr  ->
                do let d = min 32 (fromIntegral (cr ^. deckCardLife))
-                  destroyCreature tgt
+                  creatureDestroy tgt
                   damageCreatures Effect (dmg d) (slotsFor Opponent))
 
     , (death_drain_souls,
-        do deaths <- sum <$> mapM creatureKill allSlots
+        do deaths <- do g <- getGame
+                        return (length (inhabitedSlots g allSlots))
+           mapM_ creatureKill (slotsFor Opponent)
+           mapM_ creatureKill (slotsFor Caster)
            wizChangeLife Caster (2 * deaths)
            let newCard = newDeckCard Special
                                       (getCard other_cards other_rage_of_souls)
@@ -541,7 +466,7 @@ castSpell c mbTgt =
               else return ())
     , (sorcery_sacrifice, 
       do tgt <- casterTarget
-         destroyCreature tgt
+         creatureDestroy tgt
          forM_ [Fire, Water, Air, Earth] $ \elt -> wizChangePower Caster elt 3)
     , (sorcery_ritual_of_glory,
         do forM_ (slotsFor Caster) $ \l ->
@@ -566,7 +491,7 @@ castSpell c mbTgt =
 
     , (sorcery_disintegrate, damageSpell $ \dmg ->
         do tgt <- opponentTarget
-           destroyCreature tgt
+           creatureDestroy tgt
            damageCreatures Effect (dmg 11) (delete tgt $ slotsFor Opponent))
 
     -- Forest spells
@@ -580,7 +505,7 @@ castSpell c mbTgt =
       -- Demonic Spells
     , (demonic_explosion, damageSpell $ \dmg ->
         do tgt <- casterTarget
-           destroyCreature tgt
+           creatureDestroy tgt
            damageCreature Effect (dmg 28) (oppositeOf tgt))
 
     , (demonic_power_chains, damageSpell $ \dmg ->
@@ -647,6 +572,19 @@ castSpell c mbTgt =
             when (lived > 0) $
               doWizardDamage Opponent c (dmg (fromIntegral (3 * lived))))
     ]
+
+-- | Activate actions on creatures that just died, and possibly end the game.
+checkDeath :: GameM ()
+checkDeath =
+  do checkGameWon
+     mapM_ checkCreature (slotsFor Opponent)
+     mapM_ checkCreature (slotsFor Caster)
+  where
+  checkCreature l =
+    whenCreature l $ \c ->
+      when (c ^. deckCardLife <= 0) (creatureKill l)
+
+
 
 
 
@@ -814,26 +752,6 @@ beastAbilityMap = Map.fromList
 
 
 
--- | Common pattern for creature reactions.
-creatureReact ::
-  [(Text, (Location,DeckCard) -> Location -> GameM ())]
-                                              {- ^ Special abilities -} ->
-  Location {- ^ Creature that is reacting -} ->
-  Location {- ^ Location of the arget causing the reaction -} ->
-  GameM ()
-creatureReact ab = \cl tgtl ->
-  do mb <- getCreatureAt cl
-     case mb of
-       Nothing -> return ()
-       Just c ->
-         case Map.lookup (deckCardName c) abilities of
-           Nothing  -> return ()
-           Just act -> do doSomething cl
-                          act (cl,c) tgtl
-  where
-  abilities = Map.fromList ab
-
-
 
 -- | Actions taken by another creature, when a creature is summoned.
 -- (e.g., "Dwarven Riflemen")
@@ -882,23 +800,6 @@ creatureDied = creatureReact
 
 data DamageSource = Attack Location   -- ^ Attack from creature in this slot
                   | Effect
-
--- | Call this whenever a creatures leaves the board (either death
--- or destruction).  We use it to notify the UI that this happen,
--- and also to do restoration stuff (e.g., in the case for beasts
--- switch from ability back to beast).
--- Assumes that the creature has already been removed from the board.
-creatureLeave :: (Location, DeckCard) -> GameM ()
-creatureLeave (l,d) =
-  do addLog (CreatureDie l)
-     case Map.lookup (deckCardName d) abilities of
-       Just act -> act
-       Nothing  -> return ()
-  where
-  abilities = Map.fromList (map beastDied (Map.toList beastAbilityMap))
-
-  beastDied (b,ab) = (b, updGame_ $ replaceCard (locWho l) ab
-                                  $ newDeckCard Special (d ^. deckCardOrig))
 
 
 damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()
@@ -973,39 +874,53 @@ damageCreature dmg amt l =
 
 
 
+
+
+-- | Call this whenever a creatures leaves the board (either death
+-- or destruction).  We use it to notify the UI that this happen,
+-- and also to do restoration stuff (e.g., in the case for beasts
+-- switch from ability back to beast).
+-- Assumes that the creature has already been removed from the board.
+creatureLeave :: (Location, DeckCard) -> GameM ()
+creatureLeave (l,d) =
+  do addLog (CreatureDie l)
+     case Map.lookup (deckCardName d) abilities of
+       Just act -> act
+       Nothing  -> return ()
+  where
+  abilities = Map.fromList (map beastDied (Map.toList beastAbilityMap))
+
+  beastDied (b,ab) = (b, updGame_ $ replaceCard (locWho l) ab
+                                  $ newDeckCard Special (d ^. deckCardOrig))
+
+
+
+
 -- | Remove a creature from the game, without activating its death handler.
-destroyCreature :: Location -> GameM ()
-destroyCreature l =
+creatureDestroy :: Location -> GameM ()
+creatureDestroy l =
   whenCreature l $ \c ->
-    if deckCardName c == other_golem
-      then creatureKill l >> return ()
-      else do updGame_ (creatureAt l .~ Nothing)
-              creatureLeave (l,c)
+    case Map.lookup (deckCardName c) abilities of
+      Nothing   -> do updGame_ (creatureAt l .~ Nothing)
+                      creatureLeave (l,c)
+      Just act  -> act
+  where
+  abilities = Map.fromList
+    [ (other_golem, creatureKill l)
+    ]
 
 -- | Remove a creature from the game, and invoke its death handler, if any.
-creatureKill :: Location -> GameM Int
+creatureKill :: Location -> GameM ()
 creatureKill l =
-  do mb <- withGame (creatureAt l)
-     case mb of
-       Nothing -> return 0
-       Just c  -> do updGame_ (creatureAt l .~ Nothing)
-                     creatureDie (l,c)
-                     return 1
+  whenCreature l $ \c ->
+    do updGame_ (creatureAt l .~ Nothing)
+       Map.findWithDefault (creatureLeave (l,c)) (deckCardName c) (abilities c)
+       mapM_ (`creatureDied` l) allSlots
 
--- | Effects that happen when a creature dies.
--- The location is where the crature used to be, but it would have
--- already been removed by the time we call this function.
--- Note that the creature's life might not be 0, if it got killed
--- through some odd way (e.g., drain souls)
-creatureDie :: (Location,DeckCard) -> GameM ()
-creatureDie (l,c) =
-  do case Map.lookup (deckCardName c) abilities of
-       Nothing  -> leave
-       Just act -> act
   where
-  leave = creatureLeave (l,c)
-
-  abilities = Map.fromList $
+  abilities c = Map.fromList $
+    let leave = creatureLeave (l,c)
+    in
     [
       -- Air
       (air_phoenix,
@@ -1052,6 +967,9 @@ creatureDie (l,c) =
             doWizardDamage (locWho newLoc) c 10)
     ]
 
+
+
+--------------------------------------------------------------------------------
 
 -- | The creature at the given location performs its attack, if any.
 creaturePerformAttack :: Location -> GameM ()
@@ -1116,14 +1034,6 @@ creaturePerformAttack l =
        damageCreatures (Attack l) p (slotsFor otherWizard)
 
 
-countLiving :: [Location] -> GameM (Int,Int) -- How many lived, and died
-countLiving ls =
-  do g <- getGame
-     let (deads,alives) = partition (\(_,dc) -> (dc ^. deckCardLife) <= 0)
-                                   (inhabitedSlots g ls)
-     return (length alives, length deads)
-
-
 
 
 doWizardDamage :: Who      {- ^ Damage this wizzard -} ->
@@ -1138,10 +1048,6 @@ doWizardDamage' :: Who      {- ^ Damage this wizzard -} ->
                   Int      {- ^ Amount of damage we are trying to do -} ->
                   GameM Bool -- ^ Did we actually do any damage
 doWizardDamage' who dc amt =
-
-  -- XXX: Should the Ice Guard effect apply when White Elephant is in play,
-  -- thus hlving the damage to the elephant, or only when the
-  -- actual wizard is hurt?
 
   checkWhiteElephant $
   do checkGoblinSaboteur
@@ -1212,7 +1118,7 @@ getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
 
 
 
--- | Compute changes to the attack value of a speicif creature.
+-- | Compute changes to the attack value of a speicific creature.
 creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
                         (Location,DeckCard) {- ^ Modifier of attack -} -> Int
 
@@ -1299,4 +1205,71 @@ getGolem = do xs <- findCreature Caster other_golem
               case xs of
                 [x] -> return x
                 _ -> error "Missing golem; or multiple ones."
+
+
+
+-- | Playe a card---either spell or summon creature.
+playCard :: DeckCard -> Maybe Location -> GameM ()
+playCard c mbLoc =
+  case (c ^. deckCard . cardType , mbLoc) of
+    (Spell {}, mb) -> do cost <- checkCost
+                         castSpell c mb
+                         payCost cost
+                         checkDeath
+    (Creature {}, Just l)
+      | locWho l == Caster && locWhich l >= 0 && locWhich l < slotNum ->
+        do g <- getGame
+           let isEmissary = deckCardName c == death_emissary_of_dorlak
+               isWolf     = deckCardName c == forest_forest_wolf
+           -- XXX: refactor me
+           case g ^. creatureAt l of
+             Nothing | isEmissary ->
+                       stopError "Emissary must be played on top of a creature"
+                     | isWolf     ->
+                       stopError "Wolf must be played on top of a rabbit"
+             Just r | not isEmissary && not isWolf ->
+                      stopError "Creature must be played on an empty space"
+                    | isWolf && deckCardName r /= other_magic_rabbit ->
+                      stopError "Wolf must be played on top of a rabbit"
+                    | isWolf      ->
+                          let ratk = r ^. deckCard
+                                        . creatureCard . creatureAttack
+                              wlf = c & deckCard . creatureCard
+                                      . creatureAttack .~ ratk
+                          in doSummon wlf l
+             _ -> do doSummon c l
+    _ -> stopError "Card needs an approprate target"
+
+  where
+  el = c ^. deckCardElement
+
+  payCost cost = wizChangePower Caster el (negate cost)
+
+  doSummon dc l = do cost <- checkCost
+
+                     -- Normally, this should be empty, but in the
+                     -- case of Dorlak or the wolf, we should first destroy
+                     -- the creature, and perform death effects, if any.
+                     creatureDestroy l
+
+                     let c1 = dc & deckCardEnabled .~ False
+                     summonCreature c1 l
+                     creatureSummonEffect (l,c1)
+                     payCost cost
+                     checkDeath
+                     mapM_ (`creatureSummoned` l) allSlots
+                     checkDeath
+
+  checkCost = do g <- getGame
+                 let base = c ^. deckCard . cardCost
+                     cost = base + extraCost g
+                     have = g ^. player Caster . playerPower el
+                 when (cost > have) (stopError "Card needs more power")
+                 return cost
+
+  extraCost g = sum
+              $ map (creatureModifyCost c . snd)
+              $ inhabitedSlots g
+              $ slotsFor Opponent
+
 

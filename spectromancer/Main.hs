@@ -20,7 +20,6 @@ import Game
 import ServerState
 import CardTypes(Location(..))
 import Cards(allCards)
-import Turn
 import Replay(Move(..))
 import GameStats(winner)
 
