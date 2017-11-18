@@ -15,7 +15,7 @@ import           Data.Text (Text)
 import           Data.List(delete,sort,maximumBy)
 import           Data.Function(on)
 import           Data.Foldable(for_)
-import           Data.Maybe(fromMaybe)
+import           Data.Maybe(fromMaybe,catMaybes)
 import Control.Monad(when,unless,forM_,replicateM_)
 import Control.Lens((^.),(.~),(%~),(&),at,mapped,view)
 import Util.Random(oneOf, randInRange)
@@ -194,6 +194,9 @@ creatureStartOfTurn l =
 
 
       , (other_magic_rabbit, creatureChangeAttack l 1)
+
+      -- Vampiric
+      , (vampiric_devoted_servant, creatureChangeAttack l 1)
       ]
 
 
@@ -572,6 +575,13 @@ castSpell c mbTgt =
             (lived,_) <- countLiving (slotsFor Opponent)
             when (lived > 0) $
               doWizardDamage Opponent c (dmg (fromIntegral (3 * lived))))
+
+    -- Vampiric
+    , (vampiric_blood_boil, damageSpell $ \dmg ->
+         do damageCreatures Effect (dmg 4) (slotsFor Opponent)
+            (_,deaths) <- countLiving (slotsFor Opponent)
+            when (deaths > 0) $ wizChangePower Caster Special deaths)
+
     ]
 
 -- | Activate actions on creatures that just died, and possibly end the game.
@@ -725,6 +735,21 @@ creatureSummonEffect (l,c) =
     , (spirit_angel_of_war,
          do damageCreatures Effect 8 (slotsFor Opponent)
             forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 8)
+
+    -- Vampiric
+    , (vampiric_vampire_elder,
+        let fs = newDeckCard Special
+                                (getCard other_cards other_initiate)
+        in summonLR l fs)
+
+    , (vampiric_magister_of_blood,
+        do doWizardDamage Opponent c 16
+           forM_ (slotsFor Opponent) $ \loc ->
+             do mb <- getCreatureAt (oppositeOf loc)
+                case mb of
+                  Nothing -> return ()
+                  Just _  -> damageCreature Effect 16 loc)
+
     ]
 
 
@@ -795,8 +820,16 @@ creatureDied = creatureReact
   , (goblin's_goblin_looter, \(cl,_) _ ->
       do el <- randomPower
          wizChangePower (locWho cl) el 1)
+
+
   , (spirit_holy_avenger, \(cl,_) died ->
       when (isNeighbor cl died) (creatureChangeAttack cl 2))
+
+  -- Vampiric
+  , (vampiric_ghoul, \(cl,_) died ->
+      when (locWho died == theOtherOne (locWho cl)) $
+        creatureChangeAttack cl 1)
+
   ]
 
 data DamageSource = Attack Location   -- ^ Attack from creature in this slot
@@ -851,18 +884,35 @@ damageCreature dmg amt l =
         case dmg of
           Attack {} -> doDamage amt
           _         -> return ())
+
+    , (other_initiate,
+        do let check n =
+                 do mb <- getCreatureAt n
+                    case mb of
+                      Just cr -> return (deckCardName cr ==
+                                                      vampiric_vampire_elder)
+                      Nothing -> return False
+           protectedL <- check (leftOf l)
+           protectedR <- check (rightOf l)
+           unless (protectedL || protectedR) (doDamage amt))
     ]
 
-  -- Allows for other cards to adjust the amount of damage done.
-  modAbilities = Map.fromList
-    [ (holy_holy_guard, \oth -> if isNeighbor l oth then -2 else 0)
+  -- Additive changes to damage
+  changeAdd = Map.fromList
+    [ (holy_holy_guard, \me -> if isNeighbor l me then -2 else 0)
     ]
+
+  -- Multiplicative changes to damage
+  changeMul = Map.fromList
+    [ (vampiric_justicar, \me -> if isOpposing l me then 2 else 1)
+    ]
+
 
   -- Compute how location `lc` affects the damage that we should do.
-  otherDamageMod g lc =
-    fromMaybe 0 $
+  otherDamageMod g base mp lc =
+    fromMaybe base $
       do cr <- g ^. creatureAt lc
-         f  <- Map.lookup (deckCardName cr) modAbilities
+         f  <- Map.lookup (deckCardName cr) mp
          return (f lc)
 
 
@@ -870,10 +920,10 @@ damageCreature dmg amt l =
 
   doDamage' am0 =
     do g <- getGame
-       creatureChangeLife l $
-          negate $ sum (am0 : map (otherDamageMod g) (delete l allSlots))
-
-
+       let slots x y = map (otherDamageMod g x y) (delete l allSlots)
+           dmg1  = sum     (am0  : slots 0 changeAdd)
+           dmg2  = product (dmg1 : slots 1 changeMul)
+       creatureChangeLife l (negate dmg2)
 
 
 
@@ -966,6 +1016,12 @@ creatureKill l =
             summonCreature newGolem newLoc
             doSomething newLoc
             doWizardDamage (locWho newLoc) c 10)
+
+    -- Vampiric
+    , (vampiric_devoted_servant,
+        case c ^. deckCard . creatureCard . creatureAttack of
+          Just n -> wizChangePower (locWho l) Special n
+          Nothing -> return ())
     ]
 
 
@@ -1048,11 +1104,13 @@ doWizardDamage' :: Who      {- ^ Damage this wizzard -} ->
                   DeckCard {- ^ This is the attacker (creature or spell) -} ->
                   Int      {- ^ Amount of damage we are trying to do -} ->
                   GameM Bool -- ^ Did we actually do any damage
-doWizardDamage' who dc amt =
+doWizardDamage' who dc amt0 =
 
   checkWhiteElephant $
   do checkGoblinSaboteur
-     amt1 <- checkIceGuard
+     amt1 <- checkIceGuard =<< checkJusticar
+     checkVampireMystic
+     checkVampireChastiser
      wizChangeLife who (negate amt1)
      return (amt1 > 0)
 
@@ -1061,8 +1119,15 @@ doWizardDamage' who dc amt =
     do els <- findCreature who beast_white_elephant
        case els of
          [] -> k
-         (l,_) : _ -> do damageCreature Effect amt l
+         (l,_) : _ -> do damageCreature Effect amt0 l
                          return False
+  checkVampireMystic =
+    do vms <- findCreature (theOtherOne who) vampiric_vampire_mystic
+       forM_ vms $ \(l,_) -> creatureMod l (AttackBoost 2) (UntilEndOfTurn 0)
+
+  checkVampireChastiser =
+    do cs <- findCreature who vampiric_chastiser
+       forM_ cs $ \(l,_) -> creatureMod l (AttackBoost 2) UntilNextAttack
 
   checkGoblinSaboteur =
     when (deckCardName dc == goblin's_goblin_saboteur) $
@@ -1073,8 +1138,12 @@ doWizardDamage' who dc amt =
          do el <- random (oneOf els)
             updGame_ (player who . playerDeck . at el %~ fmap tail)
 
+  checkJusticar =
+    do xs <- findCreature (theOtherOne who) vampiric_justicar
+       n  <- (length . catMaybes) <$> mapM (getCreatureAt . oppositeOf . fst) xs
+       return (amt0 + 2 * n)
 
-  checkIceGuard =
+  checkIceGuard amt =
     do g <- getGame
        let halfRoundUp _ x = div (x + 1) 2
        return $ foldr halfRoundUp amt
@@ -1244,7 +1313,10 @@ playCard c mbLoc =
   where
   el = c ^. deckCardElement
 
-  payCost cost = wizChangePower Caster el (negate cost)
+  payCost cost = do wizChangePower Caster el (negate cost)
+                    vamp <- isCurVampire
+                    when (vamp && el == Special) $
+                      wizChangeLife Caster ((-2) * c ^. deckCardOrig . cardCost)
 
   doSummon dc l = do cost <- checkCost
 
@@ -1273,4 +1345,9 @@ playCard c mbLoc =
               $ inhabitedSlots g
               $ slotsFor Opponent
 
+
+
+isCurVampire :: GameM Bool
+isCurVampire =
+  (vampiric_cards ==) <$> withGame (view (player Caster . playerClass))
 

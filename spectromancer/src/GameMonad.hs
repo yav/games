@@ -247,7 +247,7 @@ summonLR ctr smn =
 --------------------------------------------------------------------------------
 
 
--- | Change the creature's attack until the end of the turn.
+-- | Modify the creature temporarily.
 creatureMod :: Location -> DeckCardMod -> ModDuration -> GameM ()
 creatureMod l x y =
   updGame_ $ creatureAt l . mapped %~ deckCardAddMod (x,y)
