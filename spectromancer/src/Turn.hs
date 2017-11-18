@@ -2,7 +2,7 @@
 module Turn(GameInit(..), newGame, turnSkip, turnPlayCard) where
 
 import qualified Data.Map as Map
-import Control.Lens( (^.), (.~), (%~), (&), ix, (^?) )
+import Control.Lens( (^.), (.~), (%~), (&), ix, (^?), view )
 import Control.Monad(when, forM_)
 
 import Game
@@ -38,7 +38,7 @@ turnPlayCard el cardNum mbTgt =
 -- Keeps track of how many cards can be a played by a player.
 turnAction :: GameM () -> GameM ()
 turnAction a =
-  do n <- withGame (playerCardNum Caster)
+  do n <- withGame (view (playerCardNum Caster))
      if | n < 1     -> stopError "No more turns."
         | n == 1    -> do a
                           updGame_ (playerCardNum Caster %~ subtract 1)
@@ -61,7 +61,7 @@ newTurn =
   do generatePower
      updGame_ (playerCardNum Caster %~ (+1)) -- you get to play 1 card
      startOfTurn
-     n <- withGame (playerCardNum Caster)
+     n <- withGame (view (playerCardNum Caster))
      when (n <= 0) postTurn -- We don't get to do anything this turn: finish up
 
 

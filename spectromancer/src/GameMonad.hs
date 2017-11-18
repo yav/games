@@ -64,7 +64,7 @@ module GameMonad
   ) where
 
 import Control.Monad(ap,liftM,unless,when)
-import Control.Lens(Lens',(^.),(%~),(&),(.~),mapped)
+import Control.Lens((^.),(%~),(&),(.~),mapped,view)
 import Data.Maybe(catMaybes)
 import Data.List(partition)
 import Util.Random(Gen,genRand)
@@ -158,10 +158,8 @@ updGame f =
      setGame g1
      return a
 
-withGame :: Lens' Game a -> GameM a
-withGame l =
-  do g <- getGame
-     return (g ^. l)
+withGame :: (Game -> a) -> GameM a
+withGame f = f <$> getGame
 
 
 --------------------------------------------------------------------------------
@@ -207,7 +205,7 @@ findCreature w t = filter matches <$> getCreaturesFor w
 
 -- | Get the creature at the given location.
 getCreatureAt :: Location -> GameM (Maybe DeckCard)
-getCreatureAt l = withGame (creatureAt l)
+getCreatureAt l = withGame (view (creatureAt l))
 
 -- | Execute the action if the given location is occupied.
 whenCreature :: Location -> (DeckCard -> GameM ()) -> GameM ()
@@ -235,7 +233,7 @@ summonCreature dc l =
 summonLR :: Location -> DeckCard -> GameM ()
 summonLR ctr smn =
   do let place l' = when (onBoard l') $
-                    do mb <- withGame (creatureAt l')
+                    do mb <- getCreatureAt l'
                        case mb of
                           Nothing -> summonCreature smn l'
                           Just _  -> return ()
@@ -260,7 +258,7 @@ creatureRmMod l p = updGame_ $ creatureAt l . mapped %~ deckCardRmMods p
 
 creatureGetMods :: Location -> GameM [(DeckCardMod, ModDuration)]
 creatureGetMods l =
-  do mb <- withGame (creatureAt l)
+  do mb <- getCreatureAt l
      return (maybe [] (\x -> x ^. deckCardMods) mb)
 
 creatureTemporaryAttackBoost :: Location -> Int -> GameM ()
@@ -282,11 +280,11 @@ creatureChangeAttack l amt =
 -- the target location is occupied, or outside the board.
 creatureMove :: Location -> Location -> GameM ()
 creatureMove lFrom lTo =
-  do mbC <- withGame (creatureAt lFrom)
+  do mbC <- getCreatureAt lFrom
      c   <- case mbC of
               Nothing -> stopError "Nothing to move"
               Just c  -> return c
-     mbTGT <- withGame (creatureAt lTo)
+     mbTGT <- getCreatureAt lTo
      case mbTGT of
        Nothing -> return ()
        Just _ -> stopError "Cannot move on top of other creatures."
@@ -399,7 +397,7 @@ random gen = updGame $ \g -> let (a,rnd1) = genRand (g ^. gameRNG) gen
 -- | Select a random blank location, if any.
 randomBlankSlot :: Who -> GameM (Maybe Location)
 randomBlankSlot who =
-  do as <- withGame (player who . playerActive)
+  do as <- withGame (view (player who . playerActive))
      let free = [ s | s <- take slotNum [ 0 .. ], not (s `Map.member` as) ]
      case free of
        [] -> return Nothing
@@ -410,7 +408,7 @@ randomBlankSlot who =
 -- | Select a random creature for one of the players, if any.
 randomCreature :: Who -> GameM (Maybe Location)
 randomCreature who =
-  do as <- withGame (player who . playerActive)
+  do as <- withGame (view (player who . playerActive))
      case Map.keys as of
        [] -> return Nothing
        cs -> do s <- random (oneOf cs)

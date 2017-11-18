@@ -17,7 +17,7 @@ import           Data.Function(on)
 import           Data.Foldable(for_)
 import           Data.Maybe(fromMaybe)
 import Control.Monad(when,unless,forM_,replicateM_)
-import Control.Lens((^.),(.~),(%~),(&),at,mapped)
+import Control.Lens((^.),(.~),(%~),(&),at,mapped,view)
 import Util.Random(oneOf, randInRange)
 
 import CardTypes
@@ -48,7 +48,7 @@ After an action is resolved we need to do:
 -- if we don't have a rabbit, make one.
 maybeSpawnRabbit :: GameM ()
 maybeSpawnRabbit =
- do pcls <- withGame (player Caster . playerClass)
+ do pcls <- withGame (view (player Caster . playerClass))
     when (pcls == forest_cards) $
       do ext_rab <- findCreature Caster other_magic_rabbit
          mbslot <- randomBlankSlot Caster
@@ -65,7 +65,7 @@ maybeSpawnRabbit =
 -- if we don't have a rabbit, make one.
 maybeSpawnGolem :: Who -> GameM (Maybe Location)
 maybeSpawnGolem who =
- do pcls <- withGame (player who . playerClass)
+ do pcls <- withGame (view (player who . playerClass))
     if pcls == golem_cards
       then
         do mbSlot <- randomBlankSlot who
@@ -123,7 +123,7 @@ creatureStartOfTurn l =
             act
             checkDeath
   where
-  card = do mb <- withGame (creatureAt l)
+  card = do mb <- getCreatureAt l
             case mb of
               Nothing -> stopError "[bug] Creature disappeared!"
               Just c  -> return c
@@ -163,7 +163,7 @@ creatureStartOfTurn l =
 
 
       , (illusion_oracle,
-          do p <- withGame (player Caster . playerPower Special)
+          do p <- withGame (view (player Caster . playerPower Special))
              c <- card
              doWizardDamage Opponent c p)
 
@@ -241,7 +241,7 @@ castSpell c mbTgt =
          _        -> stopError "This spell only affects the opponent"
 
   creature tgt =
-    do occupant <- withGame (creatureAt tgt)
+    do occupant <- getCreatureAt tgt
        case occupant of
           Nothing -> stopError "Target must contain a creature"
           Just _  -> return ()
@@ -280,7 +280,8 @@ castSpell c mbTgt =
                                             (delete t (slotsFor Opponent))
       )
     , (fire_armageddon, damageSpell $ \dmg ->
-                        do fp <- withGame (player Caster . playerPower Fire)
+                        do fp <- withGame
+                                   (view (player Caster . playerPower Fire))
                            let d = dmg (8 + fromIntegral fp)
                            doWizardDamage Opponent c d
                            damageCreatures Effect d allSlots)
@@ -298,7 +299,7 @@ castSpell c mbTgt =
              damageCreature Effect (dmg 6) tgt)
 
     , (air_lightning_bolt, damageSpell $ \dmg ->
-         do p <- withGame (player Caster . playerPower Air)
+         do p <- withGame (view (player Caster . playerPower Air))
             doWizardDamage Opponent c (dmg (fromIntegral p + 5)))
 
     , (air_chain_lightning, damageSpell $ \dmg ->
@@ -312,7 +313,7 @@ castSpell c mbTgt =
                                 creatureChangeLife_ tgt 8
                                 wizChangeLife Caster 8)
     , (earth_rejuvenation,
-        do p <- withGame (player Caster . playerPower Earth)
+        do p <- withGame (view (player Caster . playerPower Earth))
            wizChangeLife Caster (2 * p))
     , (earth_stone_rain,  damageSpell $ \dmg ->
         do damageCreatures Effect (dmg 25) allSlots)
@@ -330,7 +331,7 @@ castSpell c mbTgt =
 
     , (death_blood_ritual, damageSpell $ \dmg ->
         do tgt <- casterTarget
-           mb  <- withGame (creatureAt tgt)
+           mb  <- getCreatureAt tgt
            case mb of
              Nothing -> stopError "We need a target creature"
              Just cr  ->
@@ -350,7 +351,7 @@ castSpell c mbTgt =
       )
 
     , (other_rage_of_souls, damageSpell $ \dmg ->
-        do p <- withGame (player Caster . playerPower Special)
+        do p <- withGame (view (player Caster . playerPower Special))
            let opp = slotsFor Opponent
            damageCreatures Effect (dmg (fromIntegral p + 9)) opp
            (_,deaths) <- countLiving opp
@@ -511,7 +512,7 @@ castSpell c mbTgt =
     , (demonic_power_chains, damageSpell $ \dmg ->
         do tgt <- opponentTarget
            damageCreature Effect (dmg 12) tgt
-           mb <- withGame (creatureAt tgt)
+           mb <- getCreatureAt tgt
            case mb of
               Nothing -> stopError "Spell must have a target"
               Just a | a ^. deckCardElement == Special ->
@@ -608,10 +609,10 @@ creatureSummonEffect (l,c) =
     , (water_water_elemental, wizChangeLife Caster 10)
 
     , (air_griffin,
-        do p <- withGame (player Caster . playerPower Air)
+        do p <- withGame (view (player Caster . playerPower Air))
            when (p >= 5) (doWizardDamage Opponent c 5))
     , (air_faerie_sage,
-        do p <- withGame (player Caster . playerPower Earth)
+        do p <- withGame (view (player Caster . playerPower Earth))
            wizChangeLife Caster (min 10 p))
     , (air_air_elemental, doWizardDamage Opponent c 8)
     , (air_titan, damageCreature Effect 15 (oppositeOf l))
@@ -621,7 +622,7 @@ creatureSummonEffect (l,c) =
         in summonLR l fs)
     , (death_banshee,
         do let l1 = oppositeOf l
-           mb <- withGame (creatureAt l1)
+           mb <- getCreatureAt l1
            case mb of
              Nothing -> return ()
              Just c1  ->
@@ -693,7 +694,7 @@ creatureSummonEffect (l,c) =
 
     -- Demonic
     , (demonic_greater_demon,
-          do fp <- withGame (player Caster . playerPower Fire)
+          do fp <- withGame (view (player Caster . playerPower Fire))
              let dmg = min 10 fp
              doWizardDamage Opponent c dmg
              damageCreatures Effect dmg (slotsFor Opponent))
@@ -1006,7 +1007,7 @@ creaturePerformAttack l =
     do hs <- findCreature Opponent control_ancient_horror
        if null hs
           then return False
-          else do p <- withGame (player Opponent . playerPower Special)
+          else do p <- withGame (view (player Opponent . playerPower Special))
                   return (c ^. deckCard . cardCost < p)
 
 
@@ -1016,7 +1017,7 @@ creaturePerformAttack l =
     , (air_lightning_cloud, damageEveryone)
     , (death_master_lich, \c p ->
         do let opp = oppositeOf l
-           mb <- withGame (creatureAt opp)
+           mb <- getCreatureAt opp
            case mb of
              Nothing ->
                do damaged <- doWizardDamage' otherWizard c p
