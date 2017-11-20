@@ -26,6 +26,7 @@ import Cards(getCard)
 import Game
 import GameMonad
 import Deck(Element(..),allElements)
+import EffectAPI
 
 
 
@@ -832,8 +833,6 @@ creatureDied = creatureReact
 
   ]
 
-data DamageSource = Attack Location   -- ^ Attack from creature in this slot
-                  | Effect
 
 
 damageCreatures :: DamageSource -> Int -> [Location] -> GameM ()

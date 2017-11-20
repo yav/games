@@ -12,6 +12,7 @@ library
                        CardTypes,
                        CardIds,
                        Effects,
+                       EffectAPI,
                        Game,
                        GameMonad,
                        Turn,
