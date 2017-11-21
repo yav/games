@@ -1,5 +1,8 @@
 module EffectAPI where
 
+import Control.Lens((^.))
+import Data.Maybe(isNothing)
+
 import Game
 import Deck
 import GameMonad
@@ -21,15 +24,27 @@ data CreatureEffects = CreatureEffects
       Location {-^ Us -} ->
       GameM ()
 
+    -- | Can this creature be summoned on the given location
+  , validSummonLocation :: Game -> Location -> Bool
+
+    -- | Modify the card being summoned.  This is mostly for the wolf,
+    -- which needs to inherit the strength of the rabit.
+    -- This happens at the very beginning of the summoning action
+    -- (e.g., before the rabit is destroyed).
+  , onSummonModification :: Game -> DeckCard -> DeckCard
+
     -- | We are being summoned.
   , onSummoned ::
       Location {-^ Our new location -} ->
       GameM ()
 
-    -- | It is our turn to attack.
-  , onAttack ::
-      Location {-^ Us -} ->
-      GameM ()
+    -- | This happens just before an attack.  The result tells us if
+    -- the creature should perform a standard attack after.  For creatures
+    -- that have unusual attacks, the handler should return 'False',
+    -- and the full attack should be implemented 
+  , onBeforeAttack ::
+      Location    {-^ Us -} ->
+      GameM Bool  {-^ Returns if we should perform a standard attack or not -}
 
     -- | We succesfully damaged the opponent.
   , onDamageOpponent ::
@@ -63,13 +78,13 @@ data CreatureEffects = CreatureEffects
 
     -- | When another creature was summoned.
   , onSummonedOther ::
-      Location {- ^ Us -} ->
+      Location {-^ Us -} ->
       Location {-^ Them -} ->
       GameM ()
 
     -- ^ When another creature died.
   , onDiedOther ::
-      Location {- ^ Us -} ->
+      Location {-^ Us -} ->
       Location {-^ Them (now gone) -} ->
       GameM ()
 
@@ -83,7 +98,7 @@ data CreatureEffects = CreatureEffects
       DeckCard {- ^ Card the opponent wants to use -} ->
       Int
 
-    -- | How we affect the attack of another creature
+    -- | How we affect the attack of another creature (additive)
     -- NOTE THAT ARGUMENTS ARE BACKWARDS FROM EFFECTS
   , modifyAttack ::
       (Location,DeckCard) {- ^ Us -} ->
@@ -115,7 +130,7 @@ data CreatureEffects = CreatureEffects
       Rational
 
     -- | Do this whenever a player attempts to damage the opponent.
-  , onOpponnetAttacked ::
+  , onOpponentAttacked ::
       Location    {- ^ us -} ->
       GameM Bool  {- ^ Should we go on and damage the opponent? -}
 
@@ -141,9 +156,15 @@ defaultCreature = CreatureEffects
   { atStartOfTurn           = \_ -> return ()
   , atEndOfTurn             = \_ -> return ()
 
+  , validSummonLocation     = \g l -> and [ locWho l == Caster
+                                          , locWhich l >= 0
+                                          , locWhich l < slotNum
+                                          , isNothing (g ^. creatureAt l)
+                                          ]
   , onSummoned              = \_ -> return ()
+  , onSummonModification    = \_ x -> x
 
-  , onAttack                = undefined -- XXX: "normal" attack
+  , onBeforeAttack          = \_ -> return True
 
   , onDamageOpponent        = return ()
 
@@ -169,7 +190,7 @@ defaultCreature = CreatureEffects
   , modifySpellDamageAdd    = \_ _ -> 0
   , modifySpellDamageMul    = \_ _ -> 1
 
-  , onOpponnetAttacked      = \_ -> return True
+  , onOpponentAttacked      = \_ -> return True
   , modifyWizardDamageAdd   = \_ _ -> 0
   , modifyWizardDamageMul   = \_ _ -> 1
   }
