@@ -1,17 +1,18 @@
 {-# Language OverloadedStrings #-}
 module Effects
-  ( maybeSpawnRabbit
-  , maybeSpawnGolem
-  , creatureModifyPowerGrowth
+  ( creatureModifyPowerGrowth
   , creatureStartOfTurn
   , playCard
   , creaturePerformAttack
   , creatureEndOfTurn
+
+  , damageCreatures
+  , damageCreature
+  , doWizardDamage
+  , getAttackPower
   ) where
 
-import           Data.Map ( Map )
 import qualified Data.Map as Map
-import           Data.Text (Text)
 import           Data.List(delete,sort,maximumBy)
 import           Data.Function(on)
 import           Data.Foldable(for_)
@@ -28,6 +29,23 @@ import GameMonad
 import Deck(Element(..),allElements)
 import EffectAPI
 
+import qualified Decks.Fire
+import qualified Decks.Water
+import qualified Decks.Air
+import qualified Decks.Earth
+import qualified Decks.Death
+import qualified Decks.Holy
+import qualified Decks.Mechanical
+import qualified Decks.Illusion
+import qualified Decks.Beast
+import qualified Decks.Goblin
+import qualified Decks.Forest
+import qualified Decks.Demonic
+import qualified Decks.Golem
+import qualified Decks.Spirit
+import qualified Decks.Vampiric
+import qualified Decks.Control
+
 
 
 {-
@@ -43,40 +61,6 @@ After an action is resolved we need to do:
   7) Opponent's creatues die, which may cause further effects.
   8) Caster's creature's die, which may cause further effects.
 -}
-
-
--- | Special start of turn even for the forest cards:
--- if we don't have a rabbit, make one.
-maybeSpawnRabbit :: GameM ()
-maybeSpawnRabbit =
- do pcls <- withGame (view (player Caster . playerClass))
-    when (pcls == forest_cards) $
-      do ext_rab <- findCreature Caster other_magic_rabbit
-         mbslot <- randomBlankSlot Caster
-         case (ext_rab, mbslot) of
-           (_, Nothing)    -> return ()
-           (_:_, _)        -> return ()
-           ([], Just slot) ->
-             do let rabbit = newDeckCard Special
-                                        (getCard other_cards other_magic_rabbit)
-                summonCreature rabbit slot
-
-
--- | Special start of turn even for the forest cards:
--- if we don't have a rabbit, make one.
-maybeSpawnGolem :: Who -> GameM (Maybe Location)
-maybeSpawnGolem who =
- do pcls <- withGame (view (player who . playerClass))
-    if pcls == golem_cards
-      then
-        do mbSlot <- randomBlankSlot who
-           for_ mbSlot $ \slot ->
-             do let golem = newDeckCard Special
-                          (getCard other_cards other_golem)
-                summonCreature golem slot
-           return mbSlot
-      else return Nothing
-
 
 
 
@@ -202,28 +186,6 @@ creatureStartOfTurn l =
 
 
 
-
--- | Check if we have enough power to cast the given card, and return
--- the requred amount.
-checkCost :: DeckCard -> GameM Int
-checkCost c =
-  do g <- getGame
-     let base = c ^. deckCard . cardCost
-         cost = base + extraCost g
-         have = g ^. player Caster . playerPower (c ^. deckCardElement)
-     when (cost > have) (stopError "Card needs more power")
-     return cost
-
-  where
-  extraCost g = sum
-              $ map (creatureModifyCost . snd)
-              $ inhabitedSlots g
-              $ slotsFor Opponent
-
-  creatureModifyCost dc =
-    case getCreatureEffects dc of
-      Just eff -> modifyCost eff c
-      Nothing  -> 0
 
 
 
@@ -516,7 +478,7 @@ castSpell c mbTgt =
 
     -- Forest spells
     , (forest_ritual_of_the_forest,
-        do atk <- getRabbitAttack Caster
+        do atk <- Decks.Forest.getRabbitAttack Caster
            let amt = 5 + atk
            wizChangeLife Caster amt
            forM_ (slotsFor Caster) $ \l -> creatureChangeLife_ l amt)
@@ -564,18 +526,18 @@ castSpell c mbTgt =
     , (golem_golems_frenzy, damageSpell $ \dmg ->
         do damageCreatures Effect (dmg 3) (slotsFor Opponent)
            (_,deaths) <- countLiving (slotsFor Opponent)
-           (l,_) <- getGolem
+           (l,_) <- Decks.Golem.getGolem
            creatureTemporaryAttackBoost l (deaths * 3))
 
     , (golem_golems_justice, damageSpell $ \dmg ->
         do damageCreatures Effect (dmg 4) (slotsFor Opponent)
-           (l,_) <- getGolem
+           (l,_) <- Decks.Golem.getGolem
            creatureChangeLife_ (leftOf l) 4
            creatureChangeLife_ (rightOf l) 4)
 
     , (golem_army_upgrade,
         do for_ (slotsFor Caster) (`creatureChangeLife_` 3)
-           (l,_) <- getGolem
+           (l,_) <- Decks.Golem.getGolem
            creatureChangeAttack l 2)
 
     -- Spirit Spells
@@ -615,34 +577,6 @@ checkDeath =
 
 
 
--- | Things that happen when this thing is summoned.
-creatureSummonEffect :: (Location,DeckCard) -> GameM ()
-creatureSummonEffect (l,c) =
-  case getCreatureEffects c of
-    Just eff -> onSummoned eff l
-    Nothing  -> return ()
-
-beastBorn :: Text -> GameM ()
-beastBorn x =
-  case Map.lookup x beastAbilityMap of
-    Just c  -> updGame_ $ replaceCard Caster x
-                        $ newDeckCard Special
-                        $ getCard beasts_abilities c
-    Nothing -> return () -- Shouldn't happen
-
-
--- | Associates beastes with their abilities
-beastAbilityMap :: Map Text Text
-beastAbilityMap = Map.fromList
-    [ (beast_magic_hamster, beast's_natural_healing)
-    , (beast_scorpion, beast's_poison)
-    , (beast_wolverine, beast's_enrage)
-    , (beast_energy_beast, beast's_pump_energy)
-    , (beast_death_falcon, beast's_move_falcon)
-    , (beast_white_elephant, beast's_trumpet)
-    , (beast_basilisk, beast's_gaze)
-    , (beast_ancient_dragon, beast's_breathe_fire)
-    ]
 
 
 
@@ -806,7 +740,7 @@ creatureLeave (l,d) =
        Just act -> act
        Nothing  -> return ()
   where
-  abilities = Map.fromList (map beastDied (Map.toList beastAbilityMap))
+  abilities = Map.fromList (map beastDied (Map.toList Decks.Beast.beastAbilityMap))
 
   beastDied (b,ab) = (b, updGame_ $ replaceCard (locWho l) ab
                                   $ newDeckCard Special (d ^. deckCardOrig))
@@ -1125,312 +1059,28 @@ creatureEndOfTurn l =
     ]
 
 
-getRabbitAttack :: Who -> GameM Int
-getRabbitAttack w =
-  do crs <- findCreature w other_magic_rabbit
-     case crs of
-      []  -> return 0
-      (l,r):_ ->
-        case r ^. deckCard . creatureCard . creatureAttack of
-          Nothing -> return 0
-          Just _  -> do g <- getGame
-                        return (getAttackPower g (l,r))
-
--- | Find out golem
-getGolem :: GameM (Location,DeckCard)
-getGolem = do xs <- findCreature Caster other_golem
-              case xs of
-                [x] -> return x
-                _ -> error "Missing golem; or multiple ones."
-
 
 getCreatureEffects :: DeckCard -> Maybe CreatureEffects
 getCreatureEffects c = Map.lookup (deckCardName c) newCreatureAPI
   where
-  newCreatureAPI = Map.fromList
-    [
-
-      -- Fire
-      (fire_fire_drake,
-        defaultCreature
-          { onSummoned = \l ->
-              updGame_ (creatureAt l . mapped . deckCardEnabled .~ True) })
-
-    , (fire_wall_of_fire,
-        defaultCreature
-          { onSummoned = \_ -> damageCreatures Effect 5 (slotsFor Opponent) })
-
-    , (fire_bargul,
-        defaultCreature
-          { onSummoned = \l -> damageCreatures Effect 4 (delete l allSlots) })
-
-    , (fire_fire_elemental,
-        defaultCreature
-          { onSummoned = \_ ->
-              do doWizardDamage Opponent c 3
-                 damageCreatures Effect 3 (slotsFor Opponent) })
-
-
-      -- Water
-    , (water_merfolk_apostate,
-        defaultCreature
-          { onSummoned = \_ -> wizChangePower Caster Fire 2 })
-
-    , (water_water_elemental,
-        defaultCreature
-          { onSummoned = \_ -> wizChangeLife Caster 10 })
-
-
-      -- Air
-    , (air_griffin,
-        defaultCreature
-          { onSummoned = \_ ->
-              do p <- withGame (view (player Caster . playerPower Air))
-                 when (p >= 5) (doWizardDamage Opponent c 5) })
-
-    , (air_faerie_sage,
-        defaultCreature
-          { onSummoned = \_ ->
-              do p <- withGame (view (player Caster . playerPower Earth))
-                 wizChangeLife Caster (min 10 p) })
-
-    , (air_air_elemental,
-        defaultCreature
-          { onSummoned = \_ -> doWizardDamage Opponent c 8 })
-
-    , (air_titan,
-        defaultCreature
-          { onSummoned = \l -> damageCreature Effect 15 (oppositeOf l) })
-
-      -- Earth
-    , (earth_giant_spider,
-        defaultCreature
-          { onSummoned = \l ->
-        let fs = newDeckCard Earth (getCard other_cards other_forest_spider)
-        in summonLR l fs })
-
-      -- Death
-    , (death_banshee,
-        defaultCreature
-          { onSummoned = \l ->
-              do let l1 = oppositeOf l
-                 mb <- getCreatureAt l1
-                 case mb of
-                   Nothing -> return ()
-                   Just c1  ->
-                     do let dmg = (c1 ^. deckCardLife + 1) `div` 2
-                        damageCreatures Effect dmg [l1] })
-
-    , (death_master_lich,
-        defaultCreature
-          { onSummoned = \_ -> damageCreatures Effect 8 (slotsFor Opponent) })
-
-
-      -- Holy
-    , (holy_paladin,
-        defaultCreature
-          { onSummoned = \_ ->
-              forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 4 })
-
-    , (holy_angel,
-        defaultCreature
-          { onSummoned = \_ -> wizChangePower Caster Special 3 })
-
-    , (holy_archangel,
-        defaultCreature
-          { onSummoned = \_ ->
-              forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 100000 })
-
-      -- Mechanical
-    , (mechanical_steam_tank,
-        defaultCreature
-          { onSummoned = \_ -> damageCreatures Effect 12 (slotsFor Opponent) })
-
-
-      -- Illusion
-    , (illusion_spectral_assassin,
-        defaultCreature
-          { onSummoned = \_ -> doWizardDamage Opponent c 12 })
-
-    , (illusion_spectral_mage, 
-        defaultCreature
-          { onSummoned = \_ ->
-              do g <- getGame
-                 let opp = inhabitedSlots g (slotsFor Opponent)
-                 forM_ opp $ \(ol,oc) ->
-                    damageCreature Effect (oc ^. deckCard . cardCost) ol })
-
-    , (illusion_hypnotist,
-        defaultCreature
-          { onSummoned = \_ ->
-              do doWizardDamage Opponent c 5
-                 damageCreatures Effect 5 (slotsFor Opponent) })
-
-
-    -- Beasts
-    , (beast_magic_hamster,
-        defaultCreature
-          { onSummoned = \l ->
-              do beastBorn beast_magic_hamster
-                 creatureChangeLife_ (leftOf l) 10
-                 creatureChangeLife_ (rightOf l) 10 })
-
-    , (beast_scorpion,
-        defaultCreature
-          { onSummoned = \l ->
-              do beastBorn beast_scorpion
-                 creatureSkipNextAttack (oppositeOf l) })
-
-    , (beast_wolverine, 
-        defaultCreature
-          { onSummoned = \_ -> beastBorn beast_wolverine })
-
-    , (beast_energy_beast,
-        defaultCreature
-          { onSummoned = \_ -> beastBorn beast_energy_beast })
-
-    , (beast_death_falcon,
-        defaultCreature
-          { onSummoned = \_ -> beastBorn beast_death_falcon })
-
-    , (beast_white_elephant,
-        defaultCreature
-          { onSummoned = \_ -> beastBorn beast_white_elephant })
-
-    , (beast_basilisk,
-        defaultCreature
-          { onSummoned = \_ -> beastBorn beast_basilisk })
-
-    , (beast_ancient_dragon,
-        defaultCreature
-          { onSummoned = \l ->
-              do beastBorn beast_ancient_dragon
-                 forM_ allElements $ \el -> wizChangePower (locWho l) el 1 })
-
-    -- Goblins
-    , (goblin's_goblin_raider,
-        defaultCreature
-          { onSummoned = \l ->
-              do let addFriend = do mb <- randomBlankSlot (locWho l)
-                                    case mb of
-                                      Nothing -> return ()
-                                      Just l' -> summonCreature c l'
-                 addFriend
-                 addFriend })
-
-    -- Forest
-    , (forest_crazy_squirrel,
-        defaultCreature
-          { onSummoned = \l -> do damageCreature Effect 8 (oppositeOf l) })
-
-    , (forest_vindictive_raccoon,
-        defaultCreature
-          { onSummoned = \l ->
-            whenCreature (oppositeOf l) $ \op ->
-               do g <- getGame
-                  let atk = getAttackPower g (oppositeOf l, op)
-                  damageCreature Effect atk (oppositeOf l) })
-
-    , (forest_enraged_beaver,
-        defaultCreature
-          { onSummoned = \_ ->
-              do atk <- getRabbitAttack Caster
-                 if atk <= 0
-                  then return ()
-                  else do doWizardDamage Opponent c atk
-                          damageCreatures Effect atk (slotsFor Opponent) })
-
-    , (forest_bee_queen,
-        defaultCreature
-          { onSummoned = \l ->
-              let bee = newDeckCard Special
-                      (getCard other_cards other_bee_soldier)
-              in summonLR l bee })
-
-    -- Demonic
-    , (demonic_greater_demon,
-        defaultCreature
-          { onSummoned = \_ ->
-              do fp <- withGame (view (player Caster . playerPower Fire))
-                 let dmg = min 10 fp
-                 doWizardDamage Opponent c dmg
-                 damageCreatures Effect dmg (slotsFor Opponent) })
-
-
-
-    -- Golem
-    , (golem_golem_guide,
-        defaultCreature
-          { onSummoned = \l ->
-            do (golem_loc, _) <- getGolem
-               doSomething l
-               creatureMove golem_loc l
-               summonCreature c golem_loc })
-
-    , (golem_guardian_statue,
-        defaultCreature
-          { onSummoned = \l -> creatureMod l Immune UntilNextAttack })
-
-    , (golem_dark_sculptor,
-        defaultCreature
-          { onSummoned = \_ ->
-            do g <- getGame
-               let dmg = length (inhabitedSlots g allSlots)
-               damageCreatures Effect dmg (slotsFor Opponent) })
-
-    -- Spirit
-    , (spirit_crusader,
-        defaultCreature
-          { onSummoned = \_ ->
-            forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 2 })
-
-    , (spirit_angel, defaultCreature
-          { onSummoned = \_ ->  wizChangePower Caster Special 3 })
-
-    , (spirit_angel_of_war,
-        defaultCreature
-          { onSummoned = \_ ->
-            do damageCreatures Effect 8 (slotsFor Opponent)
-               forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 8 })
-
-
-    -- Vampiric
-    , (vampiric_vampire_elder,
-        defaultCreature
-          { onSummoned = \l ->
-            let fs = newDeckCard Special (getCard other_cards other_initiate)
-            in summonLR l fs })
-
-    , (vampiric_magister_of_blood,
-        defaultCreature
-          { onSummoned = \_ ->
-            do doWizardDamage Opponent c 16
-               forM_ (slotsFor Opponent) $ \loc ->
-                 do mb <- getCreatureAt (oppositeOf loc)
-                    case mb of
-                      Nothing -> return ()
-                      Just _  -> damageCreature Effect 16 loc })
-
-
-     -- Control
-    , (control_goblin_shaman,
-        defaultCreature
-          { modifyCost = \x -> if isSpell (x ^. deckCard) then 1 else 0 })
-
-    , (control_damping_tower, defaultCreature { modifyCost = \_ -> 1 })
-
-    , (control_ancient_witch,
-        defaultCreature
-          { onSummoned = \_ ->
-              mapM_ (\p -> wizChangePower Opponent p (-2)) allElements })
-
-    , (control_ancient_giant,
-        defaultCreature
-          { onSummoned = \_ ->
-              updGame_ (playerCardNum Opponent %~ subtract 1) })
-
-
-    ]
+  newCreatureAPI =
+    Map.unions
+      [ Decks.Fire.creatures
+      , Decks.Water.creatures
+      , Decks.Air.creatures
+      , Decks.Earth.creatures
+      , Decks.Death.creatures
+      , Decks.Holy.creatures
+      , Decks.Mechanical.creatures
+      , Decks.Illusion.creatures
+      , Decks.Beast.creatures
+      , Decks.Goblin.creatures
+      , Decks.Demonic.creatures
+      , Decks.Golem.creatures
+      , Decks.Spirit.creatures
+      , Decks.Vampiric.creatures
+      , Decks.Control.creatures
+      ]
 
 
 
@@ -1490,6 +1140,34 @@ playCard c mbLoc =
                      checkDeath
                      mapM_ (`creatureSummoned` l) allSlots
                      checkDeath
+
+  creatureSummonEffect (l,c1) =
+    case getCreatureEffects c1 of
+      Just eff -> onSummoned eff l
+      Nothing  -> return ()
+
+  checkCost c1 =
+    do g <- getGame
+       let base = c1 ^. deckCard . cardCost
+           cost = base + extraCost g
+           have = g ^. player Caster . playerPower (c1 ^. deckCardElement)
+       when (cost > have) (stopError "Card needs more power")
+       return cost
+
+    where
+    extraCost g = sum
+                $ map (creatureModifyCost . snd)
+                $ inhabitedSlots g
+                $ slotsFor Opponent
+
+    creatureModifyCost dc =
+      case getCreatureEffects dc of
+        Just eff -> modifyCost eff c1
+        Nothing  -> 0
+
+
+
+
 
 
 

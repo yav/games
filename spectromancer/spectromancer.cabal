@@ -18,7 +18,26 @@ library
                        Turn,
                        ServerState,
                        Replay,
-                       GameStats
+                       GameStats,
+
+                       Decks.Fire,
+                       Decks.Water,
+                       Decks.Air,
+                       Decks.Earth,
+                       Decks.Death,
+                       Decks.Holy,
+                       Decks.Mechanical,
+                       Decks.Illusion,
+                       Decks.Beast,
+                       Decks.Goblin,
+                       Decks.Forest,
+                       Decks.Demonic,
+                       Decks.Golem,
+                       Decks.Spirit,
+                       Decks.Vampiric,
+                       Decks.Control
+
+
   build-depends:       base,
                        random,
                        array,

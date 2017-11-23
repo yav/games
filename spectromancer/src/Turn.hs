@@ -11,14 +11,17 @@ import Deck
 import CardTypes
 import Effects
 
+import qualified Decks.Forest
+import qualified Decks.Golem
+
 
 -- | Setup a new game value.
 newGame :: GameInit -> Game
 newGame = activateCards . initialize . gameNew
   where
   initialize g = let (_, g', _) = runGame g setupGame in g'
-  setupGame = do maybeSpawnGolem Caster
-                 maybeSpawnGolem Opponent
+  setupGame = do Decks.Golem.maybeSpawnGolem Caster
+                 Decks.Golem.maybeSpawnGolem Opponent
                  startOfTurn
 
 
@@ -94,7 +97,7 @@ generatePower =
 startOfTurn :: GameM ()
 startOfTurn =
   do forM_ (slotsFor Caster) creatureStartOfTurn
-     maybeSpawnRabbit
+     Decks.Forest.maybeSpawnRabbit
 
 -- | Special effects that happen at the end of a turn.
 endOfTurn :: GameM ()
