@@ -1,5 +1,5 @@
 {-# Language TemplateHaskell, Rank2Types, OverloadedStrings #-}
-module Board
+module Board where {-
   ( Board
   , boardNew
   , boardTiles
@@ -22,95 +22,85 @@ module Board
   , influenceMap
   )
   where
-
+-}
 
 import Data.Map(Map)
 import qualified Data.Map as Map
-import Control.Lens(makeLenses, (^.), (^?), ix)
+import Control.Lens
 import qualified Data.Text as Text
 import Data.Ratio(Ratio, (%))
 
 import Util.Perhaps
 
-import Basics
+import Pawn
 
--- | A region, containing an action to perform.
+
+-- | A location of a tile on a board
 type TileLoc = (Int,Int)
 
--- | The location of a pawn, it may be a region or a road location.
+-- | A pawn location on the board, either a tile, edge, or a vertex.
 data PawnLoc = PawnLoc Int Int
-  deriving (Eq,Ord,Show)
+  deriving (Eq,Ord)
+
 
 -- | The current arrangement of the baord.
 data Board = Board
-  { _boardTiles   :: Map TileLoc Tile
+  { _boardTiles   :: !(Map TileLoc Tile)
     -- ^ The tiles on the board.
 
-  , _boardPawns  :: Pawns
-    -- ^ Multiple pawns may share a location by spending sharing tokens.
+  , _boardPawns   :: !(Map PawnLoc Content)
     -- The front is the top of the stack.
   }
 
--- | The pawns on the map.  Each location may have multiple pawn stacks,
--- if the pawns ended up sharing a space.
-type Pawns = Map PawnLoc [PawnStack]
--- XXX support for pawn upgrades
+data Content = Content
+  { _contentStack   :: ![Pawn]  -- ^ The top is the first one
+  , _contentSharing :: ![Pawn]
+  }
+
+data Tile = Tile
+
 
 $(makeLenses ''Board)
+$(makeLenses ''Content)
 
+--------------------------------------------------------------------------------
+-- Basic Constructors
+--------------------------------------------------------------------------------
 
-
-
-
-
-testLayout :: Map TileLoc Tile
-testLayout = Map.fromList
-  [ ((x,y),tile)
-  | (y,row) <- ixed [ [ UpgradePower, UpgradeSpeed, GainPawn ]
-                    , map GainToken [ PowerBoost, SpeedBoost, ShareSpace ]
-                    , [ InvsetInPower, InverstInSpeed, InvestInSharing ]
-                    ]
-  , (x,tile) <- ixed row
-  ]
-  where
-  ixed = zip [ 0 .. ]
-
--- | Make up a new board.
+-- | A baord with the given layout and no pawns.
 boardNew :: Map TileLoc Tile -> Board
-boardNew ts = Board { _boardTiles = ts, _boardPawns = Map.empty }
+boardNew ts =
+  Board
+    { _boardTiles = ts
+    , _boardPawns = Map.empty
+    }
 
--- | Is the given location on the baord.
-boardHasLoc :: Board -> PawnLoc -> Bool
-boardHasLoc b l = any present (pawnTiles l)
-  where present x = Map.member x (b ^. boardTiles)
+-- | No content.
+contentNew :: -> Content
+contentNew = Content { _contentStack = [], _contentSharing = [] }
 
--- | Remove a pawn for a player from a location.
--- If theere are multiple pawns, then remove the top one (i.e.,
--- the least powerful one).
--- Fails if there is no such pawn at the location.
-rmPawn :: PawnLoc -> PlayerId -> Pawns -> Maybe (Pawn,Pawns)
-rmPawn l pid mp =
-  do ps <- Map.lookup l mp
-     (q,qs) <- rm ps
-     return (q,Map.insert l qs mp)
-  where
-  rm xs = case xs of
-            []     -> Nothing
-            a : as
-              | a ^. pawnPlayer == pid -> Just (a,as)
-              | otherwise -> do (b,bs) <- rm as
-                                return (b,a:bs)
 
--- | Add a pawn to a location.  The new pawn goes on top (aka front).
-addPawn :: PawnLoc -> Pawn -> Pawns -> Pawns
-addPawn l p = Map.insertWith (++) l [p]
+--------------------------------------------------------------------------------
 
--- | Add a new pawn for the given player at the given location.
-newPawn :: PawnLoc -> PlayerId -> Pawns -> Pawns
-newPawn l p = addPawn l (pawnNew p)
+
+-- | Add a pawn to this content.
+contentAdd :: Pawn -> Content -> Content
+contentAdd r c
+  | r ^. pawnIncognito = c & contentSharing %~ (r :)
+  | otherwise          = case c ^. contentStack of
+                            []     -> c & contentStack .~ [r]
+                            s : ss -> c & contentStack .~ r : pawnClear s : ss
+
+contentRm :: PawnId -> Content -> Maybe (Pawn, Content)
+contentRm pid c =
+  case c ^. contentStack . stackTop . pawnId of
+    Just pid' | pid == pid' -> con
+    _ ->
 
 
 
+
+{-
 
 --------------------------------------------------------------------------------
 
@@ -166,7 +156,7 @@ influenceMap = Map.foldrWithKey upd Map.empty
     onePawn p mp1 = foldr (addInfluence (p^.pawnPlayer) x) mp1 tps
       where (x,tps) = pawnTilePower l p
 
-
+-}
 
 
 

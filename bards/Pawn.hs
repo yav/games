@@ -1,7 +1,7 @@
 {-# Language TemplateHaskell #-}
 module Pawn where
 
-import Control.Lens(makeLenses, (^.))
+import Control.Lens(makeLenses, (^.), (.~), (&))
 
 type PlayerId = Int
 
@@ -49,5 +49,7 @@ nextSpeedLevel n
 pawnCurPower :: Pawn -> Int
 pawnCurPower p = (p ^. pawnPower) + (p ^. pawnBoost)
 
-
+pawnClear :: Pawn -> Pawn
+pawnClear p = p & pawnBoost     .~ 0
+                & pawnIncognito .~ False
 
