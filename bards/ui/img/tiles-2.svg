@@ -16,7 +16,7 @@
    viewBox="0 0 210 297"
    version="1.1"
    id="svg4922"
-   inkscape:version="0.92.1 r15371"
+   inkscape:version="0.91 r13725"
    sodipodi:docname="tiles-2.svg">
   <defs
      id="defs4916">
@@ -2724,15 +2724,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="417.03974"
-     inkscape:cy="617.40051"
+     inkscape:cx="339.53974"
+     inkscape:cy="353.87672"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="3840"
-     inkscape:window-height="2041"
-     inkscape:window-x="1920"
-     inkscape:window-y="216"
+     inkscape:window-width="1366"
+     inkscape:window-height="715"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      showguides="false" />
   <metadata
@@ -2980,11 +2980,12 @@
              transform="translate(19.711128,-18.508415)"
              id="text6279"
              style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:7.76111126px;line-height:0%;font-family:UnifrakturCook;-inkscape-font-specification:'UnifrakturCook Bold';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:url(#linearGradient6437);fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-             xml:space="preserve"><textPath
+             xml:space="preserve"
+             sodipodi:linespacing="0%"><textPath
                style="fill:url(#linearGradient6437);fill-opacity:1"
                id="textPath6277"
                startOffset="50%"
-               xlink:href="#path4392-1">Cartographer</textPath></text>
+               xlink:href="#path4392-1">Grocer</textPath></text>
         </g>
       </g>
       <g
@@ -4205,11 +4206,12 @@
              transform="translate(19.711128,-18.508415)"
              id="text6981"
              style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:7.76111126px;line-height:0%;font-family:UnifrakturCook;-inkscape-font-specification:'UnifrakturCook Bold';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:url(#linearGradient8304);fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-             xml:space="preserve"><textPath
+             xml:space="preserve"
+             sodipodi:linespacing="0%"><textPath
                style="fill:url(#linearGradient8304);fill-opacity:1"
                id="textPath6979"
                startOffset="50%"
-               xlink:href="#path4392-1">Taverm</textPath></text>
+               xlink:href="#path4392-1">Tavern</textPath></text>
         </g>
       </g>
       <g
