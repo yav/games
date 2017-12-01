@@ -3,7 +3,7 @@ module Decks.Vampiric where
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text ( Text )
-import           Control.Monad (forM_)
+import           Control.Monad (forM_,when)
 
 import CardIds
 import GameMonad
@@ -33,6 +33,13 @@ creatures = Map.fromList
                     case mb of
                       Nothing -> return ()
                       Just _  -> damageCreature Effect 16 loc })
+
+    , (vampiric_ghoul,
+        defaultCreature
+          { onDiedOther = \cl died ->
+              when (locWho died == theOtherOne (locWho cl)) $
+                creatureChangeAttack cl 1 })
+
 
   ]
 

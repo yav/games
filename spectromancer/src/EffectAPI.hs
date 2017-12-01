@@ -65,7 +65,7 @@ data CreatureEffects = CreatureEffects
     -- ^ We got destroyed!
   , onDestroyed ::
       Location {- ^ Where we used to be (not there anymore) -} ->
-      GameM ()
+      GameM Bool {- ^ Should we go on and destroy the creature -}
 
     -- | We are being removed from the board, for whatever reason.
   , onRemoved ::
@@ -171,7 +171,7 @@ defaultCreature = CreatureEffects
   , onDamaged               = \l _ n -> creatureChangeLife l (negate n)
   , onDied                  = \_ -> return True
 
-  , onDestroyed             = \_ -> return ()
+  , onDestroyed             = \_ -> return True
 
   , onRemoved               = \_ _ -> return ()
 

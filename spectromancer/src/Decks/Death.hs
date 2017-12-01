@@ -4,11 +4,13 @@ import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text ( Text )
 import           Control.Lens ( (^.) )
+import           Control.Monad (when)
 
 import CardIds
 import GameMonad
 import Game
 import CardTypes
+import Deck
 import EffectAPI
 import {-# SOURCE #-} Effects
 
@@ -29,6 +31,13 @@ creatures = Map.fromList
     , (death_master_lich,
         defaultCreature
           { onSummoned = \_ -> damageCreatures Effect 8 (slotsFor Opponent) })
+
+    , (death_keeper_of_death,
+        defaultCreature
+          { onDiedOther = \cl dl ->
+              do let owner = locWho cl
+                 when (owner /= locWho dl) $    -- opponents creature died
+                   wizChangePower owner Special 1 })
 
   ]
 
