@@ -1,7 +1,4 @@
-{-# Language TemplateHaskell #-}
 module Pawn where
-
-import Control.Lens(makeLenses, (^.), (.~), (&))
 
 type PlayerId = Int
 
@@ -12,24 +9,22 @@ data PawnId = PawnId
   deriving Eq
 
 data Pawn = Pawn
-  { _pawnPower      :: !Int
-  , _pawnSpeed      :: !Int
-  , _pawnId         :: !PawnId
-  , _pawnIncognito  :: !Bool
-  , _pawnBoost      :: !Int
+  { pawnPower      :: !Int
+  , pawnSpeed      :: !Int
+  , pawnId         :: !PawnId
+  , pawnIncognito  :: !Bool
+  , pawnBoost      :: !Int
   } deriving Eq
-
-$(makeLenses ''Pawn)
 
 -- | A basic pawn for a player.
 pawnNew :: PawnId -> Pawn
 pawnNew pid =
   Pawn
-    { _pawnId         = pid
-    , _pawnPower      = 1
-    , _pawnSpeed      = 1
-    , _pawnIncognito  = False
-    , _pawnBoost      = 0
+    { pawnId         = pid
+    , pawnPower      = 1
+    , pawnSpeed      = 1
+    , pawnIncognito  = False
+    , pawnBoost      = 0
     }
 
 -- | Power levels.
@@ -47,9 +42,8 @@ nextSpeedLevel n
   | otherwise = n
 
 pawnCurPower :: Pawn -> Int
-pawnCurPower p = (p ^. pawnPower) + (p ^. pawnBoost)
+pawnCurPower p = pawnPower p + pawnBoost p
 
 pawnClear :: Pawn -> Pawn
-pawnClear p = p & pawnBoost     .~ 0
-                & pawnIncognito .~ False
+pawnClear p = p { pawnBoost = 0, pawnIncognito = False }
 
