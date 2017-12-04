@@ -29,40 +29,24 @@ import qualified Data.Map as Map
 import qualified Data.Text as Text
 import           Data.Ratio(Ratio, (%))
 import           Data.Maybe(fromMaybe)
-import           Control.Monad(unless,guard)
+import           Control.Monad(unless,guard,msum)
 
 import Util.Perhaps
 
 import Pawn
 
 
--- | A location of a tile on a board
-type TileLoc = (Int,Int)
-
--- | A pawn location on the board, either a tile, edge, or a vertex.
-data PawnLoc = PawnLoc Int Int
-  deriving (Eq,Ord)
-
-
--- | The current arrangement of the baord.
-data Board = Board
-  { boardTiles   :: !(Map TileLoc Tile)
-    -- ^ The tiles on the board.
-
-  , boardContent :: !(Map PawnLoc Content)
-    -- ^ Content for all valid board location.
-  }
-
-data Content = Content
-  { contentStack   :: ![Pawn]  -- ^ The top is the first one
-  , contentSharing :: ![Pawn]
-  }
-
 data Tile = Tile
 
 --------------------------------------------------------------------------------
 -- Content Operations
 --------------------------------------------------------------------------------
+
+-- | Content of a location.
+data Content = Content
+  { contentStack   :: ![Pawn]  -- ^ The top is the first one
+  , contentSharing :: ![Pawn]
+  }
 
 -- | No content.
 contentNew :: Content
@@ -102,12 +86,21 @@ contentActivePawns c = top ++ contentSharing c
 
 
 --------------------------------------------------------------------------------
+-- Locations
+
+-- | A location of a tile on a board
+type TileLoc = (Int,Int)
+
+-- | A pawn location on the board, either a tile, edge, or a vertex.
+data PawnLoc = PawnLoc Int Int
+  deriving (Eq,Ord)
+
 
 -- | Tiles where a pawn might have influence.  Note that this produces
 -- the location of all tiles around the pawn,
 -- even ones that are not not the board.
-pawnTiles :: PawnLoc -> [TileLoc]
-pawnTiles (PawnLoc x y) = (x',y') : more
+pawnLocTiles :: PawnLoc -> [TileLoc]
+pawnLocTiles (PawnLoc x y) = (x',y') : more
   where
   (x',xr) = x `divMod` 2
   (y',yr) = y `divMod` 2
@@ -131,6 +124,23 @@ pawnLocOnTile (PawnLoc x y) =
      guard (xr /= 0 && yr /= 0)
      return (x',y')
 
+-- | Are these location adjacent.
+pawnLocAdjacent :: PawnLoc -> PawnLoc -> Bool
+pawnLocAdjacent (PawnLoc x1 y1) (PawnLoc x2 y2) = adj x1 x2 || adj y1 y2
+  where
+  adj a b = abs (a - b) == 1
+
+-- | Is this location on the board?
+pawnLocOnBoard :: Board -> PawnLoc -> Bool
+pawnLocOnBoard b l = any (tileLocOnBoard b) (pawnLocTiles l)
+
+-- | Is the given location part of this board.
+tileLocOnBoard :: Board -> TileLoc -> Bool
+tileLocOnBoard b l = Map.member l (boardTiles b)
+
+
+--------------------------------------------------------------------------------
+-- Computing influence
 
 -- | Influence of a pawn is the pawn's strength spread evenly across
 -- potential adjacent locations.
@@ -140,7 +150,7 @@ type Influence = Ratio Int
 -- Note that some of the locations may be outside the board.
 pawnTilePower :: PawnLoc -> Pawn -> (Influence, [TileLoc])
 pawnTilePower loc p = (pawnCurPower p % length locs, locs)
-  where locs = pawnTiles loc
+  where locs = pawnLocTiles loc
 
 -- | For each tile, how much influence does each player have.
 type InfluenceMap = Map TileLoc (Map PlayerId Influence)
@@ -152,7 +162,17 @@ addInfluence p x =
 
 
 --------------------------------------------------------------------------------
--- Board Operations
+-- The Board
+
+-- | The current arrangement of the baord.
+data Board = Board
+  { boardTiles   :: !(Map TileLoc Tile)
+    -- ^ The tiles on the board.
+
+  , boardContent :: !(Map PawnLoc Content)
+    -- ^ Content for all valid board location.
+  }
+
 
 -- | A baord with the given layout and no pawns.
 boardNew :: Map TileLoc Tile -> Board
@@ -162,36 +182,40 @@ boardNew ts =
     , boardContent = Map.empty
     }
 
+-- | Remove a pawn from the board.
 boarddRm :: PawnId -> Board -> Maybe (Pawn, Board)
-boarddRm = undefined
+boarddRm pid b =
+  do (p,l,c) <- msum [ do (p,c1) <- contentRm pid c
+                          return (p, l, c1)
+                     | (l,c) <- Map.toList (boardContent b) ]
+     return (p, b { boardContent = Map.insert l c (boardContent b) })
 
-{-
+
 -- | Can this pawn enter the given location.
 -- It assumes that the pawn is not currently on the board.
-mayMove :: Pawn -> PawnLoc -> Board -> Bool
-mayEnter p l b
-  | not (onBoardLoc b l)  = False
-  | p ^. pawnIncognito    = True
+mayMove :: Pawn -> PawnLoc -> PawnLoc -> Board -> Bool
+mayMove p lFrom lTo b
+  | not (pawnLocOnBoard b lTo)      = False
+  | not (pawnLocAdjacent lFrom lTo) = False
+  | pawnIncognito p                 = True
   | otherwise =
-    case pawnLocOnTile l of
+    case pawnLocOnTile lTo of
       Nothing -> contentIsEmpty cnt
       Just tl  ->
-        let infMap1 = influenceMap b Map.! tl
-
-
-            othersI = Map.elems $ Map.delete owner $ 
-            ourI    = influenceMap b1 Map.! tl Map.! owner
+        let othersI = Map.elems $ Map.delete owner $ influenceMap b1 Map.! tl
+            ourI    = influenceMap b2 Map.! tl Map.! owner
         in all (ourI >) othersI
 
   where
-  owner  = pidOwner (p ^. pawnId)
-  mbTile = pawnLocOnTile l
-  cnt    = fromMaybe contentNew (b ^. boardContent . at l)
-  b1     = uncheckedPlacePawn l p b
--}
+  owner  = pidOwner (pawnId p)
+  mbTile = pawnLocOnTile lTo
+  cnt    = Map.findWithDefault contentNew lTo (boardContent b)
+
+  b1     = uncheckedPlacePawn lFrom p b
+  b2     = uncheckedPlacePawn lTo   p b
 
 
--- Just add a pawn to a location.
+-- | Just add a pawn to a location.
 -- If it is incognito, it will go to the side.
 -- Otherwise it will go to the top of the stack.
 uncheckedPlacePawn :: PawnLoc -> Pawn -> Board -> Board
@@ -199,7 +223,6 @@ uncheckedPlacePawn l p b =
   b { boardContent = Map.alter (Just . contentAdd p . fromMaybe contentNew)
                                l
                                (boardContent b) }
-
 
 
 -- | Compute the players' influence for each location on the map.
@@ -212,14 +235,9 @@ influenceMap b = Map.foldrWithKey upd Map.empty (boardContent b)
       where
       owner      = pidOwner (pawnId p)
       (amt,locs) = pawnTilePower l p
-      existLoc   = filter (onBoardTile b) locs
+      existLoc   = filter (tileLocOnBoard b) locs
 
--- | Is the given location part of this board.
-onBoardTile :: Board -> TileLoc -> Bool
-onBoardTile b l = Map.member l (boardTiles b)
 
-onBoardLoc :: Board -> PawnLoc -> Bool
-onBoardLoc b l = any (onBoardTile b) (pawnTiles l)
 
 
 
