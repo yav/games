@@ -3,7 +3,7 @@ module Decks.Spirit where
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 import           Data.Text ( Text )
-import           Control.Monad (forM_)
+import           Control.Monad (forM_,when)
 
 import CardIds
 import GameMonad
@@ -29,6 +29,17 @@ creatures = Map.fromList
             do damageCreatures Effect 8 (slotsFor Opponent)
                forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 8 })
 
+    , (spirit_templar,
+        defaultCreature
+          { onSummonedOther = \cl sl ->
+              when (isNeighbor cl sl) $
+                do Just c <- getCreatureAt cl
+                   doWizardDamage (theOtherOne (locWho cl)) c 4 })
+
+  , (spirit_holy_avenger,
+        defaultCreature
+          { onDiedOther = \cl died ->
+              when (isNeighbor cl died) (creatureChangeAttack cl 2) })
 
 
   ]

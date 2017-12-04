@@ -10,6 +10,8 @@ module Effects
   , damageCreature
   , doWizardDamage
   , getAttackPower
+
+  , creatureKill
   ) where
 
 import qualified Data.Map as Map
@@ -576,64 +578,28 @@ checkDeath =
 
 
 
-
-
-
-
-
-
 -- | Actions taken by another creature, when a creature is summoned.
 -- (e.g., "Dwarven Riflemen")
 creatureSummoned ::
   Location {- ^ actor -} ->
   Location {- ^ summoned creature -} ->
   GameM ()
-creatureSummoned = creatureReact
-    [ (water_merfolk_overlord, \(cl,_) tgt ->
-         when (isNeighbor cl tgt) $
-           updGame_ (creatureAt tgt . mapped . deckCardEnabled .~ True))
-
-    , (mechanical_dwarven_rifleman, \(cl,_) sl ->
-        when (locWho cl /= locWho sl)
-          $ damageCreature Effect 4 sl
-      )
-
-    , (goblin's_goblin_hero, \(cl,_) tgt ->
-        when (cl == oppositeOf tgt) $
-          do mb <- randomBlankSlot (locWho cl)
-             case mb of
-               Nothing -> return () -- oh no, we have nowhere to run!
-               Just l  -> creatureMove cl l)
-
-    , (spirit_templar, \(cl,c) sl ->
-        when (isNeighbor cl sl) (doWizardDamage (theOtherOne (locWho cl)) c 4))
-    ]
+creatureSummoned cl tgt =
+  whenCreature cl $ \c ->
+    case getCreatureEffects c of
+      Nothing  -> return ()
+      Just eff -> onSummonedOther eff cl tgt
 
 
 creatureDied ::
   Location {- ^ actor -} ->
   Location {- ^ where the killed creature was (it is not there anymore) -} ->
   GameM ()
-creatureDied = creatureReact
-  [ (death_keeper_of_death, \(cl,_) dl ->
-       do let owner = locWho cl
-          when (owner /= locWho dl) $    -- opponents creature died
-            wizChangePower owner Special 1
-    )
-  , (goblin's_goblin_looter, \(cl,_) _ ->
-      do el <- randomPower
-         wizChangePower (locWho cl) el 1)
-
-
-  , (spirit_holy_avenger, \(cl,_) died ->
-      when (isNeighbor cl died) (creatureChangeAttack cl 2))
-
-  -- Vampiric
-  , (vampiric_ghoul, \(cl,_) died ->
-      when (locWho died == theOtherOne (locWho cl)) $
-        creatureChangeAttack cl 1)
-
-  ]
+creatureDied cl tgt =
+  whenCreature cl $ \c ->
+    case getCreatureEffects c of
+      Nothing  -> return ()
+      Just eff -> onDiedOther eff cl tgt
 
 
 
@@ -752,14 +718,13 @@ creatureLeave (l,d) =
 creatureDestroy :: Location -> GameM ()
 creatureDestroy l =
   whenCreature l $ \c ->
-    case Map.lookup (deckCardName c) abilities of
-      Nothing   -> do updGame_ (creatureAt l .~ Nothing)
-                      creatureLeave (l,c)
-      Just act  -> act
-  where
-  abilities = Map.fromList
-    [ (other_golem, creatureKill l)
-    ]
+    let defaultAct = do updGame_ (creatureAt l .~ Nothing)
+                        creatureLeave (l,c)
+    in
+    case getCreatureEffects c of
+      Nothing  -> defaultAct
+      Just eff -> do doDefault <- onDestroyed eff l
+                     when doDefault defaultAct
 
 -- | Remove a creature from the game, and invoke its death handler, if any.
 creatureKill :: Location -> GameM ()

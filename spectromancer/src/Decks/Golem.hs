@@ -37,6 +37,11 @@ creatures = Map.fromList
             do g <- getGame
                let dmg = length (inhabitedSlots g allSlots)
                damageCreatures Effect dmg (slotsFor Opponent) })
+
+    , (other_golem,
+        defaultCreature
+          { onDestroyed = \l -> creatureKill l >> return False })
+
   ]
 
 -- | Find out golem
