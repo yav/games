@@ -91,6 +91,7 @@ creatureModifyPowerGrowth w c =
     , (mechanical_dwarven_craftsman, (Caster, [(Special, 1)]))
 
     , (demonic_demon_quartermaster, (Caster, [(Special, 1)]))
+    , (illusion_hypnotist, (Caster, [(Special,1)]))
     ]
 
 
