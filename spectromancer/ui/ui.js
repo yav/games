@@ -127,14 +127,19 @@ function img(x) {
 function stat(x,t,l,c) {
   return $('<div/>')
          .css('position','absolute')
+         .css('background-color', '#fc9')
          .css('color',c)
          .css('font-size','10px')
          .css('font-weight','bold')
          .css('top',t + 'px')
          .css('left', l + 'px')
          .css('z-index','4')
-         .css('width','10px')
-         .css('height','16px')
+         .css('padding-left','1px')
+         .css('padding-right','1px')
+         .css('border-radius','2px')
+         .css('border-width', '0px')
+         // .css('width','10px')
+         .css('height','15px')
          .css('text-align','center')
          .text(x == null ? '?' : x)
 
@@ -181,7 +186,7 @@ function drawCard(c) {
               .css('z-index','2'))
     grp.append(stat(c.cost,7,76,'black'))
     grp.append(stat(c.life,77,75,'green').addClass('life'))
-    grp.append(stat(c.attack,76,10,'red'))
+    grp.append(stat(c.attack,76,10,'red').addClass('attack'))
   }
 
   return grp
@@ -192,6 +197,17 @@ function drawDeckCard(c,owner) {
 
   var dom = drawCard(c.card).addClass(owner)
   if (!c.enabled) dom.addClass('disabled')
+
+  jQuery.each(c.mods, function(ix,mod) {
+    switch (mod.tag) {
+      case 'skipAttack': break
+      case 'boost':
+        dom.find('.attack').append('+' + mod.amount)
+        break
+      case 'immune': break
+    }
+  })
+
   return dom
 }
 

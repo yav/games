@@ -26,6 +26,7 @@ import Util.Random(oneOf, randInRange)
 import CardTypes
 import CardIds
 import Cards(getCard)
+import Game(creatureModifyAttack)     -- TEMPORARILY MOVED
 import Game
 import GameMonad
 import Deck(Element(..),allElements)
@@ -955,21 +956,6 @@ getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
   elemental s = g ^. player owner . playerPower s
 
 
-
--- | Compute changes to the attack value of a speicific creature.
-creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
-                        (Location,DeckCard) {- ^ Modifier of attack -} -> Int
-
-creatureModifyAttack (l,d) (l1,c)
-  | isWall d = 0
-  | name == fire_orc_chieftain && isNeighbor l l1 = 2
-  | name == fire_minotaur_commander && ours && l /= l1 = 1
-  | name == golem_golem_instructor && ours && deckCardName d == other_golem = 2
-  | deckCardName d == goblin's_goblin_hero && isNeighbor l l1 = 2
-  | otherwise = 0
-  where
-  name = deckCardName c
-  ours = sameSide l l1
 
 creatureModifySpellDamageAdd ::
   Who      {- ^ Whose spell are we modifying -} ->

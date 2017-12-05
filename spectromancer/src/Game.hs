@@ -54,6 +54,9 @@ module Game
   , deckCardAgeMods
   , DeckCardMod(..)
   , ModDuration(..)
+
+    -- XXX
+  , creatureModifyAttack
   )
   where
 
@@ -61,6 +64,7 @@ import           Data.Map(Map)
 import qualified Data.Map as Map
 import           Data.Text(Text)
 import qualified Data.Text as Text
+import           Data.List(foldl')
 import           Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
 import Data.Maybe(maybeToList,mapMaybe)
@@ -74,6 +78,7 @@ import Util.Random(StdGen,Gen,genRandFun,randSource)
 import CardTypes
 import CardIds
 import Deck
+
 
 -- | Information needed for starting a new game.
 data GameInit = GameInit
@@ -210,7 +215,7 @@ newPlayer name cls deck w =
                    , _playerLife        = 60
                    , _playerActive      = Map.empty
                    , _playerDeck        = Map.mapWithKey dc deck
-                   , _playerPowerMap       = initialMana
+                   , _playerPowerMap    = initialMana
                    , _playerClass       = cls
                    , _playerPlayCardNum = 0
                    }
@@ -299,7 +304,17 @@ instance ToJSON DeckCard where
               , "enabled" .= (c ^. deckCardEnabled)
               , "element" .= (c ^. deckCardElement)
               , "target"  .= (c ^. deckCard . cardTarget)
+              , "mods"    .= map fst (c ^. deckCardMods)
               ]
+
+instance ToJSON DeckCardMod where
+  toJSON c =
+    JS.object $
+      case c of
+        SkipNextAttack -> [ tag "skipAttack" ]
+        AttackBoost n  -> [ tag "boost", "amount" .= n ]
+        Immune         -> [ tag "immune" ]
+    where tag x = "tag" .= (x :: Text)
 
 instance ToJSON Player where
   toJSON c = JS.object
@@ -313,10 +328,41 @@ instance ToJSON Player where
     ]
 
 instance ToJSON Game where
-  toJSON g = JS.object
+  toJSON g0 = JS.object
     [ "current" .= (g ^. curPlayer)
     , "other"   .= (g ^. otherPlayer)
     , "left"    .= (g ^. firstPlayerStart)
     ]
+    where
+    g = preprocessForView g0
+
+preprocessForView :: Game -> Game
+preprocessForView g =
+  foldl'
+    (\g' (l,m) -> g' & creatureAt l . mapped %~ addMod m)
+    g
+    [ (l, m)
+    | attacker@(l,_) <- inhabitedSlots g allSlots
+    , modifier <- inhabitedSlots g allSlots
+    , let m = creatureModifyAttack attacker modifier
+    , not (m == 0)
+    ]
+  where
+  addMod m = deckCardAddMod (AttackBoost m, UntilEndOfTurn 0)
+
+-- | Compute changes to the attack value of a speicific creature.
+creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
+                        (Location,DeckCard) {- ^ Modifier of attack -} -> Int
+
+creatureModifyAttack (l,d) (l1,c)
+  | isWall d = 0
+  | name == fire_orc_chieftain && isNeighbor l l1 = 2
+  | name == fire_minotaur_commander && ours && l /= l1 = 1
+  | name == golem_golem_instructor && ours && deckCardName d == other_golem = 2
+  | deckCardName d == goblin's_goblin_hero && isNeighbor l l1 = 2
+  | otherwise = 0
+  where
+  name = deckCardName c
+  ours = sameSide l l1
 
 
