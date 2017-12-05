@@ -629,9 +629,10 @@ damageCreature dmg amt l =
 
     , (illusion_phantom_warrior, doDamage (min 1 amt))
     , (illusion_wall_of_reflection,
-      do dmgDone <- doDamage' amt
-         Just c <- getCreatureAt l
-         doWizardDamage (theOtherOne $ locWho l) c dmgDone)
+      do lifeChange <- doDamage' amt
+         unless (lifeChange == 0) $
+           do Just c <- getCreatureAt l
+              doWizardDamage (theOtherOne $ locWho l) c (negate lifeChange))
 
     , (forest_angry_angry_bear,
         do when (amt > 0) (creatureChangeAttack l 1)
