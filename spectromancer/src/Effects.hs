@@ -789,7 +789,7 @@ creatureKill l =
     -- Vampiric
     , (vampiric_devoted_servant,
         case c ^. deckCard . creatureCard . creatureAttack of
-          Just n -> wizChangePower (locWho l) Special n
+          Just n -> wizChangePower (locWho l) Special n >> leave
           Nothing -> return ())
     ]
 
