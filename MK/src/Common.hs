@@ -23,7 +23,7 @@ data Element    = Physycal | Fire | Ice | ColdFire
 data Terrain    = Plains | Hills | Forest | Wasteland | Desert | Swamp
                 | City BasicMana
                 | Lake | Mountain
-                | Ocean {- for tile A and B -}
+                | Ocean {- ^ for tile A and B -}
                   deriving (Eq,Ord,Show)
 
 
