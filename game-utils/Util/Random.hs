@@ -15,7 +15,6 @@ module Util.Random
 import qualified System.Random as Rand
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import           Data.Word(Word8)
 import Data.Array (listArray, bounds, (!))
 import Control.Monad(ap,liftM,replicateM)
 
@@ -87,10 +86,6 @@ randomTill :: (a -> Bool) -> Gen a -> Gen a
 randomTill p g =
   do a <- g
      if p a then return a else randomTill p g
-
--- | Generate a random byte
-randByte :: Gen Word8
-randByte = fromIntegral <$> randInRange 0 255
 
 randIdent :: Int {- ^ How long -} ->
             (Text -> Bool) {- ^ Is it used -} ->
