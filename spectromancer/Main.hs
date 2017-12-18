@@ -18,22 +18,44 @@ import Util.Random(randInt, randSourceIO, genRand)
 import GameMonad
 import Game
 import ServerState
-import CardTypes(Location(..))
+import CardTypes(Location(..),Who)
 import Cards(allCards)
-import Replay(Move(..))
+import Replay(Move(..),Replay(..))
 import GameStats(winner)
 
 
-sendGame :: GameId -> Game -> Log -> GameFinished -> Snap ()
-sendGame gid g f w =
-  do snapIO (mapM_ print (f []))
-     sendJSON $ JS.object [ "game" .= g
-                          , "log"  .= f []
-                          , "gid"  .= gid
-                          , "winner" .= (case w of
-                                           NotFinished -> Nothing
-                                           Winner fg   -> Just (winner fg))
-                          ]
+sendGame :: GameId -> ActiveGame -> Snap ()
+sendGame gid ag =
+  case outcome r of
+    GameOn g ->
+      send [ "game"  .= g
+           , "log"   .= (case states r of
+                          [] -> []
+                          (_,_,f) : _  -> f [])
+           , "gid"    .= gid
+           , "winner" .= (Nothing :: Maybe Who)
+           ]
+
+    GameStopped (GameWonBy w g) ->
+      send [ "game"   .= g
+           , "log"    .= ([] :: [LogEvent])
+           , "gid"    .= gid
+           , "winner" .= Just w
+           ]
+
+    GameStopped (Err err) -> sendError err id
+
+
+  where
+  r = replayLog ag
+
+  send = sendJSON . JS.object . addGameLog
+
+  addGameLog fs = ("history" .= [ JS.object [ "move" .= mv
+                                            , "events" .= l []
+                                            ] | (_, mv, l) <- states r ])
+                  : fs
+
 
 sendError :: Text -> Log -> Snap ()
 sendError t _l = badInput t -- (Text.unwords (t : map (Text.pack . show) []))
@@ -48,7 +70,7 @@ snapGameM s gid mv =
          case err of
            GameNotFound -> notFound
            GameError erro -> sendError erro id
-       Right (g,l,w) -> sendGame gid g l w
+       Right ag -> sendGame gid ag
 
 
 main :: IO ()
@@ -87,8 +109,8 @@ snapNewGame self =
                        , secondPlayer = (p2, c2)
                        }
 
-     (gid,game) <- snapIO $ addNewGame self gi
-     sendGame gid game id NotFinished
+     (gid,ag) <- snapIO $ addNewGame self gi
+     sendGame gid ag
 
 snapListGames :: ServerState -> Snap ()
 snapListGames self =

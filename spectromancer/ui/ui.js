@@ -11,9 +11,10 @@ function makeTurn(url,info,tgt) {
   var animFinished = false
 
   function draw() {
+
     drawEvents(newG.log, function() {
       $('body').empty().append( drawNewGame(newG.winner)
-                              , drawGame(newG.game,newG.winner))
+                              , drawGame(newG.game,newG.history,newG.winner))
     })
   }
 
@@ -45,6 +46,45 @@ function makeTurn(url,info,tgt) {
   });
 
 
+}
+
+function drawHistory(h) {
+  var dom = $('<div/>')
+  return dom
+
+  function locToText(l) {
+    switch (l.who) {
+      case 'caster':   return 'owner\'s ' + l.slot
+      case 'opponent': return 'opponent\'s ' + l.slot
+      default: return '(unknown location)'
+    }
+  }
+
+  function drawMove(m) {
+    var msg
+    switch (m.tag) {
+      case 'skipTurn': msg = 'Skip turn'; break
+      case 'playCard':
+        msg = 'Play card ' + m.element + '(' + m.rank + ')'
+        if (m.location !== null) {
+          msg += ' to ' + locToText(m.location)
+        }
+        break
+      default: msg = '(unknwon)'
+    }
+
+    dom.append($('<div/>').text(msg))
+  }
+
+  function drawEvent(e) { return e.tag }
+
+  jQuery.each(h, function(ix,m) {
+    drawMove(m.move)
+    jQuery.each(m.events, function(ix,ev) {
+      dom.append($('<div/>').text(drawEvent(ev)))
+    })
+  })
+  return dom
 }
 
 function setSource(x,row,ix,cd) {
@@ -310,7 +350,7 @@ function drawArena(p1,p2,r1,r2) {
   return dom
 }
 
-function drawGame(g,winner) {
+function drawGame(g,history,winner) {
   var left = g.current
   var right = g.other
   var leftR = 'caster'
@@ -323,7 +363,11 @@ function drawGame(g,winner) {
     rightR = 'caster'
   }
 
-  return $('<table/>')
+  var h = drawHistory(history)
+
+  return $('<div/>').append
+        ( h
+        , $('<table/>')
          .css('margin-left','auto')
          .css('margin-right','auto')
          .append($('<tr/>')
@@ -331,6 +375,7 @@ function drawGame(g,winner) {
                        , $('<td/>').append(drawArena(left,right,leftR,rightR))
                        , $('<td/>').append(drawPlayer(right, rightR,winner))
                        ))
+          )
 }
 
 

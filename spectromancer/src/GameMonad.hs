@@ -11,7 +11,6 @@ module GameMonad
   , Log, LogEvent(..)
 
    -- * Interruptions
-  , stopGame
   , stopError
   , checkGameWon
 
@@ -94,7 +93,7 @@ data LogEvent = Say String
                 deriving Show
 
 
-data GameStopped = GameWonBy Who
+data GameStopped = GameWonBy Who Game
                  | Err Text
 
 data GameStatus a = GameStopped GameStopped
@@ -124,8 +123,6 @@ instance Monad GameM where
 runGame :: Game -> GameM a -> (GameStatus a, Game, Log)
 runGame g (GameM f) = f g
 
-stopGame :: GameStopped -> GameM a
-stopGame r = GameM (\g -> (GameStopped r, g, id))
 
 getGame :: GameM Game
 getGame = GameM (\g -> (GameOn g, g, id))
@@ -169,15 +166,17 @@ withGame f = f <$> getGame
 -- Stop game
 
 stopError :: Text -> GameM a
-stopError t = stopGame (Err t)
+stopError t = GameM (\g -> (GameStopped (Err t), g, id))
 
+stopWon :: Who -> GameM a
+stopWon w = GameM (\g -> (GameStopped (GameWonBy w g), g, id))
 
 -- | Is this a finished game?
 checkGameWon :: GameM ()
 checkGameWon =
   do g <- getGame
-     if | g ^. player Opponent . playerLife <= 0 -> stopGame (GameWonBy Caster)
-        | g ^. player Caster . playerLife <= 0 -> stopGame (GameWonBy Opponent)
+     if | g ^. player Opponent . playerLife <= 0 -> stopWon Caster
+        | g ^. player Caster . playerLife <= 0   -> stopWon Opponent
         | otherwise                          -> return ()
 --------------------------------------------------------------------------------
 
@@ -447,10 +446,10 @@ instance ToJSON LogEvent where
 
 instance ToJSON GameStopped where
  toJSON st = JS.object $ case st of
-    GameWonBy who -> [ tag "finished"
-                     , "winner" .= who ]
-    Err txt       -> [ tag "error"
-                     , "error" .= txt ]
+    GameWonBy who _ -> [ tag "finished"
+                       , "winner" .= who ]
+    Err txt         -> [ tag "error"
+                       , "error" .= txt ]
 
 
 instance ToJSON a => ToJSON (GameStatus a) where
