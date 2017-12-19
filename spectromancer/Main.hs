@@ -53,7 +53,7 @@ sendGame gid ag =
 
   addGameLog fs = ("history" .= [ JS.object [ "move" .= mv
                                             , "events" .= l []
-                                            ] | (_, mv, l) <- states r ])
+                                            ] | (_, mv, l) <- reverse (states r) ])
                   : fs
 
 

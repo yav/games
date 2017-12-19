@@ -15,6 +15,7 @@ function makeTurn(url,info,tgt) {
     drawEvents(newG.log, function() {
       $('body').empty().append( drawNewGame(newG.winner)
                               , drawGame(newG.game,newG.history,newG.winner))
+      scrollHist()
     })
   }
 
@@ -48,9 +49,23 @@ function makeTurn(url,info,tgt) {
 
 }
 
+function scrollHist() {
+  var x = $('#history')
+  x.scrollTop(x[0].scrollHeight)
+}
+
 function drawHistory(h) {
   var dom = $('<div/>')
-  return dom
+            .attr('id','history')
+            .css('text-align','left')
+            .css('max-width','30em')
+            .css('height','30em')
+            .css('background-color','rgba(0,0,0,0.75)')
+            .css('display','block')
+            .css('overflow','auto')
+            .css('float','right')
+            .css('padding','1em')
+            .css('border-radius','10px')
 
   function locToText(l) {
     switch (l.who) {
@@ -67,23 +82,23 @@ function drawHistory(h) {
       case 'playCard':
         msg = 'Play card ' + m.element + '(' + m.rank + ')'
         if (m.location !== null) {
-          msg += ' to ' + locToText(m.location)
+          msg += ' on ' + locToText(m.location)
         }
         break
       default: msg = '(unknwon)'
     }
 
-    dom.append($('<div/>').text(msg))
+    dom.append($('<div/>')
+               .css('margin-top','1em')
+               .css('margin-bottom','0.5em')
+               .css('font-weight','bold').text(msg))
   }
-
-  function drawEvent(e) { return e.tag }
 
   jQuery.each(h, function(ix,m) {
     drawMove(m.move)
-    jQuery.each(m.events, function(ix,ev) {
-      dom.append($('<div/>').text(drawEvent(ev)))
-    })
+    dom.append(drawEventsText(m.events))
   })
+
   return dom
 }
 

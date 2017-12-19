@@ -101,6 +101,7 @@ function newGame(m,opts) {
     oldGame = res
     gameID = res.gid
     b.append(drawGame(res.game,res.history))
+    scrollHist()
   })
 }
 
