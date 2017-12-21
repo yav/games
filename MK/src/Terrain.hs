@@ -39,20 +39,33 @@ import qualified Data.Set as Set
 import           Data.Map ( Map )
 import qualified Data.Map as Map
 
+-- | Identifies a tile (7 hexes)
 type TileAddr       = (Int,Int)
 
 data Dir            = NE | E | SE | SW | W | NW
                       deriving (Eq,Ord,Show,Enum,Bounded)
 
+-- | Identifies a hex on a tile.
 data HexAddr        = Center | Border Dir
                       deriving (Eq,Ord,Show)
 
-data HexNeighbour   = Local HexAddr | Foreign Int Int Dir
+-- | Identifies a hex neighbouring another hex.
+data HexNeighbour   = Local HexAddr       -- ^ Neighbor on the same tile
+                    | Foreign Int Int Dir
+                      -- ^ Neighbor on a different tile
+                      -- The ints indicate the relative position of the other
+                      -- tile.
                       deriving (Eq,Ord,Show)
 
-data Addr           = Addr { addrGlobal :: TileAddr, addrLocal :: HexAddr }
+-- | Identifies an individual hex on the board.
+data Addr           = Addr { addrGlobal :: TileAddr
+                             -- ^ Tile containing the hex.
+                           , addrLocal :: HexAddr
+                             -- ^ Location on the tile.
+                           }
                       deriving (Eq,Ord,Show)
 
+-- | Various features that may appear on a tile.
 data Feature        = MagicalGlade | Mine BasicMana
                     | Village | Monastery
                     | Keep | MageTower
@@ -62,8 +75,10 @@ data Feature        = MagicalGlade | Mine BasicMana
                     | RampagingEnemy EnemyType
                       deriving (Eq,Show)
 
+-- | Is this a basic or an advanced (core) tile.
 data TileType       = BasicTile | CoreTile
 
+-- | Description of a single hex.
 data HexLandInfo    = HexLandInfo { hexTerrain :: Terrain
                                   , hexFeature :: Maybe Feature
                                   }
@@ -73,19 +88,22 @@ data Tile           = Tile { tileName     :: Text
                            , tileTerrain  :: HexAddr -> HexLandInfo
                            }
 
+-- | A dummy tile, used to indicate a potential tile location.
 placeHolderTile :: TileType -> Tile
 placeHolderTile ty = Tile { tileName    = "placeholder"
                           , tileType    = ty
                           , tileTerrain = \_ -> hexContent Ocean
                           }
 
+-- | All possible directions.
 allDirections :: [Dir]
 allDirections = [ minBound .. maxBound ]
 
+-- | All locations on a tile.
 allHexAddrs :: [HexAddr]
 allHexAddrs = Center : map Border allDirections
 
-
+-- | Terrain costs.
 terrainCostsDuring :: Time -> Map Terrain Int
 terrainCostsDuring time = Map.fromList $
   [ (Plains, 2)
@@ -129,6 +147,7 @@ globalDelta dir =
     SE -> (1,-1)
     SW -> (0,-1)
 
+-- | Tile locaitons neighbouring some tile location.
 globalNeighbours :: TileAddr -> [TileAddr]
 globalNeighbours (x,y) =
   [ (x+dx,y+dy) | (dx,dy) <- map globalDelta allDirections ]
@@ -205,8 +224,13 @@ isOnMap sh (x,y) =
     Wedge -> x >= 0 && y >= 0
     OpenMap up down -> x >= 0 && y <= up && down <= y && (y >= 0 || -x <= y)
 
-validPlacement :: MapShape -> (TileAddr -> Bool) -> TileType -> Bool ->
-                  TileAddr -> Bool
+validPlacement ::
+  MapShape           {- ^ Shapre of current map -} ->
+  (TileAddr -> Bool) {- ^ Is the given address already explored -} ->
+  TileType           {- ^ What sort of tile are we placing -} ->
+  Bool               {- ^ Is this a backup tile? -} ->
+  TileAddr           {- ^ Location where we'd like to place -} ->
+  Bool               {- ^ Is this placement valid -}
 validPlacement sh explored t backup pt@(x,y) =
   isOnMap sh pt && not (explored pt) &&
   (case (t, neighboursOf pt) of
