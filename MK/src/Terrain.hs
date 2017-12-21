@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+-- | Static information about tiles, and valid tile placements.
 module Terrain
   ( -- * Addressing
     Addr(..), TileAddr,
