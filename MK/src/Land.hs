@@ -55,17 +55,18 @@ import           Control.Monad( foldM, guard )
 
 -- | General setting for setting up the map.
 data LandSetup = LandSetup
-  { useShape        :: MapShape
-  , useCountryNum   :: Int
-  , useCountryTiles :: [ Tile ]
-  , useCoreNum      :: Int
-  , useCoreTiles    :: [ Tile ]
-  , useCityLevels   :: [ Int ]
-  , useStartTime    :: Time
-  , useEnemies      :: [ Enemy ]
-  , useRuins        :: [ Ruins ]
+  { useShape        :: MapShape   -- ^ Use this map shape
+  , useCountryNum   :: Int        -- ^ Use this many country tiles
+  , useCountryTiles :: [ Tile ]   -- ^ All available country tiles
+  , useCoreNum      :: Int        -- ^ Use this many core tiles
+  , useCoreTiles    :: [ Tile ]   -- ^ All available core tiles
+  , useCityLevels   :: [ Int ]    -- ^ Setup cities like this
+  , useStartTime    :: Time       -- ^ Start during day or night?
+  , useEnemies      :: [ Enemy ]  -- ^ All available enemies
+  , useRuins        :: [ Ruins ]  -- ^ All available ruins
   }
 
+-- | Default setup using all components.
 defaultLandSetup :: MapShape ->
                     Int   {- ^ Number of coutryside tiles -} ->
                     Int   {- ^ Number of core tiles -} ->
@@ -121,7 +122,8 @@ setupLand LandSetup { .. } =
   cityNum                       = length useCityLevels
 
 
-
+-- | Initialize an enemy pool with no enemies: creates a slot
+-- for all enemy types.
 blankEnemyPool :: Gen (Map EnemyType (ResourceQ Enemy))
 blankEnemyPool = foldM add Map.empty allEnemyTypes
   where
@@ -129,6 +131,7 @@ blankEnemyPool = foldM add Map.empty allEnemyTypes
                return (Map.insert e q m)
 
 
+-- | Setup enemy poo.
 initialEnemyPool :: [Enemy] -> Gen (Map EnemyType (ResourceQ Enemy))
 initialEnemyPool enemies = do blank <- blankEnemyPool
                               return (foldr add blank enemies)
@@ -167,7 +170,9 @@ data Land = Land
 
 
 -- | Check if there are any more tiles available.  If so, also check
--- if the next tile may be placed at the given location.
+-- if the next tile may be placed at the given location,
+-- unless the first parameter is 'True'.  The validity check is skipped
+-- when we place the initial tiles on the map.
 selectTile :: Bool -> TileAddr -> Land -> Perhaps (Tile, Land)
 selectTile noCheck pt Land { .. }
   | t : ts <- unexploredTiles =
@@ -188,7 +193,7 @@ selectTile noCheck pt Land { .. }
 
 -- | Setup a newly reveal tile.
 -- The 'Int' in the result is the number of monasteries on the tile.
--- This is returned so that we can add the appropriate monaetry tech to
+-- This is returned so that we can add the appropriate monastery tech to
 -- the offers.
 populateTile :: Tile -> Land -> (GameTile, Int, Land)
 populateTile tile g = (gt, mons, g1)

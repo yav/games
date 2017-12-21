@@ -39,7 +39,7 @@ emptyGameTile gameTile = GameTile { gameTileContent = Map.empty, .. }
 
 -- | Information about a single hex on an active tile.
 data HexInfo = HexInfo
-  { hexLandInfo :: HexLandInfo
+  { hexLandInfo :: HexLandInfo    -- ^ Static content
   , hexContent  :: HexContent     -- ^ Dynamic information
   }
 
