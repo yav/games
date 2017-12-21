@@ -26,6 +26,7 @@ import Util.Random(oneOf, randInRange)
 import CardTypes
 import CardIds
 import Cards(getCard)
+import Game(creatureModifyAttack)     -- TEMPORARILY MOVED
 import Game
 import GameMonad
 import Deck(Element(..),allElements)
@@ -91,6 +92,7 @@ creatureModifyPowerGrowth w c =
     , (mechanical_dwarven_craftsman, (Caster, [(Special, 1)]))
 
     , (demonic_demon_quartermaster, (Caster, [(Special, 1)]))
+    , (illusion_hypnotist, (Caster, [(Special,1)]))
     ]
 
 
@@ -629,9 +631,10 @@ damageCreature dmg amt l =
 
     , (illusion_phantom_warrior, doDamage (min 1 amt))
     , (illusion_wall_of_reflection,
-      do dmgDone <- doDamage' amt
-         Just c <- getCreatureAt l
-         doWizardDamage (theOtherOne $ locWho l) c dmgDone)
+      do lifeChange <- doDamage' amt
+         unless (lifeChange == 0) $
+           do Just c <- getCreatureAt l
+              doWizardDamage (theOtherOne $ locWho l) c (negate lifeChange))
 
     , (forest_angry_angry_bear,
         do when (amt > 0) (creatureChangeAttack l 1)
@@ -786,7 +789,7 @@ creatureKill l =
     -- Vampiric
     , (vampiric_devoted_servant,
         case c ^. deckCard . creatureCard . creatureAttack of
-          Just n -> wizChangePower (locWho l) Special n
+          Just n -> wizChangePower (locWho l) Special n >> leave
           Nothing -> return ())
     ]
 
@@ -953,21 +956,6 @@ getAttackPower g (l,c) = max 0 (base + boardChange + modChange)
   elemental s = g ^. player owner . playerPower s
 
 
-
--- | Compute changes to the attack value of a speicific creature.
-creatureModifyAttack :: (Location,DeckCard) {- ^ Attack of this -} ->
-                        (Location,DeckCard) {- ^ Modifier of attack -} -> Int
-
-creatureModifyAttack (l,d) (l1,c)
-  | isWall d = 0
-  | name == fire_orc_chieftain && isNeighbor l l1 = 2
-  | name == fire_minotaur_commander && ours && l /= l1 = 1
-  | name == golem_golem_instructor && ours && deckCardName d == other_golem = 2
-  | deckCardName d == goblin's_goblin_hero && isNeighbor l l1 = 2
-  | otherwise = 0
-  where
-  name = deckCardName c
-  ours = sameSide l l1
 
 creatureModifySpellDamageAdd ::
   Who      {- ^ Whose spell are we modifying -} ->

@@ -2,7 +2,6 @@
 <html>
 <head>
 <script src="jquery.js"></script>
-<script src="game.js"></script>
 <script src="ui.js"></script>
 <script src="drawEvent.js"></script>
 <script src="players.js"></script>
@@ -31,25 +30,27 @@ function playerBox() {
   return sel
 }
 
+var decks =
+   [ 'RANDOM'
+   , 'DEATH CARDS'
+   , 'HOLY CARDS'
+   , 'MECHANICAL CARDS'
+   , 'ILLUSION CARDS'
+   , 'BEAST CARDS'
+   , 'GOBLIN\'S CARDS'
+   , 'CHAOS CARDS'
+   , 'SORCERY CARDS'
+   , 'FOREST CARDS'
+   , 'DEMONIC CARDS'
+   , 'CONTROL CARDS'
+   , 'GOLEM CARDS'
+   , 'SPIRIT CARDS'
+   , 'VAMPIRIC CARDS'
+   ]
 
 function classBox() {
   function val(x) { return $('<option/>').attr('value',x).text(x) }
-
-  return $('<select/>').append(val('DEATH CARDS')
-                              ,val('HOLY CARDS')
-                              ,val('MECHANICAL CARDS')
-                              ,val('ILLUSION CARDS')
-                              ,val('BEAST CARDS')
-                              ,val('GOBLIN\'S CARDS')
-                              ,val('CHAOS CARDS')
-                              ,val('SORCERY CARDS')
-                              ,val('FOREST CARDS')
-                              ,val('DEMONIC CARDS')
-                              ,val('CONTROL CARDS')
-                              ,val('GOLEM CARDS')
-                              ,val('SPIRIT CARDS')
-                              ,val('VAMPIRIC CARDS')
-                              )
+  return $('<select/>').append(decks.map(val))
 }
 
 function drawNewGame(finished) {
@@ -99,7 +100,8 @@ function newGame(m,opts) {
   jQuery.getJSON(m,opts,function(res) {
     oldGame = res
     gameID = res.gid
-    b.append(drawGame(res.game))
+    b.append(drawGame(res.game,res.history))
+    scrollHist()
   })
 }
 
@@ -119,12 +121,21 @@ function drawNoGame() {
           })
       })
   })
+
+  function getDeck(who) {
+    var v = $(who).val()
+    if (v === 'RANDOM') {
+      deck = 1 + Math.floor(Math.random() * (decks.length - 1))
+      return decks[deck]
+    } else return v
+  }
+
   var btn = fancyBtn('New game')
             .click(function() {
               newGame('newGame', { player1: $(p1Name).val()
                                  , player2: $(p2Name).val()
-                                 , player1Class: $(p1).val()
-                                 , player2Class: $(p2).val()
+                                 , player1Class: getDeck(p1)
+                                 , player2Class: getDeck(p2)
                                   })
             })
 

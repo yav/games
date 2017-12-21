@@ -11,9 +11,11 @@ function makeTurn(url,info,tgt) {
   var animFinished = false
 
   function draw() {
+
     drawEvents(newG.log, function() {
       $('body').empty().append( drawNewGame(newG.winner)
-                              , drawGame(newG.game,newG.winner))
+                              , drawGame(newG.game,newG.history,newG.winner))
+      scrollHist()
     })
   }
 
@@ -45,6 +47,59 @@ function makeTurn(url,info,tgt) {
   });
 
 
+}
+
+function scrollHist() {
+  var x = $('#history')
+  x.scrollTop(x[0].scrollHeight)
+}
+
+function drawHistory(h) {
+  var dom = $('<div/>')
+            .attr('id','history')
+            .css('text-align','left')
+            .css('max-width','30em')
+            .css('height','30em')
+            .css('background-color','rgba(0,0,0,0.75)')
+            .css('display','block')
+            .css('overflow','auto')
+            .css('float','right')
+            .css('padding','1em')
+            .css('border-radius','10px')
+
+  function locToText(l) {
+    switch (l.who) {
+      case 'caster':   return 'owner\'s ' + l.slot
+      case 'opponent': return 'opponent\'s ' + l.slot
+      default: return '(unknown location)'
+    }
+  }
+
+  function drawMove(m) {
+    var msg
+    switch (m.tag) {
+      case 'skipTurn': msg = 'Skip turn'; break
+      case 'playCard':
+        msg = 'Play card ' + m.element + '(' + m.rank + ')'
+        if (m.location !== null) {
+          msg += ' on ' + locToText(m.location)
+        }
+        break
+      default: msg = '(unknwon)'
+    }
+
+    dom.append($('<div/>')
+               .css('margin-top','1em')
+               .css('margin-bottom','0.5em')
+               .css('font-weight','bold').text(msg))
+  }
+
+  jQuery.each(h, function(ix,m) {
+    drawMove(m.move)
+    dom.append(drawEventsText(m.events))
+  })
+
+  return dom
 }
 
 function setSource(x,row,ix,cd) {
@@ -127,14 +182,19 @@ function img(x) {
 function stat(x,t,l,c) {
   return $('<div/>')
          .css('position','absolute')
+         .css('background-color', '#fc9')
          .css('color',c)
          .css('font-size','10px')
          .css('font-weight','bold')
          .css('top',t + 'px')
          .css('left', l + 'px')
          .css('z-index','4')
-         .css('width','10px')
-         .css('height','16px')
+         .css('padding-left','1px')
+         .css('padding-right','1px')
+         .css('border-radius','2px')
+         .css('border-width', '0px')
+         // .css('width','10px')
+         .css('height','15px')
          .css('text-align','center')
          .text(x == null ? '?' : x)
 
@@ -181,7 +241,7 @@ function drawCard(c) {
               .css('z-index','2'))
     grp.append(stat(c.cost,7,76,'black'))
     grp.append(stat(c.life,77,75,'green').addClass('life'))
-    grp.append(stat(c.attack,76,10,'red'))
+    grp.append(stat(c.attack,76,10,'red').addClass('attack'))
   }
 
   return grp
@@ -192,6 +252,17 @@ function drawDeckCard(c,owner) {
 
   var dom = drawCard(c.card).addClass(owner)
   if (!c.enabled) dom.addClass('disabled')
+
+  jQuery.each(c.mods, function(ix,mod) {
+    switch (mod.tag) {
+      case 'skipAttack': break
+      case 'boost':
+        dom.find('.attack').append('+' + mod.amount)
+        break
+      case 'immune': break
+    }
+  })
+
   return dom
 }
 
@@ -294,7 +365,7 @@ function drawArena(p1,p2,r1,r2) {
   return dom
 }
 
-function drawGame(g,winner) {
+function drawGame(g,history,winner) {
   var left = g.current
   var right = g.other
   var leftR = 'caster'
@@ -307,7 +378,11 @@ function drawGame(g,winner) {
     rightR = 'caster'
   }
 
-  return $('<table/>')
+  var h = drawHistory(history)
+
+  return $('<div/>').append
+        ( h
+        , $('<table/>')
          .css('margin-left','auto')
          .css('margin-right','auto')
          .append($('<tr/>')
@@ -315,6 +390,7 @@ function drawGame(g,winner) {
                        , $('<td/>').append(drawArena(left,right,leftR,rightR))
                        , $('<td/>').append(drawPlayer(right, rightR,winner))
                        ))
+          )
 }
 
 

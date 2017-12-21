@@ -14,21 +14,21 @@ gameStatsVersion :: Int
 gameStatsVersion = 1
 
 finishGame :: Who  {- ^ Who won the game -} ->
-              Game {- ^ Initial state of the game -} ->
+              GameInit {- ^ Initial state of the game -} ->
               Game {- ^ Final state of the game -} ->
               FinishedGame
 
-finishGame gWin gStart gEnd = FinishedGame
-  { player1    = gStart ^. p1 . playerName
-  , class1     = gStart ^. p1 . playerClass
-  , player2    = gStart ^. p2 . playerName
-  , class2     = gStart ^. p2 . playerClass
-  , winnerName = gEnd   ^. player gWin . playerName
+finishGame gWin gi gEnd = FinishedGame
+  { player1    = p1Name
+  , class1     = p1Class
+  , player2    = p2Name
+  , class2     = p2Class
+  , winnerName = gEnd ^. player gWin . playerName
   , winner     = gWin
   }
   where
-  p1 = player Caster
-  p2 = player Opponent
+  (p1Name,p1Class) = firstPlayer gi
+  (p2Name,p2Class) = secondPlayer gi
 
 
 data FinishedGame = FinishedGame

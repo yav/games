@@ -1,3 +1,99 @@
+function drawEventsText(evs) {
+
+  var swapped = false
+
+  function text(x) {
+    return $('<span/>').text(x)
+  }
+
+  function drawPlayer (who) {
+    var p1 = text('Player 1')
+    var p2 = text('Player 2')
+
+    if (who === 'caster')
+      return swapped? p2 : p1
+    else
+      return swapped? p1 : p2
+  }
+
+  function drawLoc(l) {
+    return [ text('slot ' + l.slot + ' of '), drawPlayer(l.who) ]
+  }
+
+
+  function drawChange(x) {
+    return (x>0)? text('gained ' + x).css('color','green')
+                : text('lost ' + Math.abs(x)).css('color','red')
+  }
+
+  function drawElement(x) {
+    var colors = { 'Water':   'cyan'
+                 , 'Fire':    'orange'
+                 , 'Air':     '#fff'
+                 , 'Earth':   '#960'
+                 , 'Special': '#99F'
+                 }
+    return text(x).css('color',colors[x])
+  }
+
+  function drawEv(ev) {
+    var dom = $('<div/>')
+
+    switch(ev.tag) {
+
+      case 'say':
+        return dom.append(text(ev.text))
+
+      case 'life':
+        return dom.append(text('The creature in '), drawLoc(ev.loc),
+                          text(' '),drawChange(ev.amount), text(' life.'))
+
+      case 'wizardLife':
+        return dom.append(drawPlayer(ev.who), text(' '),
+                            drawChange(ev.amount), text (' life.'))
+
+      case 'die':
+        return dom.append(text('The creature in '), drawLoc(ev.loc),
+                                                            text(' died.'))
+
+      case 'attack':
+        return dom.append(text('The creature in '), drawLoc(ev.loc),
+                                                          text(' attacked.'))
+      case 'swap':
+        swapped = !swapped
+        return dom.append($('<hr/>'))
+
+      case 'summon':
+        return dom.append(text(ev.card.card.name), text(' summoned to '),
+                          drawLoc(ev.loc) , text('.'))
+
+
+      case 'move':
+        return dom.append(text('The creature in '), drawLoc(ev.from),
+                          text(' moved to '), drawLoc(ev.to))
+
+      case 'doSomething':
+        return dom.append(text('The creature in '), drawLoc(ev.loc),
+                            text(' did something.'))
+
+      case 'power':
+        return dom.append(drawPlayer(ev.who), text(' '), drawChange(ev.amount),
+                         text(' '), drawElement(ev.element), text(' power.'))
+
+      default:
+        return dom.append(text('(unknown event: ' + ev.tag + ')'))
+    }
+  }
+
+  var box = $('<div/>')
+            .css('text-align','left')
+  jQuery.each(evs, function(ix,ev) {
+    box.append(drawEv(ev))
+  })
+
+  return box
+}
+
 
 function drawEvents(evs,k) {
 
@@ -13,7 +109,7 @@ function drawEvents(evs,k) {
 
     return who
   }
-  
+
   function swapWizard(who) {
     return who === 'caster' ? 'opponent' : 'caster'
   }

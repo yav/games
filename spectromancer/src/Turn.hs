@@ -20,8 +20,8 @@ newGame :: GameInit -> Game
 newGame = activateCards . initialize . gameNew
   where
   initialize g = let (_, g', _) = runGame g setupGame in g'
-  setupGame = do Decks.Golem.maybeSpawnGolem Caster
-                 Decks.Golem.maybeSpawnGolem Opponent
+  setupGame = do _ <- Decks.Golem.maybeSpawnGolem Caster
+                 _ <- Decks.Golem.maybeSpawnGolem Opponent
                  startOfTurn
 
 

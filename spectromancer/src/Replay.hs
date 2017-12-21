@@ -1,13 +1,11 @@
 {-# Language OverloadedStrings #-}
 
 module Replay
-( ReplayLog(..)
-, Move(..)
+( Move(..)
 , Replay(..)
-, replayGame
-, playMove
-, addReplayMove
 , emptyReplay
+, addReplayMove
+, playMove
 ) where
 
 import Data.Text (Text)
@@ -21,54 +19,38 @@ import Game(Game)
 import GameMonad(Log, GameStatus(..), runGame, GameM)
 
 data Move =
-    PlayCard Element Int (Maybe Location)
+      PlayCard Element Int (Maybe Location)
     | SkipTurn
 
-data ReplayLog = ReplayLog
-    { initialState :: GameInit
-    , moves :: [Move]
-    -- ^ the moves made in the game, starting with the most
-    -- recently made move
-    }
-
 data Replay = Replay
-    { states :: [(Game, Move, Log)]
-    -- ^ a state in the game, followed by a log describing
+    { initialState :: GameInit
+    , states :: [(Game, Move, Log)]
+    -- ^ a state in the game, followed by a move and a log describing
     -- a transition to the next state
     , outcome :: GameStatus Game
     -- ^ the eventual outcome of the game
     }
 
-emptyReplay :: GameInit -> ReplayLog
+emptyReplay :: GameInit -> Replay
 emptyReplay gi =
-    ReplayLog { initialState = gi
-              , moves = [] }
+    Replay { initialState = gi
+           , states       = []
+           , outcome      = GameOn (newGame gi)
+           }
 
-addReplayMove :: Move -> ReplayLog -> ReplayLog
-addReplayMove mv lg = lg { moves = mv : moves lg }
+addReplayMove :: Move -> Replay -> Replay
+addReplayMove mv r =
+  case outcome r of
+    GameOn g ->
+      r { outcome = case newStatus' of
+                      GameOn ()     -> GameOn newG
+                      GameStopped s -> GameStopped s
+        , states = (g,mv,newL) : states r
+        }
 
-replayMoves :: Game -> [Move] -> [(Game, Move, Log)] -> Replay
-replayMoves g mvs acc =
-  case mvs of
-    []           -> Replay { states = reverse acc, outcome = GameOn g }
-    mv:moreMoves ->
-      let (status, g', l) =  oneStep g mv
-      in case status of
-        GameOn _ ->
-          let acc' = (g, mv, l):acc
-          in replayMoves g' moreMoves acc'
-        GameStopped st ->
-          Replay { states = reverse acc, outcome = GameStopped st }
+      where (newStatus', newG, newL) = oneStep g mv
 
-replayMoves' :: Game -> [Move] -> Replay
-replayMoves' g [] = Replay { states = [], outcome = GameOn g }
-replayMoves' g (mv:moreMoves) =
-  let (status, g', l) = oneStep g mv
-  in case status of
-    GameOn _ ->
-      let after = replayMoves' g' moreMoves
-      in  after { states = (g, mv, l):states after }
-    GameStopped st -> Replay { states = [], outcome = GameStopped st }
+    GameStopped {} -> r
 
 oneStep :: Game -> Move -> (GameStatus (), Game, Log)
 oneStep g m = runGame g (playMove m)
@@ -79,10 +61,6 @@ playMove m =
     SkipTurn -> turnSkip
     PlayCard elt rank mbloc -> turnPlayCard elt rank mbloc
 
-replayGame :: ReplayLog -> Replay
-replayGame l =
-  let initGame = newGame (initialState l)
-  in replayMoves initGame (reverse (moves l)) []
 
 --------------------------------------------------------------------------------
 
@@ -90,7 +68,7 @@ instance ToJSON Move where
     toJSON mv = case mv of
         SkipTurn -> JS.object [ tag "skipTurn" ]
         PlayCard elt rnk mbloc -> JS.object 
-            [ tag "playCard" 
+            [ tag "playCard"
             , "element"  .= elt
             , "rank"     .= rnk
             , "location" .= mbloc 
@@ -98,7 +76,7 @@ instance ToJSON Move where
         where tag x = "tag" .= (x :: Text)
 
 instance ToJSON Replay where
-    toJSON rply = JS.object 
+    toJSON rply = JS.object
         [ "outcome" .= outcome rply
         , "gameHistory" .= [(g, mv, lg []) | (g, mv, lg) <- states rply ]
         ]
