@@ -67,7 +67,7 @@ unitAssignDamage damage DamageInfo { .. } ActiveUnit { .. }
 data UnitType = RegularUnit | EliteUnit
 
 -- | A unit that has not been hired (i.e., in the offer)
-data Unit = Unit { unitName       :: Text
+data Unit = Unit { unitName       :: UnitName
                  , unitType       :: UnitType
                  , unitLevel      :: Int
                  , unitCost       :: Int

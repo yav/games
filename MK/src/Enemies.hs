@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe, OverloadedStrings #-}
 module Enemies where
 
-import Common(Element(..))
+import Common(EnemyName,Element(..))
 import Util.ResourceQ(ResourceQ)
 
 import           Data.Set (Set)
@@ -34,7 +34,7 @@ allEnemyTypes :: [EnemyType]
 allEnemyTypes = [ minBound .. maxBound ]
 
 data Enemy = Enemy
-  { enemyName       :: Text
+  { enemyName       :: EnemyName
   , enemyType       :: EnemyType          -- ^ The color of the token
   , enemyArmor      :: Int                -- ^ How much armor
   , enemyAttack     :: EnemyAttack

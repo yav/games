@@ -145,9 +145,6 @@ ruleOutput Rule { .. } = [ (n,x) | (x,n) <- bagToListGrouped ruleOut ]
 
 globalRules :: [Rule]
 globalRules =
-  [ "Wings of Night" ===
-      (WingsOfNight,Movement) --> (WingsOfNight,ChangeEnemy One NoAttack)
-  ] ++
   [ sh ("Rebirth level " <> int n) ===
       n *** Rebirth --> ChangeUnit One [ UnitReadyLevel n ]
   | n <- [ 1 .. 3 ]
@@ -174,6 +171,9 @@ data Resource =
   | Influence
   | Attack AttackType Element
   | Block Element
+  | BlockShield Element -- ^ Like normal block, but also decreases the
+                        -- enemy's armour, unless the enemy is resistance
+                        -- to the element
   | SwiftBlock Element
   | Fame
   | GainReputation
@@ -191,13 +191,25 @@ data Resource =
   | SpecialMove Int (Set Terrain) EndMove
     -- ^ Amount, terrains to avoid, what happens at the end
 
-  | WingsOfNight
-  | Rebirth
+  | Rebirth       -- ^ Spend to ready a used unit. Need one per unit level.
+  | ReadyUnit Int -- ^ Ready a unit of the given level.
+
+  | UseUnhiredUnit
+  | RecruitUnit
+  | UseUnpurchaedSpell
+  | GainSpell
+
+  | ARule Rule
+
+  | RegainUsedCrystals
 
   | ChangeTerrainCost Terrain ChangeTerrainCost
   | ChangeEnemy Target ChangeEnemy
   | ChangeAttacks ChangeAttack
   | ChangeUnit Target [ChangeUnit]
+
+  | ToDeedDeckBottom Text   -- ^ place card at the bottom of the deed deck
+  | ToDeedDeckTop Text      -- ^ place card at the top of the deed deck
     deriving (Eq,Ord)
 
 perEnemy :: [Resource] -> Resource
@@ -251,43 +263,7 @@ data ChangeUnit =
 -- Pretty Print
 
 ppResource :: Resource -> Doc
-ppResource = undefined {-resource =
-  case resource of
-    ManaToken m   -> ppMana m <+> text "token"
-    ManaCrystal m -> ppBasicMana m <+> text "crystal"
-    UsedCrystal m -> text "used" <+> ppBasicMana m <+> text "crystal"
-    ManaSource m  -> ppMana m <+> text "in the source"
-    ManaSourceFixed m -> ppMana m <+> text "source (fixed)"
-    ManaDie       -> text "use of source"
-
-    Movement      -> text "movement"
-    Influence     -> text "influence"
-    Attack at el -> elDoc <+> tyDoc <+> text "attack"
-      where elDoc = ppElement el
-            tyDoc = case at of
-                      Melee  -> empty
-                      Ranged -> text "ranged"
-                      Siege  -> text "siege"
-    Block e  -> ppElement e <+> text "block"
-    SwiftBlock e -> ppElement e <+> text "swift block"
-    Healing  -> text "healing"
-    Fame     -> text "fame"
-    BadReputation -> text "bad reputation"
-    Reputation    -> text "reputation"
-
-    DeedInHand x    -> text (show x) <+> text "card"
-    DeedDestroyed x -> text (show x) <+> text "was destroyed"
-    DeedDiscarded x -> text (show x) <+> text "was discarded"
-
-    TimeIs t        -> text "it is" <+> ppTime t
-
-    DrawDeed -> text "draw a card"
-
-    IfInteracted rs -> ppResources (bagFromList rs) <+> text ", if interacted"
-    Blocking x -> text "blocking" <+> text (Text.unpack x)
-    RegainUsedCrystals -> text "regain used crystals"
-    ChangeTerrainCost t c -> text "change terrain cost" -}
-
+ppResource = undefined 
 
 ppResources :: Bag Resource -> Doc
 ppResources = vcat . map ppEntry . bagToListGrouped

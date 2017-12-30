@@ -8,6 +8,7 @@ import           Data.Char(toLower)
 
 type PlayerId   = Int
 type DeedName   = Text
+type UnitName   = Text
 type EnemyName  = Text
 
 
