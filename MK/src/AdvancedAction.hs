@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 module AdvancedAction (deeds) where
 
 import Common

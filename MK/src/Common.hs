@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Common where
 
 import           Data.Text ( Text )

@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Enemies where
 
 import Common(EnemyName,Element(..))
