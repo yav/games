@@ -1,19 +1,13 @@
-function drawEventsText(evs) {
-
-  var swapped = false
+function drawEventsText(evs,cur,oth) {
+  var cName = cur
+  var oName = oth
 
   function text(x) {
     return $('<span/>').text(x)
   }
 
   function drawPlayer (who) {
-    var p1 = text('Player 1')
-    var p2 = text('Player 2')
-
-    if (who === 'caster')
-      return swapped? p2 : p1
-    else
-      return swapped? p1 : p2
+    return text(who === 'caster'? cName : oName)
   }
 
   function drawLoc(l) {
@@ -60,7 +54,9 @@ function drawEventsText(evs) {
         return dom.append(text('The creature in '), drawLoc(ev.loc),
                                                           text(' attacked.'))
       case 'swap':
-        swapped = !swapped
+        var tmp = cName
+        cName = oName
+        oName = tmp
         return dom.append($('<hr/>'))
 
       case 'summon':
