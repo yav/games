@@ -18,7 +18,7 @@ data Usable     = Unused | Used
 data Visibility = Revealed | Hidden
                   deriving (Eq,Ord,Show)
 
-data Element    = Physycal | Fire | Ice | ColdFire
+data Element    = Physical | Fire | Ice | ColdFire
                   deriving (Eq,Ord,Show)
 
 data Terrain    = Plains | Hills | Forest | Wasteland | Desert | Swamp
@@ -60,13 +60,14 @@ anyMana = Gold : Black : map BasicMana anyBasicMana
 anyAttack :: [ AttackType ]
 anyAttack = [ Melee, Ranged, Siege ]
 
-
+anyElement :: [ Element ]
+anyElement = [ Physical, Ice, Fire, ColdFire ]
 
 
 ppElement :: Element -> Doc
 ppElement el =
   case el of
-    Physycal  -> text "physycal"
+    Physical  -> text "physical"
     Fire      -> text "fire"
     Ice       -> text "ice"
     ColdFire  -> text "cold fire"

@@ -6,6 +6,7 @@ module Util.ResourceQ
   , rqFromListOrdered
   , rqTake
   , rqTakeMany
+  , rqTakeUpTo
   , rqDiscard
   ) where
 
@@ -52,6 +53,12 @@ rqTakeMany n rq =
              return (a : as, rq2)
     EQ -> return ([], rq)
     LT -> Nothing
+
+rqTakeUpTo :: Int -> ResourceQ a -> ([a], ResourceQ a)
+rqTakeUpTo n rq
+  | n > 0, Just (a,rq1) <- rqTake rq = let (as,rq2) = rqTakeUpTo (n - 1) rq1
+                                       in (a:as,rq2)
+  | otherwise = ([], rq)
 
 
 rqDiscard :: a -> ResourceQ a -> ResourceQ a

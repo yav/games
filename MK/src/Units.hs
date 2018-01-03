@@ -103,8 +103,8 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromVillage ]
          , unitAbilities  =
-            [ produces (2 *** Attack Melee Physycal)
-            , produces (2 *** Block Physycal)
+            [ produces (2 *** Attack Melee Physical)
+            , produces (2 *** Block Physical)
             , produces (2 *** Influence)
             , produces (2 *** Movement)
             ]
@@ -122,7 +122,7 @@ regularUnits =
             [ produces (2 *** Movement) &&&
               produces [ ChangeTerrainCost t (DecreaseBy 1 0)
                                           | t <- [ Forest, Hills, Swamp ] ]
-            , produces (3 *** Block Physycal)
+            , produces (3 *** Block Physical)
             ]
          }
 
@@ -154,8 +154,8 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromMonastery ]
          , unitAbilities  =
-            [ produces (3 *** Attack Melee Physycal)
-            , produces (3 *** Block Physycal)
+            [ produces (3 *** Attack Melee Physical)
+            , produces (3 *** Block Physical)
             , Blue --> 4 *** Attack Melee Ice
             , Blue --> 4 *** Block Ice
             ]
@@ -170,8 +170,8 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromMonastery ]
          , unitAbilities  =
-            [ produces (3 *** Attack Melee Physycal)
-            , produces (3 *** Block Physycal)
+            [ produces (3 *** Attack Melee Physical)
+            , produces (3 *** Block Physical)
             , Red --> 4 *** Attack Melee Fire
             , Red --> 4 *** Block Fire
             ]
@@ -186,9 +186,9 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromMonastery ]
          , unitAbilities  =
-            [ produces (3 *** Attack Melee Physycal)
-            , produces (3 *** Block Physycal)
-            , Green --> 4 *** Attack Siege Physycal
+            [ produces (3 *** Attack Melee Physical)
+            , produces (3 *** Block Physical)
+            , Green --> 4 *** Attack Siege Physical
             ]
          }
 
@@ -202,9 +202,9 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromVillage, FromKeep ]
          , unitAbilities  =
-            [ produces (3 *** Attack Melee Physycal)
-            , produces (3 *** Block Physycal)
-            , produces (2 *** Attack Ranged Physycal)
+            [ produces (3 *** Attack Melee Physical)
+            , produces (3 *** Block Physical)
+            , produces (2 *** Attack Ranged Physical)
             ]
          }
 
@@ -217,8 +217,8 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromVillage, FromKeep ]
          , unitAbilities  =
-            [ produces (2 *** Attack Melee Physycal)
-            , produces (4 *** SwiftBlock Physycal)
+            [ produces (2 *** Attack Melee Physical)
+            , produces (4 *** SwiftBlock Physical)
             ]
          }
 
@@ -231,11 +231,11 @@ regularUnits =
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromKeep ]
          , unitAbilities  =
-            [ produces (3 *** Attack Melee Physycal)
-            , produces (3 *** Block Physycal)
-            , produces (6 *** Attack Melee Physycal,
+            [ produces (3 *** Attack Melee Physical)
+            , produces (3 *** Block Physical)
+            , produces (6 *** Attack Melee Physical,
                                              ChangeUnit Self [UnitGainWound])
-            , produces (6 *** Block Physycal,ChangeUnit Self [UnitGainWound])
+            , produces (6 *** Block Physical,ChangeUnit Self [UnitGainWound])
             ]
          }
 
@@ -245,11 +245,11 @@ regularUnits =
          , unitLevel      = 2
          , unitCost       = 7
          , unitArmor      = 3
-         , unitResists    = Set.singleton Physycal
+         , unitResists    = Set.singleton Physical
          , unitSource     = Set.fromList [ FromKeep, FromMageTower ]
          , unitAbilities  =
-            [ produces (2 *** Attack Melee Physycal)
-            , produces (2 *** Block Physycal)
+            [ produces (2 *** Attack Melee Physical)
+            , produces (2 *** Block Physical)
             , Red --> 4 *** Block Fire
             , Blue --> 4 *** Block Ice
             ]
@@ -261,7 +261,7 @@ regularUnits =
          , unitLevel      = 2
          , unitCost       = 7
          , unitArmor      = 2
-         , unitResists    = Set.singleton Physycal
+         , unitResists    = Set.singleton Physical
          , unitSource     = Set.fromList [ FromMonastery, FromMageTower ]
          , unitAbilities  = []
          }
@@ -278,11 +278,11 @@ eliteUnits =
          , unitArmor      = 7
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromCity ]
-         , unitAbilities  = [ produces (5 *** Attack Melee Physycal)
-                            , produces (8 *** SwiftBlock Physycal)
+         , unitAbilities  = [ produces (5 *** Attack Melee Physical)
+                            , produces (8 *** SwiftBlock Physical)
                             , Green --> ChangeUnit All
                                           [ UnitGainResistance r
-                                            | r <- [Physycal,Fire,Ice] ]
+                                            | r <- [Physical,Fire,Ice] ]
                             ]
          }
 
@@ -312,7 +312,7 @@ eliteUnits =
          , unitArmor      = 6
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromKeep, FromCity ]
-         , unitAbilities  = [ produces (5 *** Attack Melee Physycal)
+         , unitAbilities  = [ produces (5 *** Attack Melee Physical)
                             , Blue --> ChangeEnemy One
                                         (EnemyIf [ EnemyResists Ice False ]
                                            $ EnemyAnd 
@@ -328,8 +328,8 @@ eliteUnits =
          , unitArmor      = 6
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromKeep, FromCity ]
-         , unitAbilities  = [ produces (5 *** Attack Melee Physycal)
-                            , produces (5 *** Block Physycal)
+         , unitAbilities  = [ produces (5 *** Attack Melee Physical)
+                            , produces (5 *** Block Physical)
                             , Red --> 6 *** Attack Ranged Fire
                             ]
          }
@@ -342,7 +342,7 @@ eliteUnits =
          , unitArmor      = 4
          , unitResists    = Set.empty
          , unitSource     = Set.fromList [ FromKeep, FromCity ]
-         , unitAbilities  = [ produces [ 3 *** Attack Siege Physycal ]
+         , unitAbilities  = [ produces [ 3 *** Attack Siege Physical ]
                             , Red --> 5 *** Attack Siege Fire
                             , Blue --> 5 *** Attack Siege Ice ]
          }
@@ -353,10 +353,10 @@ eliteUnits =
          , unitLevel      = 3
          , unitCost       = 8
          , unitArmor      = 4
-         , unitResists    = Set.fromList [ Fire, Physycal ]
+         , unitResists    = Set.fromList [ Fire, Physical ]
          , unitSource     = Set.fromList [ FromKeep, FromMageTower ]
-         , unitAbilities  = [ produces (3 *** Attack Melee Physycal)
-                            , produces (3 *** Block Physycal)
+         , unitAbilities  = [ produces (3 *** Attack Melee Physical)
+                            , produces (3 *** Block Physical)
                             , Red --> 4 *** Attack Ranged Fire ]
          }
 
@@ -381,10 +381,10 @@ eliteUnits =
          , unitLevel      = 3
          , unitCost       = 8
          , unitArmor      = 4
-         , unitResists    = Set.fromList [ Ice, Physycal ]
+         , unitResists    = Set.fromList [ Ice, Physical ]
          , unitSource     = Set.fromList [ FromKeep, FromMageTower ]
-         , unitAbilities  = [ produces (3 *** Attack Melee Physycal)
-                            , produces (3 *** Block Physycal)
+         , unitAbilities  = [ produces (3 *** Attack Melee Physical)
+                            , produces (3 *** Block Physical)
                             , Blue --> 6 *** Attack Melee Ice ]
          }
 

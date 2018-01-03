@@ -74,7 +74,7 @@ orcs = concat
       { enemyName      = "Prowlers"
       , enemyType      = Orc
       , enemyArmor    = 3
-      , enemyAttack    = AttacksWith Physycal 4
+      , enemyAttack    = AttacksWith Physical 4
       , enemyFameGain  = 2
       , enemyAbilities = Set.empty
       }
@@ -84,7 +84,7 @@ orcs = concat
       , enemyType      = Orc
       , enemyArmor    = 3
       , enemyAbilities = Set.fromList [ Fortified ]
-      , enemyAttack    = AttacksWith Physycal 3
+      , enemyAttack    = AttacksWith Physical 3
       , enemyFameGain  = 2
       }
 
@@ -92,7 +92,7 @@ orcs = concat
       { enemyName      = "Cursed Hags"
       , enemyType      = Orc
       , enemyArmor    = 5
-      , enemyAttack    = AttacksWith Physycal 3
+      , enemyAttack    = AttacksWith Physical 3
       , enemyAbilities = Set.fromList [ Poisons ]
       , enemyFameGain  = 3
       }
@@ -101,7 +101,7 @@ orcs = concat
       { enemyName      = "Wolf Riders"
       , enemyType      = Orc
       , enemyArmor    = 4
-      , enemyAttack    = AttacksWith Physycal 3
+      , enemyAttack    = AttacksWith Physical 3
       , enemyAbilities = Set.fromList [ Swift ]
       , enemyFameGain  = 3
       }
@@ -110,7 +110,7 @@ orcs = concat
       { enemyName      = "Ironclads"
       , enemyType      = Orc
       , enemyArmor    = 3
-      , enemyAttack    = AttacksWith Physycal 4
+      , enemyAttack    = AttacksWith Physical 4
       , enemyAbilities = Set.fromList [ Brutal ]
       , enemyFameGain  = 4
       }
@@ -133,7 +133,7 @@ keep = concat
       { enemyName      = "Crossbowmen"
       , enemyType      = Guardian
       , enemyArmor    = 4
-      , enemyAttack    = AttacksWith Physycal 4
+      , enemyAttack    = AttacksWith Physical 4
       , enemyAbilities = Set.fromList [ Swift ]
       , enemyFameGain  = 3
       }
@@ -142,8 +142,8 @@ keep = concat
       { enemyName      = "Golems"
       , enemyType      = Guardian
       , enemyArmor    = 5
-      , enemyAbilities = Set.fromList [ Resists Physycal ]
-      , enemyAttack    = AttacksWith Physycal 2
+      , enemyAbilities = Set.fromList [ Resists Physical ]
+      , enemyAttack    = AttacksWith Physical 2
       , enemyFameGain  = 4
       }
 
@@ -152,7 +152,7 @@ keep = concat
       , enemyType      = Guardian
       , enemyArmor    = 7
       , enemyAbilities = Set.fromList [ Fortified ]
-      , enemyAttack    = AttacksWith Physycal 3
+      , enemyAttack    = AttacksWith Physical 3
       , enemyFameGain  = 3
       }
 
@@ -161,7 +161,7 @@ keep = concat
       , enemyType      = Guardian
       , enemyArmor    = 5
       , enemyAbilities = Set.empty
-      , enemyAttack    = AttacksWith Physycal 6
+      , enemyAttack    = AttacksWith Physical 6
       , enemyFameGain  = 4
       }
   ]
@@ -175,7 +175,7 @@ dungeon = concat
       , enemyType      = Underworld
       , enemyArmor    = 6
       , enemyAbilities = Set.fromList [ Fortified ]
-      , enemyAttack    = AttacksWith Physycal 6
+      , enemyAttack    = AttacksWith Physical 6
       , enemyFameGain  = 5
       }
 
@@ -183,8 +183,8 @@ dungeon = concat
       { enemyName      = "Gargoyle"
       , enemyType      = Underworld
       , enemyArmor    = 4
-      , enemyAbilities = Set.fromList [ Resists Physycal ]
-      , enemyAttack    = AttacksWith Physycal 5
+      , enemyAbilities = Set.fromList [ Resists Physical ]
+      , enemyAttack    = AttacksWith Physical 5
       , enemyFameGain  = 4
       }
 
@@ -193,7 +193,7 @@ dungeon = concat
       , enemyType      = Underworld
       , enemyArmor    = 4
       , enemyAbilities = Set.fromList [ Paralyzes ]
-      , enemyAttack    = AttacksWith Physycal 6
+      , enemyAttack    = AttacksWith Physical 6
       , enemyFameGain  = 5
       }
 
@@ -202,7 +202,7 @@ dungeon = concat
       , enemyType      = Underworld
       , enemyArmor    = 5
       , enemyAbilities = Set.fromList [ Brutal ]
-      , enemyAttack    = AttacksWith Physycal 5
+      , enemyAttack    = AttacksWith Physical 5
       , enemyFameGain  = 4
       }
 
@@ -211,7 +211,7 @@ dungeon = concat
       , enemyType      = Underworld
       , enemyArmor    = 5
       , enemyAbilities = Set.fromList [ Swift ]
-      , enemyAttack    = AttacksWith Physycal 7
+      , enemyAttack    = AttacksWith Physical 7
       , enemyFameGain  = 5
       }
   ]
@@ -225,7 +225,7 @@ magical = concat
       , enemyType      = Mage
       , enemyArmor    = 5
       , enemyAbilities = Set.fromList [ Poisons ]
-      , enemyAttack    = AttacksWith Physycal 5
+      , enemyAttack    = AttacksWith Physical 5
       , enemyFameGain  = 4
       }
 
@@ -233,7 +233,7 @@ magical = concat
       { enemyName      = "Illusionists"
       , enemyType      = Mage
       , enemyArmor    = 3
-      , enemyAbilities = Set.fromList [ Resists Physycal ]
+      , enemyAbilities = Set.fromList [ Resists Physical ]
       , enemyAttack    = Summoner
       , enemyFameGain  = 4
       }
@@ -251,7 +251,7 @@ magical = concat
       { enemyName      = "Ice Golems"
       , enemyType      = Mage
       , enemyArmor    = 4
-      , enemyAbilities = Set.fromList [ Resists Physycal, Resists Ice,
+      , enemyAbilities = Set.fromList [ Resists Physical, Resists Ice,
                                                                 Paralyzes ]
       , enemyAttack    = AttacksWith Ice 2
       , enemyFameGain  = 5
@@ -270,7 +270,7 @@ magical = concat
       { enemyName      = "Fire Golems"
       , enemyType      = Mage
       , enemyArmor    = 4
-      , enemyAbilities = Set.fromList [ Resists Physycal, Resists Fire, Brutal ]
+      , enemyAbilities = Set.fromList [ Resists Physical, Resists Fire, Brutal ]
       , enemyAttack    = AttacksWith Fire 3
       , enemyFameGain  = 5
       }
@@ -284,7 +284,7 @@ draconum = concat
       { enemyName      = "Fire Dragon"
       , enemyType      = Draconum
       , enemyArmor    = 7
-      , enemyAbilities = Set.fromList [ Resists Physycal, Resists Fire ]
+      , enemyAbilities = Set.fromList [ Resists Physical, Resists Fire ]
       , enemyAttack    = AttacksWith Fire 9
       , enemyFameGain  = 8
       }
@@ -302,7 +302,7 @@ draconum = concat
       { enemyName      = "Ice Dragon"
       , enemyType      = Draconum
       , enemyArmor    = 7
-      , enemyAbilities = Set.fromList [ Resists Physycal, Resists Ice,
+      , enemyAbilities = Set.fromList [ Resists Physical, Resists Ice,
                                                               Paralyzes]
       , enemyAttack    = AttacksWith Ice 6
       , enemyFameGain  = 8
@@ -313,7 +313,7 @@ draconum = concat
       , enemyType      = Draconum
       , enemyArmor    = 9
       , enemyAbilities = Set.fromList [ Swift, Poisons ]
-      , enemyAttack    = AttacksWith Physycal 5
+      , enemyAttack    = AttacksWith Physical 5
       , enemyFameGain  = 7
       }
   ]
@@ -326,8 +326,8 @@ citizens = concat
       , enemyType      = Citizen
       , enemyArmor    = 7
       , enemyAbilities = Set.fromList [ Fortified, Resists Fire, Resists Ice,
-                                        Resists Physycal ]
-      , enemyAttack    = AttacksWith Physycal 6
+                                        Resists Physical ]
+      , enemyAttack    = AttacksWith Physical 6
       , enemyFameGain  = 8
       }
 
@@ -335,7 +335,7 @@ citizens = concat
       { enemyName      = "Altem Mages"
       , enemyType      = Citizen
       , enemyArmor    = 8
-      , enemyAbilities = Set.fromList [ Fortified, Resists Physycal,
+      , enemyAbilities = Set.fromList [ Fortified, Resists Physical,
                                                             Brutal, Poisons ]
       , enemyAttack    = AttacksWith ColdFire 4
       , enemyFameGain  = 8

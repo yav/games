@@ -2,7 +2,7 @@
 module Act where
 
 import Control.Monad(liftM,ap)
-import Control.Lens(Getter, view, to, (.~), (&), Lens')
+import Control.Lens(Getter, (^.), to, (.~), (&), Lens')
 import Data.Text(Text)
 import Data.Maybe(fromMaybe)
 import Data.Set(Set)
@@ -10,6 +10,7 @@ import qualified Data.Set as Set
 import MonadLib
 import Util.Bag
 import Util.Perhaps
+import Util.ResourceQ
 
 import Common
 import Player
@@ -39,19 +40,27 @@ instance Monad Act where
 class Rd t where
   rd :: Getter t a -> Act a
 
+infix 1 ?=
+infix 1 %=
+infix 1 .=
+
 class Upd t where
   (?=) :: Lens' t a -> (a -> Perhaps a) -> Act ()
 
 (%=) :: Upd t => Lens' t a -> (a -> a) -> Act ()
-m %= f = updMb m (Right . f)
+m %= f = m ?= Ok . f
+
+(.=) :: Upd t => Lens' t a -> a -> Act ()
+m .= x = m ?= Ok . const x
 
 instance Rd Game where
-  rd m = Act (view m <$> get)
+  rd m = do x <- Act get
+            return (x ^. m)
 
 instance Upd Game where
   m ?= f =
     do g <- Act get
-       case f (view m g) of
+       case f (g ^. m) of
          Failed err -> reportError err
          Ok a -> Act (set (g & m .~ a))
 
@@ -59,26 +68,27 @@ instance Rd Player where
   rd m = rd (curPlayer . m)
 
 instance Upd Player where
-  m ?= f = curPlayer . m %= f
+  m ?= f = curPlayer . m ?= f
 
 instance Rd NormalTurn where
   rd m = do ph <- currentPhase
             case ph of
-              Turn t -> return (view m t)
+              Turn t -> return (t ^. m)
               _      -> reportError "Not in a normal turn."
 
 instance Upd NormalTurn where
-  m ?= f = phase ?= $ \a -> case a of
-                              Turn t ->
-                                do x <- f (view m t)
-                                   return (Turn (t & m .~ x))
-                              _ -> Failed "not in a normal turn."
+  m ?= f = phase ?= \a ->
+           case a of
+             Turn t ->
+               do x <- f (t ^. m)
+                  return (Turn (t & m .~ x))
+             _ -> Failed "not in a normal turn."
 
 instance Rd Land where
   rd m = rd (land . m)
 
 instance Upd Land where
-  updMb m f = updMb (land . m) f
+  m ?= f = land . m ?= f
 
 
 -- Output
@@ -132,73 +142,108 @@ removeManaDie m = source %= \a -> fromMaybe a (bagRemove 1 m a)
 
 
 payMana :: Int -> Mana -> Act ()
-payMana n m = updMb mana $ \x ->
+payMana n m = mana ?= \x ->
               case bagRemove n m x of
-                Nothing -> Left "Not enough mana."
-                Just a -> Right a
+                Nothing -> Failed "Not enough mana."
+                Just a  -> Ok a
 
 
 looseReputation :: Int -> Act ()
-looseReputation n = upd reputation (max (-7) . subtract n)
+looseReputation n = reputation %= max (-7) . subtract n
 
 gainMana :: Int -> Mana -> Act ()
-gainMana n m = upd mana (bagAdd n m)
+gainMana n m = mana %= bagAdd n m
 
 gainManaDie :: Int -> Act ()
-gainManaDie n = upd manaDice (+ n)
+gainManaDie n = manaDice %= (+ n)
 
 gainUsedManaDie :: Mana -> Act ()
-gainUsedManaDie m = upd usedDiceReroll (bagAdd 1 m)
+gainUsedManaDie m = usedDiceReroll %= bagAdd 1 m
 
 gainUsedManaDieFixed :: Mana -> Act ()
-gainUsedManaDieFixed m = upd usedDiceFixed (bagAdd 1 m)
+gainUsedManaDieFixed m = usedDiceFixed %= bagAdd 1 m
 
 gainReputation :: Int -> Act ()
-gainReputation n = upd reputation (min 7 . (+ n))
+gainReputation n = reputation %= min 7 . (+ n)
 
 gainFame :: Int -> Act ()
-gainFame n = upd fame (+ n)
+gainFame n = fame %= (+ n)
 
 gainMove :: Int -> Act ()
-gainMove = undefined
+gainMove n = movement %= (+ n)
 
 gainCrystal :: Int -> BasicMana -> Act ()
-gainCrystal = undefined
+gainCrystal n c = crystals %= bagAdd n c
 
 gainBlock :: Int -> Element -> Act ()
-gainBlock = undefined
+gainBlock n e = block %= bagAdd n e
 
 gainAttack :: Int -> AttackType -> Element -> Act ()
-gainAttack = undefined
+gainAttack n t e = attack %= bagAdd n (t,e)
 
 gainHeal :: Int -> Act ()
-gainHeal = undefined
+gainHeal n = heal %= (+ n)
 
 gainInfluence :: Int -> Act ()
-gainInfluence = undefined
+gainInfluence n = influence %= (+ n)
 
 -- | Move from draw pile to hand.
 -- If not enough cards, do as many as there are.
 drawCard :: Int -> Act ()
-drawCard = undefined
+drawCard n =
+  do ds <- rd deeds
+     let (as,ds1) = rqTakeUpTo n ds
+     deeds .= ds1
+     hand  %= (as ++)
 
 {- | Move a card from the hand to the played area.
 If the card is not in hand, then it is not added to the play area.
 This may happen when using a card from an offer trough a special
 ability. -}
 cardPlayed :: Deed -> Act ()
-cardPlayed = undefined
+cardPlayed d =
+  do inHand <- rd hand
+     case break (== d) inHand of
+       (as,b:bs) -> do hand .= as ++ bs
+                       playedCards %= (b :)
+       _ -> return ()
 
 -- | Discard the given card from your hand.
 -- Fails if the card is not in hand.
 discardCard :: Deed -> Act ()
-discardCard = undefined
+discardCard d =
+  do inHand <- rd hand
+     case break (== d) inHand of
+       (as,b:bs) -> do hand .= as ++ bs
+                       deeds %= rqDiscard b
+       _ -> reportError "This card is not in hand."
 
 --------------------------------------------------------------------------------
 -- Special modifiers
 
+-- | If the action produces move, influence, block, or attack,
+-- then gain some more.
 concentrated :: Int -> Act () -> Act ()
-concentrated = undefined
+concentrated n m =
+  do oldMove <- rd movement
+     oldInf  <- rd influence
+     oldBl   <- rd block
+     oldAtt  <- rd attack
+
+     m
+
+     newMove <- rd movement
+     newInf  <- rd influence
+     newBl   <- rd block
+     newAtt  <- rd attack
+
+     when (newMove > oldMove) (gainMove n)
+     when (newInf  > oldInf)  (gainInfluence n)
+     sequence_ [ atKey el newBl oldBl (gainBlock n) | el <- anyElement ]
+     sequence_ [ atKey (t,el) newAtt oldAtt (uncurry (gainAttack n))
+                                    | el <- anyElement, t  <- anyAttack ]
+  where
+  atKey k bN bO f = when (bagLookup k bN > bagLookup k bO) (f k)
 
 
 --------------------------------------------------------------------------------
