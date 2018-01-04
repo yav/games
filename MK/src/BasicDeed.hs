@@ -18,10 +18,10 @@ blue =
 
   , actionDeed Blue "Determination"
       (combatAction
-         [ (CombatBlocking, gainBlock 2 Physycal)
-         , (CombatAttack, gainAttack 2 Melee Physycal)
+         [ (CombatBlocking, gainBlock 2 Physical)
+         , (CombatAttack, gainAttack 2 Melee Physical)
          ])
-      (gainBlock 5 Physycal)
+      (gainBlock 5 Physical)
 
   , actionDeed Blue "Crystallize"
       (do ms <- currentlyAvailableManaTypes
@@ -53,7 +53,7 @@ blueSpecial =
                                 Summoner -> error "Blocking a summoner"
                                 AttacksWith el _ ->
                                   case el of
-                                    Physycal -> 0
+                                    Physical -> 0
                                     Ice      -> 1
                                     Fire     -> 1
                                     ColdFire -> 2
@@ -97,10 +97,10 @@ red =
 
   , actionDeed Red "Rage"
       (combatAction
-        [ (CombatBlocking, gainBlock 2 Physycal)
-        , (CombatAttack, gainAttack 2 Melee Physycal)
+        [ (CombatBlocking, gainBlock 2 Physical)
+        , (CombatAttack, gainAttack 2 Melee Physical)
         ])
-    (gainAttack 4 Melee Physycal)
+    (gainAttack 4 Melee Physical)
 
   , actionDeed Red "Threaten"
       (gainInfluence 2)
@@ -113,27 +113,27 @@ redSpecial :: Deed
 redSpecial =
   actionDeed Red "Battle Versatility"
     (combatAction
-       [ (CombatRangedAttack, gainAttack 1 Ranged Physycal)
-       , (CombatBlocking, gainBlock 2 Physycal)
-       , (CombatAttack, gainAttack 2 Melee Physycal)
+       [ (CombatRangedAttack, gainAttack 1 Ranged Physical)
+       , (CombatBlocking, gainBlock 2 Physical)
+       , (CombatAttack, gainAttack 2 Melee Physical)
        ])
 
     (combatAction
       [ (CombatRangedAttack,
           do as <- currentCombatEnemyEffects
              if Fortified `Set.member` as
-                then gainAttack 2 Siege Physycal
-                else gainAttack 3 Ranged Physycal)
+                then gainAttack 2 Siege Physical
+                else gainAttack 3 Ranged Physical)
         ,(CombatBlocking,
             do a <- currentlyBlocking
                case enemyAttack a of
                  AttacksWith Ice _ -> gainBlock 3 Fire
-                 _ -> gainBlock 4 Physycal)
+                 _ -> gainBlock 4 Physical)
         ,(CombatAttack,
             do as <- currentCombatEnemyEffects
-               if Resists Physycal `Set.member` as
+               if Resists Physical `Set.member` as
                   then gainAttack 3 Melee Fire
-                  else gainAttack 4 Melee Physycal)
+                  else gainAttack 4 Melee Physical)
         ])
 
 
@@ -141,7 +141,7 @@ white :: [Deed]
 white =
   [ actionDeed White "Mana Draw" (gainManaDie 1)  (manaDraw 2)
   , actionDeed White "Promise"   (gainInfluence 2)(gainInfluence 4)
-  , actionDeed White "Swiftness" (gainMove 2)     (gainAttack 3 Ranged Physycal)
+  , actionDeed White "Swiftness" (gainMove 2)     (gainAttack 3 Ranged Physical)
   ]
 
 
@@ -199,8 +199,8 @@ improvise n =
        Interacting -> gainInfluence n
        InCombat cph ->
          case cph of
-           CombatBlocking -> gainBlock 3 Physycal
-           CombatAttack   -> gainAttack 3 Melee Physycal
+           CombatBlocking -> gainBlock 3 Physical
+           CombatAttack   -> gainAttack 3 Melee Physical
            _ -> reportError "This card cannot be played now."
        _ -> reportError "This card cannot be played now."
 
