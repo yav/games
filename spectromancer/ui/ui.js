@@ -54,7 +54,7 @@ function scrollHist() {
   x.scrollTop(x[0].scrollHeight)
 }
 
-function drawHistory(h) {
+function drawHistory(h,cName,oName) {
   var dom = $('<div/>')
             .attr('id','history')
             .css('text-align','left')
@@ -75,12 +75,12 @@ function drawHistory(h) {
     }
   }
 
-  function drawMove(m) {
-    var msg
+  function drawMove(who,m) {
+    var msg = who + ': '
     switch (m.tag) {
-      case 'skipTurn': msg = 'Skip turn'; break
+      case 'skipTurn': msg += 'Skip turn'; break
       case 'playCard':
-        msg = 'Play card ' + m.element + '(' + m.rank + ')'
+        msg += 'Play card ' + m.element + '(' + m.rank + ')'
         if (m.location !== null) {
           msg += ' on ' + locToText(m.location)
         }
@@ -94,9 +94,14 @@ function drawHistory(h) {
                .css('font-weight','bold').text(msg))
   }
 
+  var cur = cName
+  var oth = oName
   jQuery.each(h, function(ix,m) {
-    drawMove(m.move)
-    dom.append(drawEventsText(m.events))
+    drawMove(cur,m.move)
+    dom.append(drawEventsText(m.events,cur,oth))
+    var tmp = cur
+    cur = oth
+    oth = tmp
   })
 
   return dom
@@ -378,7 +383,7 @@ function drawGame(g,history,winner) {
     rightR = 'caster'
   }
 
-  var h = drawHistory(history)
+  var h = drawHistory(history,left.name,right.name)
 
   return $('<div/>').append
         ( h
