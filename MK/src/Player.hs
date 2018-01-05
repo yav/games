@@ -2,6 +2,7 @@
 module Player where
 
 import Control.Lens
+import Data.Map(Map)
 import Util.ResourceQ
 import Util.Bag
 
@@ -61,6 +62,8 @@ data NormalTurn = NormalTurn
   , _playedCards :: [Deed] -- XXX: more strucutre
 
   , _normalTurnPhase :: NormalTurnPhase
+
+  , _terrainCost :: Map Terrain Int
 
   , _doAtEOT :: Act ()
     -- ^ Do this at the end of the turn

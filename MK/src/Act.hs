@@ -18,6 +18,7 @@ import Terrain
 import Enemies
 import Game
 import Land
+import Combat
 import {-# SOURCE #-} Deed
 
 
@@ -124,8 +125,11 @@ currentlyAvailableManaTypes = rd (mana . to basic)
 currentCombatEnemyEffects :: Act (Set EnemyAbility)
 currentCombatEnemyEffects = undefined
 
-currentlyBlocking :: Act Enemy -- XXX: ActiveEnemy?
+currentlyBlocking :: Act ActiveEnemy
 currentlyBlocking = undefined
+
+currentDeedDeckEmpty :: Act Bool
+currentDeedDeckEmpty = undefined
 
 atEOT :: Act () -> Act ()
 atEOT a = doAtEOT %= (a >>)
@@ -136,6 +140,12 @@ atEOT a = doAtEOT %= (a >>)
 -- | Remove a die of the given color from the source
 removeManaDie :: Mana -> Act ()
 removeManaDie m = source %= \a -> fromMaybe a (bagRemove 1 m a)
+
+regainCrystals :: Act ()
+regainCrystals = undefined
+
+reduceArmor :: Int -> ActiveEnemy -> Act ()
+reduceArmor = undefined
 
 --------------------------------------------------------------------------------
 
@@ -217,6 +227,21 @@ discardCard d =
        (as,b:bs) -> do hand .= as ++ bs
                        deeds %= rqDiscard b
        _ -> reportError "This card is not in hand."
+
+addDeedDeckBottom :: Deed -> Act ()
+addDeedDeckBottom = undefined
+
+addDeedDeckTop :: Deed -> Act ()
+addDeedDeckTop = undefined
+
+removePlayed :: Deed -> Act ()
+removePlayed = undefined
+
+--------------------------------------------------------------------------------
+-- Terrain
+
+reduceTerrainCostTo :: Int -> Terrain -> Act ()
+reduceTerrainCostTo = undefined
 
 --------------------------------------------------------------------------------
 -- Special modifiers

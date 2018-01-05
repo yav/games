@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module AdvancedAction (deeds) where
 
+import Control.Monad(unless,when)
+
 import Common
 import Deed
-import Rule
+import Act
 
 deeds :: [Deed]
 deeds = blueDeeds ++ greenDeeds ++ redDeeds ++ whiteDeeds
@@ -11,43 +13,52 @@ deeds = blueDeeds ++ greenDeeds ++ redDeeds ++ whiteDeeds
 blueDeeds :: [Deed]
 blueDeeds =
   [ deed "Crystal Mastery"
-      [ ManaCrystal b --> 2 *** ManaCrystal b | b <- anyBasicMana ]
-      [ produces RegainUsedCrystals ]
+      (do c <- chooseAvailableCrystal
+          gainCrystal 1 c)
+      (atEOT regainCrystals)
 
   , deed "Frost Bridge"
-      [ produces (ChangeTerrainCost Swamp (DecreaseTo 1)) &&&
-        produces (2 *** Movement) ]
-      [ produces (ChangeTerrainCost Swamp (DecreaseTo 1)) &&&
-        produces (ChangeTerrainCost Lake  (DecreaseTo 1)) &&&
-        produces (4 *** Movement) ]
+      (do gainMove 2
+          reduceTerrainCostTo 1 Swamp)
+      (do gainMove 4
+          reduceTerrainCostTo 1 Lake
+          reduceTerrainCostTo 1 Swamp)
 
   , deed "Ice Bolt"
-      [ produces (ManaCrystal Blue) ]
-      [ produces (3 *** Attack Ranged Ice) ]
+      (gainCrystal 1 Blue)
+      (gainAttack 3 Ranged Ice)
 
   , deed "Ice Shield"
-      [ produces (3 *** Block Ice) ]
-      [ produces (3 *** BlockShield Ice)
-      ]
+      (gainBlock 3 Ice)
+      (do gainBlock 3 Ice
+          e <- currentlyBlocking
+          reduceArmor 3 e )
 
+  , let magic n = do c <- chooseBasicManaFrom anyBasicMana
+                     case c of
+                       Green -> gainMove n
+                       White -> gainInfluence n
+                       Blue  -> gainBlock n Physical
+                       Red   -> gainAttack n Melee Physical
+    in deed "Pure Magic" (magic 4) (magic 7)
 
-  , let gain n x y = ManaToken (BasicMana x) --> n *** y
-        table      = [ (Green, Movement)
-                     , (White, Influence)
-                     , (Blue,  Block Physycal)
-                     , (Red,   Attack Melee Physycal)
-                     ]
+  , let ask = do ans <- askText "Regain \"Steady Tempo\"?" ["Yes","No"]
+                 return (ans == 0)
+        self = deed "Steady Tempo"
+                 (do gainMove 2
+                     atEOT $ do empty <- currentDeedDeckEmpty
+                                unless empty $
+                                  do yes <- ask
+                                     when yes $
+                                       do removePlayed self
+                                          addDeedDeckBottom self)
+                (do gainMove 4
+                    atEOT $ do yes <- ask
+                               when yes (addDeedDeckTop self))
+    in self
 
-    in deed "Pure Magic"
-      [ gain 4 mana reward | (mana,reward) <- table ]
-      [ gain 7 mana reward | (mana,reward) <- table ]
-
-  , let name = "Steady Tempo"
-    in deed name
-      [ produces (2 *** Movement) &&& produces (ToDeedDeckBottom name) ]
-      [ produces (4 *** Movement) &&& produces (ToDeedDeckTop name) ]
-
-  , deed "Magic Talent" [] [] -- XXX
+{-
+  , deed "Magic Talent" [] [] -- XXX -}
   ]
 
   where
@@ -55,7 +66,7 @@ blueDeeds =
 
 greenDeeds :: [Deed]
 greenDeeds =
-  [ deed "Crushing Bolt"
+  [ {-deed "Crushing Bolt"
       [ produces (ManaCrystal Green) ]
       [ produces (3 *** Attack Siege Physycal) ]
 
@@ -80,14 +91,14 @@ greenDeeds =
 -}
 
   , deed "In Need" [] [] -- XXX
-  , deed "Training" [] [] -- XXX
+  , deed "Training" [] [] -- XXX -}
   ]
   where
   deed = advancedActionDeed Green
 
 redDeeds :: [Deed]
 redDeeds =
-  [ deed "Blood Rage"
+  [ {- deed "Blood Rage"
       [ produces (2 *** Attack Melee Physycal)
       , produces (5 *** Attack Melee Physycal) &&& produces GainWound ]
       [ produces (4 *** Attack Melee Physycal)
@@ -126,7 +137,7 @@ redDeeds =
 
   , deed "Maximal Effect" [] []
   , deed "Into the Heat" [] [] -- XXX
-
+  -}
   ]
   where
   deed = advancedActionDeed Red
@@ -134,13 +145,13 @@ redDeeds =
 -- XXX: white
 whiteDeeds :: [Deed]
 whiteDeeds =
-  [ deed "Agility" [] []
+  [ {- deed "Agility" [] []
   , deed "Diplomacy" [] []
   , deed "Heroic Tale" [] []
   , deed "Learning" [] []
   , deed "Mana Storm" [] []
   , deed "Song of Wind" [] []
-  , deed "Swift Bolt" [] []
+  , deed "Swift Bolt" [] [] -}
   ]
   where
   deed = advancedActionDeed White

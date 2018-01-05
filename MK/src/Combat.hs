@@ -10,7 +10,6 @@ data ActiveEnemy = ActiveEnemy
   , _enemyAttacks   :: Bool
   }
 
-
 data CombatAttack = CombatAttack
   { _targets    :: [ ActiveEnemy ]      -- ^ These can be attacked
   , _defeated   :: [ ActiveEnemy ]      -- ^ Killed
