@@ -4,7 +4,6 @@ module Act where
 import Control.Monad(liftM,ap)
 import Control.Lens(Getter, (^.), to, (.~), (&), Lens')
 import Data.Text(Text)
-import Data.Maybe(fromMaybe)
 import Data.Set(Set)
 import qualified Data.Set as Set
 import MonadLib
@@ -136,13 +135,46 @@ atEOT a = doAtEOT %= (a >>)
 
 
 --------------------------------------------------------------------------------
+-- Source
+
 
 -- | Remove a die of the given color from the source
 removeManaDie :: Mana -> Act ()
-removeManaDie m = source %= \a -> fromMaybe a (bagRemove 1 m a)
+removeManaDie m = source ?= perhaps "No dice in the source." . bagRemove 1 m
 
+-- | Use a mana die from the source.
+useManaDie :: Mana -> Act ()
+useManaDie m =
+  do manaDice ?= \n -> do checkThat (n > 0) "No accessible mana dice."
+                          return (n - 1)
+     t <- currentTime
+     mc <- case (t,m) of
+             (Day,Black) ->
+                reportError "Black dice cannot be used during the day."
+             (Night,Gold) ->
+                reportError "Gold mana cannot be used during the night."
+             (Day,Gold)  -> BasicMana <$> chooseBasicManaFrom anyBasicMana
+             _ -> return m
+
+     removeManaDie m
+     gainUsedManaDie m
+     gainMana 1 mc
+
+-- | Melt a crystal into mana.
+useCrystal :: BasicMana -> Act ()
+useCrystal m =
+  do crystals ?= perhaps "No such crystal" . bagRemove 1 m
+     usedCrystals %= bagAdd 1 m
+     gainMana 1 (BasicMana m)
+
+
+
+--------------------------------------------------------------------------------
 regainCrystals :: Act ()
-regainCrystals = undefined
+regainCrystals =
+  do cs <- rd usedCrystals
+     usedCrystals .= bagEmpty
+     mapM_ (\(a,n) -> gainCrystal n a) (bagToListGrouped cs)
 
 reduceArmor :: Int -> ActiveEnemy -> Act ()
 reduceArmor = undefined
@@ -152,11 +184,7 @@ reduceArmor = undefined
 
 
 payMana :: Int -> Mana -> Act ()
-payMana n m = mana ?= \x ->
-              case bagRemove n m x of
-                Nothing -> Failed "Not enough mana."
-                Just a  -> Ok a
-
+payMana n m = mana ?= perhaps "Not enough mana." . bagRemove n m
 
 looseReputation :: Int -> Act ()
 looseReputation n = reputation %= max (-7) . subtract n
@@ -236,6 +264,41 @@ addDeedDeckTop = undefined
 
 removePlayed :: Deed -> Act ()
 removePlayed = undefined
+
+newPlayPhase :: Act ()
+newPlayPhase = undefined
+
+
+playCardAny :: Deed -> Act ()
+playCardAny d =
+  do c <- askText "How would like to play this card?"
+            [ "Basic action", "Power action", "Sideways" ]
+     case c of
+       0 -> deedBasic d
+       1 -> deedPower d
+       2 -> playCardSidewaysAny
+       _ -> reportError "Invalid choice."
+
+
+playCardSidewaysAny :: Act ()
+playCardSidewaysAny =
+  do p <- currentNormalTurnPhase
+     case p of
+       Moving -> gainMove 1
+       Interacting -> gainInfluence 1
+       InCombat c ->
+         case c of
+           CombatBlocking -> gainBlock 1 Physical
+           CombatAttack   -> gainAttack 1 Melee Physical
+           _ -> reportError "The card cannot be played at this time."
+
+-- | Play a card from hand
+playCard :: Act ()
+playCard =
+  do d <- chooseCardFromHand
+     cardPlayed d
+     playCardAny d
+
 
 --------------------------------------------------------------------------------
 -- Terrain
