@@ -41,7 +41,7 @@ data Player = Player
 
 data TurnPhase = BetweenRounds
                | BetweenTurns
-               | AtStartOfTurn      -- ^ Not chosen what to do
+               | AtStartOfTurn      -- ^ Not chosen what tto do
                | DeclaredEndOfRound -- ^ Turn finished
                | RestingSlowly      -- ^ Turn finished
                | AtStartOfRest      -- ^ Wait to discard a non-wound card
@@ -89,5 +89,6 @@ data CombatPhase = CombatRangedAttack
 
 makeLenses ''Player
 makeLenses 'NormalTurn
+
 
 
