@@ -1,4 +1,7 @@
+{-# Language TemplateHaskell #-}
 module Combat where
+
+import Control.Lens
 
 import Enemies
 
@@ -29,5 +32,7 @@ data CombatBlock = CombatBlock
   , _blocking     :: Maybe ActiveEnemy  -- ^ Who we are blocking if any
   }
 
-
+makeLenses 'ActiveEnemy
+makeLenses 'CombatAttacking
+makeLenses 'CombatBlock
 

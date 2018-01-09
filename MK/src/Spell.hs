@@ -6,7 +6,7 @@ import Rule
 import Deed
 
 spells :: [Deed]
-spells =
+spells = [] {-
   [ spellDeed Red
     "Fireball"
     [ produces (5 *** Attack Ranged Fire) ]
@@ -152,5 +152,5 @@ spells =
 
   ]
 
-
+-}
 

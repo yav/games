@@ -2,12 +2,14 @@
 module BasicDeed where
 
 import qualified Data.Set as Set
+import Control.Lens
 
 import Common
 import Deed
 import Act
 import Player
 import Enemies
+import Combat
 
 
 
@@ -48,7 +50,7 @@ blueSpecial =
        ])
 
 
-    (do e <- currentlyBlocking
+    (do e <- (^. enemyCur) <$> currentlyBlocking
         let elementalAttack = case enemyAttack e of
                                 Summoner -> error "Blocking a summoner"
                                 AttacksWith el _ ->
@@ -125,7 +127,7 @@ redSpecial =
                 then gainAttack 2 Siege Physical
                 else gainAttack 3 Ranged Physical)
         ,(CombatBlocking,
-            do a <- currentlyBlocking
+            do a <- (^. enemyCur) <$> currentlyBlocking
                case enemyAttack a of
                  AttacksWith Ice _ -> gainBlock 3 Fire
                  _ -> gainBlock 4 Physical)
@@ -202,7 +204,6 @@ improvise n =
            CombatBlocking -> gainBlock 3 Physical
            CombatAttack   -> gainAttack 3 Melee Physical
            _ -> reportError "This card cannot be played now."
-       _ -> reportError "This card cannot be played now."
 
 
 manaDraw :: Int -> Act ()
