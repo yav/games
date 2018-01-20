@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<script src="jquery.js"></script>
+<script src="ui.js"></script>
+<style>
+.box { display: inline-block; }
+.box-size { width: 64px; height: 64px;
+            vertical-align: middle;
+            text-align: center;
+            line-height: 64px;
+            font-size: 48px;
+          }
+.selected { border: 2px solid black; }
+.cell-color { background-color: #ccc; }
+.editor { margin: 5px }
+.red { background-color: red }
+.blue { background-color: blue }
+.green { background-color: green }
+.example td {
+  width: 24px;
+  height: 24px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 20px;
+}
+
+table.example {
+  border: 2px solid black;
+  margin: 2px;
+}
+
+</style>
+<script>
+$(document).ready(function () {
+  $('body').append(drawEditor())
+})
+</script>
+</head>
+<body>
+</body>
+</html>
