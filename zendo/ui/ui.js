@@ -2,7 +2,7 @@ var rowNum = 5
 var colNum = 5
 
 
-function drawColorChooser() {
+function drawColorChooser(notify) {
   var dom = $('<div/>')
   function color(c,v) {
     var it = $('<div/>').addClass('box box-size')
@@ -11,6 +11,7 @@ function drawColorChooser() {
     it.click(function () {
       dom.find('.selected').removeClass('selected')
       it.addClass('selected')
+      notify()
     })
     dom.append(it)
   }
@@ -30,7 +31,7 @@ var shapes = { circle: '&#9679;'
              }
 
 
-function drawShapeChooser() {
+function drawShapeChooser(notify) {
   var dom = $('<div/>')
   function shape(v) {
     var it = $('<div/>').addClass('box box-size')
@@ -39,6 +40,7 @@ function drawShapeChooser() {
     it.click(function () {
       dom.find('.selected').removeClass('selected')
       it.addClass('selected')
+      notify()
     })
     dom.append(it)
   }
@@ -57,8 +59,16 @@ function drawEditor() {
   var dom = $('<div/>')
 
   var tab = $('<table/>').addClass('editor')
-  var cols = drawColorChooser()
-  var shape = drawShapeChooser()
+  var cols = drawColorChooser(notify)
+  var shape = drawShapeChooser(notify)
+
+  function notify() {
+    jQuery.each(tab.find('.selected'), function(ix,thing) {
+      var thing = $(thing)
+      var loc = thing.data('loc')
+      clicked(loc.row,loc.col,thing)()
+    })
+  }
 
   function clicked(row,col,thing) { return function() {
     tab.find('.selected').removeClass('selected')
@@ -68,7 +78,7 @@ function drawEditor() {
     thing.empty()
     if (c === null) thing.data('value',null)
     else thing.html(shapes[s]).css('color',c)
-              .data('value', { row: row, col: col, color: c, shape: s })
+              .data('value', { color: c, shape: s })
   }}
 
   for (var row  = 0; row < rowNum; ++row) {
@@ -76,6 +86,7 @@ function drawEditor() {
     for (var col = 0; col < colNum; ++col) {
       var td = $('<td/>').addClass('box-size cell-color')
       td.click(clicked(row,col,td))
+        .data('loc', { row: row, col: col })
       td.data('value',null)
       tr.append(td)
     }
@@ -85,9 +96,10 @@ function drawEditor() {
   function list() {
     var ex = {}
     jQuery.each(tab.find('td'), function(ix,td) {
-      var v = $(td).data('value')
-      if (v !== null) ex[v.col + '-' + v.row] =
-                          { color: v.color, shape: v.shape }
+      var td = $(td)
+      var v = td.data('value')
+      var l = td.data('loc')
+      if (v !== null) ex[l.col + '-' + l.row] = v
     })
     $('body').append(drawExample(ex))
   }

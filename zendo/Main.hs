@@ -3,9 +3,6 @@ import Graphics.Vty
 import Zendo
 import UI
 
-prop = Count "x" (ShapeOf (Var "x") :=: Shape Circle) :>=:
-       Count "x" (ShapeOf (Var "x") :=: Shape Square)
-  -- Exists "x" $ Exists "y" $ Touching (Var "x") (Var "y")
 
 
 main :: IO ()

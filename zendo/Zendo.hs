@@ -37,7 +37,6 @@ data Term =
     Var Name
   | ColorOf Term
   | ShapeOf Term
-  | LocationOf Term
   | RowOf Term
   | ColOf Term
   | Count Name Prop
@@ -52,11 +51,9 @@ data Prop =
   | Touching Term Term
   | And [Prop]
   | Not Prop
-  | Exists Name Prop
     deriving Show
 
-data Value = VColor Color | VShape Shape | VLocation (Int,Int)
-           | VItem Item | VNum Int
+data Value = VColor Color | VShape Shape | VItem Item | VNum Int
             deriving Eq
 
 
@@ -71,8 +68,6 @@ evalProp env is prop =
     And ps    -> and (map (evalProp env is) ps)
 
     Not p -> not (evalProp env is p)
-
-    Exists x p -> or [ evalProp ((x,i):env) is p | i <- is ]
 
     Touching t1 t2
       | VItem Item { at = (x,y) } <- evalTerm env is t1
@@ -89,11 +84,9 @@ evalTerm env is term =
                  | otherwise -> error "Malformed term"
     ShapeOf t    | VItem v         <- evalTerm env is t -> VShape (shape v)
                  | otherwise -> error "Malformed term"
-    LocationOf t | VItem v         <- evalTerm env is t -> VLocation (at v)
+    RowOf t      | VItem v <- evalTerm env is t -> VNum (snd (at v))
                  | otherwise -> error "Malformed term"
-    RowOf t      | VLocation (_,y) <- evalTerm env is t -> VNum y
-                 | otherwise -> error "Malformed term"
-    ColOf t      | VLocation (x,_) <- evalTerm env is t -> VNum x
+    ColOf t      | VItem v <- evalTerm env is t -> VNum (fst (at v))
                  | otherwise -> error "Malformed term"
     Count x p -> VNum $ sum [ 1 | i <- is, evalProp ((x,i):env) is p ]
     Num t     -> VNum t
@@ -119,10 +112,9 @@ smtTerm itemNames = go
 
       ColorOf x -> fun "color" [ go env x ]
       ShapeOf x -> fun "shape" [ go env x ]
-      LocationOf x -> fun "at" [ go env x ]
 
-      RowOf x -> fun "row" [ go env x ]
-      ColOf x -> fun "col" [ go env x ]
+      RowOf x -> fun "row" [ fun "at" [go env x] ]
+      ColOf x -> fun "col" [ fun "at" [go env x] ]
 
       Num x   -> int (fromIntegral x)
 
@@ -140,9 +132,6 @@ smtProp is env prop =
     Not p    -> SMT.not (smtProp is env p)
     Touching x y -> fun "item-touching" [ smtTerm is env x, smtTerm is env y ]
     And ps -> andMany (map (smtProp is env) ps)
-    Exists x p -> orMany (map checkBody is)
-      where
-      checkBody i = smtProp is ((x,i):env) p
 
 --------------------------------------------------------------------------------
 
