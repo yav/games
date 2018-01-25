@@ -14,8 +14,6 @@ module Lang
   , (==>)
   , exists
   , forall
-  , Is
-  , is
   , touching
   , prop
   , ($)
@@ -34,23 +32,41 @@ data Item
 newtype Term t = Term (P.Int -> Z.Term)
 newtype Prop = P (P.Int -> Z.Prop)
 
-red :: Term Color
-red = Term (\_ -> Z.Color Z.Red)
+red' :: Term Color
+red' = Term (\_ -> Z.Color Z.Red)
 
-blue :: Term Color
-blue = Term (\_ -> Z.Color Z.Blue)
+blue' :: Term Color
+blue' = Term (\_ -> Z.Color Z.Blue)
 
-green :: Term Color
-green = Term (\_ -> Z.Color Z.Green)
+green' :: Term Color
+green' = Term (\_ -> Z.Color Z.Green)
 
-circle :: Term Shape
-circle = Term (\_ -> Z.Shape Z.Circle)
+circle' :: Term Shape
+circle' = Term (\_ -> Z.Shape Z.Circle)
 
-square :: Term Shape
-square = Term (\_ -> Z.Shape Z.Square)
+square' :: Term Shape
+square' = Term (\_ -> Z.Shape Z.Square)
 
-triangle :: Term Shape
-triangle = Term (\_ -> Z.Shape Z.Triangle)
+triangle' :: Term Shape
+triangle' = Term (\_ -> Z.Shape Z.Triangle)
+
+red :: Term Item -> Prop
+red x = color x == red'
+
+blue :: Term Item -> Prop
+blue x = color x == blue'
+
+green :: Term Item -> Prop
+green x = color x == green'
+
+circle :: Term Item -> Prop
+circle x = shape x == circle'
+
+square :: Term Item -> Prop
+square x = shape x == square'
+
+triangle :: Term Item -> Prop
+triangle x = shape x == triangle'
 
 count :: (Term Item -> Prop) -> Term Number
 count k = Term (\i -> let v = P.show i
@@ -160,17 +176,6 @@ instance (a ~ Number) => P.Num (Term a) where
   abs = error "Cannot compute the absolute value of a term."
   signum = error "Cannot compute `signum` of a term."
   negate = error "Terms cannot be negative"
-
-class Is a where
-  is :: Term a -> Term Item -> Prop
-
-instance Is Color where
-  is c = \i -> color i == c
-
-instance Is Shape where
-  is s = \i -> shape i == s
-
-
 
 prop :: Prop -> Z.Prop
 prop (P f) = f 0
