@@ -1,0 +1,159 @@
+<head>
+<style>
+.var { font-style: italic;
+     ; display: inline-block;
+     ; font-weight: bold;
+     }
+.constant { display: inline-block;
+          }
+
+.term { display: inline-block;
+        vertical-align: middle;
+      }
+.hole { border: 2px solid #999;
+        border-radius: 5px;
+        min-width: 1em;
+        min-height: 1em;
+        padding: 1em;
+        display: inline-block;
+      }
+.box  { border: 2px solid #999;
+        border-radius: 5px;
+        min-width: 1em;
+        min-height: 1em;
+        padding: 1em;
+        display: inline-block;
+      }
+
+.sep { border-bottom: 1px solid #ccc;
+       margin-bottom: 8px;
+       text-align: center;
+       width: 100%;
+       line-height: 100%;
+       height: 8px;
+     }
+
+.label { font-style: italic;
+         padding: 0px 1em 0px 1em;
+         display: inline-block;
+         background-color: white;
+         font-size: 16px;
+       }
+
+
+</style>
+<script src="jquery.js"></script>
+<script>
+function hole() {
+  return $('<div/>').addClass('hole')
+}
+
+function variable(n) {
+  var ix       = n
+  var mod      = Math.floor(ix / 26)
+  var baseName = String.fromCharCode(97 + (ix % 26))
+  var name     = baseName + (mod? mod : '')
+  var dom      = $('<div/>').addClass('var').text(name)
+  return dom
+}
+
+function constant(i) {
+  return $('<div/>').addClass('constant').text(i)
+}
+
+function circle()   { return constant('a circle') }
+function triangle() { return constant('a triangle') }
+function square()   { return constant('a square') }
+function red()      { return constant('red') }
+function blue()     { return constant('blue') }
+function green()    { return constant('green') }
+
+function binRel(name, a, b) {
+  var dom = $('<div/>').addClass('term')
+                       .append(a,$('<span/>').html(' ' + name + ' '),b)
+  return dom
+}
+
+function prop(name, a) {
+  var dom = $('<div/>').addClass('term')
+                       .append(constant(name),$('<span/>').text(' '),a)
+  return dom
+}
+
+function list(name, xs) {
+  var dom = $('<div/>').addClass('box')
+  var first = true
+  jQuery.each(xs, function(i,x) {
+    if (first) {
+      first = !first
+    } else {
+      var sep = $('<div/>').addClass('sep')
+                           .append($('<div/>').addClass('label').text(name))
+      dom.append(sep)
+    }
+    dom.append($('<div/>').append(x))
+  })
+  return dom
+}
+
+
+function eq(a,b)        { return binRel('is',a,b) }
+function neq(a,b)       { return binRel('is not',a,b) }
+function gt(a,b)        { return binRel('is greater than',a,b) }
+function geq(a,b)       { return binRel('is at least',a,b) }
+function lt(a,b)        { return binRel('is less than',a,b) }
+function leq(a,b)       { return binRel('is at most',a,b) }
+function touching(a,b)  { return binRel('touches',a,b) }
+
+function color(a) { return prop('the color of',a) }
+function shape(a) { return prop('the shape of',a) }
+function row(a)   { return prop('the row of',a) }
+function col(a)   { return prop('the column of',a) }
+
+function and(xs) { return list('and',xs) }
+function or(xs)  { return list('or',xs) }
+
+function count(n,a) {
+  var dom = $('<div/>').addClass('box')
+  dom.append($('<span/>').text('the number of '))
+     .append(variable(n))
+     .append($('<span/>').text(' such that: '))
+     .append($('<br/>'), a)
+  return dom
+}
+
+function exists(n,a) {
+  return (geq (count(n,a), constant('1')))
+}
+
+
+
+$(document).ready(function() {
+  $('body').append(
+    and ([ eq (color(variable(0)), red())
+         , neq (shape(variable(0)), triangle())
+         , lt (row(variable(0)), col(variable(1)))
+         , gt (count(0, or([ eq (color(variable(0)), red())
+                           , eq (shape(variable(0)), square())
+                           ]
+                          ))
+              , constant(3))
+
+         , gt ( count(0,
+                  gt ( count(1,
+                          lt (row(variable(0)),row(variable(1)))
+                       )
+                     , constant(2)
+                     )
+                )
+              , constant(3)
+              )
+         , exists(0, eq (color(variable(0)), red()))
+         ])
+  )
+
+})
+</script>
+</head>
+<body>
+</body>
