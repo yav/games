@@ -1,0 +1,91 @@
+<html>
+<head>
+<style>
+.box {
+  border: 2px solid #999;
+  border-radius: 5px;
+  min-width: 64px;
+  min-height: 64px;
+  display: inline-block;
+  font-size: 12px;
+  font-style: italic;
+  color: #999;
+  text-align: center;
+  line-height: 100%;
+  vertical-align: middle;
+}
+
+.selected {
+  border-color: red;
+}
+</style>
+<script src="jquery.js"></script>
+<script src="unify.js"></script>
+<script>
+
+var tProp       = con('Condition')
+var tItem       = con('Item')
+var tColor      = con('Color')
+var tShape      = con('Shape')
+var tNumber     = con('Number')
+function tTerm(i) { return con('Some',i) }
+
+
+/* ------------------- */
+
+function box() { return $('<div/>').addClass('box') }
+
+function target(t) {
+  var dom = box()
+  function startDrag(s) {
+    var su = {}
+    if (!unify(su,t,s)) return
+    dom.addClass('selected')
+  }
+
+  function endDrag() {
+    dom.removeClass('selected')
+  }
+
+  return dom.text(showType(t)).addClass('target')
+            .data('startDrag', startDrag)
+            .data('endDrag', endDrag)
+}
+
+function source(t) {
+  var dom = box().text(showType(t))
+                 .attr('draggable','true')
+                 .on('dragstart', lightUpTargets)
+                 .on('dragend', cleanUpTargets)
+
+  function cleanUpTargets() {
+    jQuery.each($('.target'), function(i,tgt) {
+      $(tgt).data('endDrag')()
+    })
+  }
+
+  function lightUpTargets() {
+    jQuery.each($('.target'), function(i,tgt) {
+      $(tgt).data('startDrag')(t)
+    })
+  }
+  return dom
+}
+
+
+
+
+$(document).ready(function() {
+  var body = $('body')
+  var t1 = source(tTerm(tItem))
+  var x  = newVar()
+  var t2 = target(tTerm(x))
+  var t3 = target(tTerm(x))
+  body.append(t1,t2,t3)
+})
+
+</script>
+</head>
+<body></body>
+</html>
+
