@@ -1,5 +1,7 @@
 module Finished
-  ( cards
+  ( Difficulty(..)
+  , newGame
+  , newGameIO
   , Game
   , gameWon
   , gameLost
@@ -11,6 +13,7 @@ module Finished
 import Control.Monad(guard)
 import Data.List(groupBy)
 import Data.Maybe(fromMaybe)
+import Util.Random(genRand, randSource, randSourceIO, shuffle, Gen)
 
 data Action = StartScoring
             | TakeSweets
@@ -65,6 +68,40 @@ activateCard c
   | hasSweets c < supportsSweets c = Just c { hasSweets = hasSweets c + 1 }
   | otherwise = Nothing
 
+data Difficulty = VeryEasy | Easy | Regular | Difficult
+
+newGame :: Int -> Difficulty -> Game
+newGame s d = fst $ genRand (randSource s) $ setupGame d
+
+newGameIO :: Difficulty -> IO Game
+newGameIO d = do s <- randSourceIO
+                 return $ fst $ genRand s $ setupGame d
+
+
+
+-- | Setup a game, without shuffling the cards
+setupGame :: Difficulty -> Gen Game
+setupGame d =
+  do cs <- shuffle cards
+     return $ drawCards 3 Game
+        { coffee      = c
+        , sweetSupply = 10 - s
+        , sweets      = s
+        , deck        = cs
+        , finished    = []
+        , present     = []
+        , past        = []
+        , futures     = []
+        , question    = Nothing
+        }
+  where
+  (c,s) = case d of
+            VeryEasy  -> (7,7)
+            Easy      -> (7,5)
+            Regular   -> (6,5)
+            Difficult -> (5,5)
+
+data Question = Question String (Int -> Game)
 
 data Game = Game
   { coffee       :: Int
@@ -75,7 +112,7 @@ data Game = Game
   , present      :: [Card]
   , past         :: [Card]     -- ^ Oldest first
   , futures      :: [Future]
-  , question     :: Maybe (Int -> Game)
+  , question     :: Maybe Question
   }
 
 data Future = OneCard [Card] | AllCards [Card]
@@ -125,7 +162,7 @@ gameWon g =
 
 -- | Has the game been lost?
 gameLost :: Game -> Bool
-gameLost g = coffee g == 0
+gameLost g = coffee g <= 0
 
 
 -- | Gain a sweet, if one is available.
@@ -170,7 +207,8 @@ checkFuture g =
 endTurn :: Game -> Game
 endTurn g =
   let (n,xs) = clean (present g)
-      g1 = bonusSweets g { sweetSupply = n + sweetSupply g, present = xs }
+      g1 = drinkCoffee
+         $ bonusSweets g { sweetSupply = n + sweetSupply g, present = xs }
    in checkFuture (reducePast g1 { present = [], past = past g1 ++ present g1 })
 
 
@@ -186,6 +224,11 @@ bonusSweets g = iterate gainSweet g !!
                )
   where
   sequential x y = succ (number x) == number y
+
+-- | Drink coffee for any relevant cards in the present.
+drinkCoffee :: Game -> Game
+drinkCoffee g = g { coffee = coffee g - n }
+  where n = length (filter ((DrinkCoffee ==) . action) (present g))
 
 -- | Move all but 3 cards from the past to the bottom of the deck.
 reducePast :: Game -> Game
@@ -243,12 +286,16 @@ cardsIntoThePast g0 =
     _ : _ : _ -> g0 { question = Just (ask g0 True) }
     _ -> g0
   where
-  ask g again i =
+  ask g again =
+    Question "Choose card from the past." $ \i ->
     fromMaybe g $
       do (c,g1) <- getPresentCard i g
          let (n,c1) = clean c
+             chCoffee = if action c == DrinkCoffee then 1 else 0
              g2 = g1 { sweetSupply = n + sweetSupply g1
-                     , past = past g1 ++ [c1] }
+                     , past = past g1 ++ [c1]
+                     , coffee = coffee g1 - chCoffee
+                     }
          return $ if again then g2 { question = Just (ask g2 False) }
                            else drawCards 2 g2 { question = Nothing }
 
@@ -257,12 +304,13 @@ belowTheStack g = reducePast g2 { deck = deck g1 ++ xs }
   where
   (s,xs) = clean (present g)
   g1     = g { sweetSupply = s + sweetSupply g, present = xs }
-  g2     = bonusSweets g1
+  g2     = drinkCoffee (bonusSweets g1)
 
 oneCardIntoTheFuture :: Game -> Game
 oneCardIntoTheFuture g = g { question = Just ask }
   where
-  ask i = fromMaybe g
+  ask = Question "Chooase a card from the present." $ \i ->
+        fromMaybe g
         $ do (c,g1) <- getPresentCard i g
              return g1 { futures = oneFutureCard c (futures g1)
                        , question = Nothing }
@@ -276,7 +324,8 @@ allCardsIntoTheFuture g =
 exchangeCards :: Game -> Game
 exchangeCards g = (drawCard g) { question = Just ask }
   where
-  ask i = fromMaybe g
+  ask = Question "Choose a card from the present." $ \i ->
+          fromMaybe g
         $ do (c,g1) <- getPresentCard i g
              return g1 { deck = c : deck g, question = Nothing }
 
@@ -296,7 +345,7 @@ removeSweets g =
 -- | Answer a question.
 continue :: Int -> Game -> Game
 continue n g = case question g of
-                 Just k -> k n
+                 Just (Question _ k) -> k n
                  Nothing -> g
 
 
