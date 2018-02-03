@@ -1,10 +1,10 @@
 import Control.Monad(guard)
-import Data.List(groupBy)
 import Data.Maybe(fromMaybe)
 import Util.Random(genRand, randSource, randSourceIO, shuffle, Gen)
 import Text.Read(readMaybe)
 import Data.List(intercalate,sortBy)
 import Data.Function(on)
+
 
 data Action = StartScoring
             | TakeSweets
@@ -214,7 +214,7 @@ bonusSweets g = iterate gainSweet g !!
                $ map (subtract 1)
                $ filter (>= 3)
                $ map length
-               $ groupBy sequential
+               $ groupByPairwise sequential
                $ present g
                )
   where
@@ -453,6 +453,12 @@ findInPlace p xs = case break p xs of
                      (as,b:bs) -> Just (as, b, bs)
                      _         -> Nothing
 
+groupByPairwise :: (a -> a -> Bool) -> [a] -> [[a]]
+groupByPairwise p [] = []
+groupByPairwise p (x : xs) =
+  case groupByPairwise p xs of
+    g : gs | p x (head g) -> (x:g) : gs
+    gs -> [x] : gs
 --------------------------------------------------------------------------------
 
 main :: IO ()
