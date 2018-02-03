@@ -1,19 +1,10 @@
-module Finished
-  ( Difficulty(..)
-  , newGame
-  , newGameIO
-  , Game
-  , gameWon
-  , gameLost
-  , useCard
-  , continue
-  , endTurn
-  ) where
-
 import Control.Monad(guard)
 import Data.List(groupBy)
 import Data.Maybe(fromMaybe)
 import Util.Random(genRand, randSource, randSourceIO, shuffle, Gen)
+import Text.Read(readMaybe)
+import Data.List(intercalate,sortBy)
+import Data.Function(on)
 
 data Action = StartScoring
             | TakeSweets
@@ -82,12 +73,12 @@ newGameIO d = do s <- randSourceIO
 -- | Setup a game, without shuffling the cards
 setupGame :: Difficulty -> Gen Game
 setupGame d =
-  do cs <- shuffle cards
+  do cs <- shuffle (filter ((48 /=) . number) cards)
      return $ drawCards 3 Game
         { coffee      = c
         , sweetSupply = 10 - s
         , sweets      = s
-        , deck        = cs
+        , deck        = cs ++ filter ((48 ==) . number) cards
         , finished    = []
         , present     = []
         , past        = []
@@ -100,6 +91,7 @@ setupGame d =
             Easy      -> (7,5)
             Regular   -> (6,5)
             Difficult -> (5,5)
+
 
 data Question = Question String (Int -> Game)
 
@@ -167,7 +159,8 @@ gameLost g = coffee g <= 0
 
 -- | Gain a sweet, if one is available.
 gainSweet :: Game -> Game
-gainSweet g = if sweetSupply g > 0 then g { sweetSupply = sweetSupply g - 1 }
+gainSweet g = if sweetSupply g > 0 then g { sweets = sweets g + 1
+                                          , sweetSupply = sweetSupply g - 1 }
                                    else g
 
 -- | Draw a card from the deck, or the past, if the deck is empty.
@@ -204,12 +197,14 @@ checkFuture g =
   newPresent xs g1 = foldr toPresent g1 xs
 
 -- | More present to past, gain bonuses, reduce past, then redraw.
-endTurn :: Game -> Game
-endTurn g =
+endTurn :: Bool -> Game -> Game
+endTurn skipPast g =
   let (n,xs) = clean (present g)
       g1 = drinkCoffee
          $ bonusSweets g { sweetSupply = n + sweetSupply g, present = xs }
-   in checkFuture (reducePast g1 { present = [], past = past g1 ++ present g1 })
+      g2 = if skipPast then g1 { deck = deck g1 ++ present g1 }
+                       else g1 { past = past g1 ++ present g1 }
+   in checkFuture (reducePast g2 { present = [] })
 
 
 -- | Check the present for bonus sweets.
@@ -240,39 +235,39 @@ reducePast g = if n <= 3 then g else g { past = bs, deck = deck g ++ as }
 -- | Get the action for a card, and pay for it.
 getCardAction :: Int -> Game -> Maybe (Action,Game)
 getCardAction n g =
-  do guard (sweets g > 1)
-     (as,b:bs) <- return (splitAt n (present g))
+  do guard (sweets g >= 1)
+     (as,b,bs) <- findInPlace ((n ==) . number) (present g)
      b1 <- activateCard b
-     return (action b1, g { present = as ++ b1 : bs })
+     return (action b1, g { sweets = sweets g - 1, present = as ++ b1 : bs })
 
 -- | Activate a card.
-useCard :: Int -> Game -> Game
-useCard n g =
+useCard :: Int -> (Game -> Game) -> (Game -> Game)
+useCard n k g =
   case getCardAction n g of
-    Just (a,g1) -> performAction a g1
+    Just (a,g1) -> performAction a k g1
     Nothing     -> g
 
-performAction :: Action -> Game -> Game
-performAction a =
+performAction :: Action -> (Game -> Game) -> (Game -> Game)
+performAction a k =
   case a of
     StartScoring          -> id
     DrinkCoffee           -> id
     TakeSweets            -> id
-    DrawCard              -> drawCard
-    DrawCards2            -> drawCards 2
-    BelowTheStack         -> belowTheStack
-    CardsIntoThePast      -> cardsIntoThePast
-    CardsFromThePast      -> cardsFromThePast
-    OneCardIntoTheFuture  -> oneCardIntoTheFuture
-    AllCardsIntoTheFuture -> allCardsIntoTheFuture
-    ExchangeCards         -> exchangeCards
-    RemoveSweets          -> removeSweets
+    DrawCard              -> k . drawCard
+    DrawCards2            -> k . drawCards 2
+    BelowTheStack         -> belowTheStack k
+    CardsIntoThePast      -> cardsIntoThePast k
+    CardsFromThePast      -> k . cardsFromThePast
+    OneCardIntoTheFuture  -> oneCardIntoTheFuture k
+    AllCardsIntoTheFuture -> k . allCardsIntoTheFuture
+    ExchangeCards         -> exchangeCards k
+    RemoveSweets          -> k . removeSweets
 
 getPresentCard :: Int -> Game -> Maybe (Card, Game)
 getPresentCard n g =
-  case splitAt n (present g) of
-    (as,b:bs) -> Just (b, g { present = as ++ bs })
-    _         -> Nothing
+  case findInPlace ((n ==) . number) (present g) of
+    Just (as,b,bs) -> Just (b, g { present = as ++ bs })
+    _              -> Nothing
 
 cardsFromThePast :: Game -> Game
 cardsFromThePast g =
@@ -280,40 +275,77 @@ cardsFromThePast g =
       (as,bs) = splitAt (n - 2) (past g)
   in foldr toPresent g { past = as } bs
 
-cardsIntoThePast :: Game -> Game
-cardsIntoThePast g0 =
-  case present g0 of
-    _ : _ : _ -> g0 { question = Just (ask g0 True) }
-    _ -> g0
+cardsIntoThePast :: (Game -> Game) -> (Game -> Game)
+cardsIntoThePast k g0 = g1
   where
+  cardNum = case present g0 of
+              _ : _ : _ -> 2
+              _ -> 1
+
+  g1 = g0 { question = Just (ask g1 (cardNum == 2)) }
+
   ask g again =
-    Question "Choose card from the past." $ \i ->
+    Question "Choose a card to send to the past." $ \i ->
     fromMaybe g $
-      do (c,g1) <- getPresentCard i g
+      do (c,g2) <- getPresentCard i g
          let (n,c1) = clean c
              chCoffee = if action c == DrinkCoffee then 1 else 0
-             g2 = g1 { sweetSupply = n + sweetSupply g1
-                     , past = past g1 ++ [c1]
-                     , coffee = coffee g1 - chCoffee
+             g3 = g2 { sweetSupply = n + sweetSupply g2
+                     , past = past g2 ++ [c1]
+                     , coffee = coffee g2 - chCoffee
+                     , question = Just (ask g3 False)
                      }
-         return $ if again then g2 { question = Just (ask g2 False) }
-                           else drawCards 2 g2 { question = Nothing }
+         return $ if again then g3
+                           else k (drawCards cardNum g3 { question = Nothing })
 
-belowTheStack :: Game -> Game
-belowTheStack g = reducePast g2 { deck = deck g1 ++ xs }
+play :: Game -> Game
+play g = g1
   where
-  (s,xs) = clean (present g)
-  g1     = g { sweetSupply = s + sweetSupply g, present = xs }
-  g2     = drinkCoffee (bonusSweets g1)
+  g1 = g { question = Just (ask g1) }
+  ask s = Question "Choose a card to activate, or 0" $ \i ->
+            if i == 0
+              then reorderCards (play . endTurn False) s
+              else useCard i play s
 
-oneCardIntoTheFuture :: Game -> Game
-oneCardIntoTheFuture g = g { question = Just ask }
+reorderCards :: (Game -> Game) -> (Game -> Game)
+reorderCards k g = g { question = Just auto }
   where
-  ask = Question "Chooase a card from the present." $ \i ->
-        fromMaybe g
-        $ do (c,g1) <- getPresentCard i g
-             return g1 { futures = oneFutureCard c (futures g1)
-                       , question = Nothing }
+  g0 = g { present = sortBy (compare `on` number) (present g) }
+
+  g1 = g0 { question = Just (ask g1) }
+
+  auto = Question "Manual sort? 0: no, 1: yes." $ \i ->
+         if i == 0
+          then k g0
+          else g1
+
+
+  ask s = Question "Choose a card to move, or 0 to end." $ \i ->
+            if i == 0
+              then k s
+              else
+                case getPresentCard i s of
+                  Nothing -> s
+                  Just (a,g2) -> g2 { question = Just (askDest a g2) }
+
+  askDest a s = Question "Choose a destination: " $ \i ->
+                  case splitAt i (present s) of
+                    (as,bs) -> let s1 = s { present = as ++ a : bs
+                                          , question = Just (ask s1) }
+                               in s1
+
+belowTheStack :: (Game -> Game) -> (Game -> Game)
+belowTheStack k = reorderCards (k . endTurn True)
+
+oneCardIntoTheFuture :: (Game -> Game) -> (Game -> Game)
+oneCardIntoTheFuture k g = g1
+  where
+  g1 = g { question = Just ask }
+  ask = Question "Choose a card to send to the future." $ \i ->
+        case getPresentCard i g of
+          Just (c,g2) -> k g2 { futures = oneFutureCard c (futures g1)
+                              , question = Nothing }
+          Nothing     -> g1
 
 
 allCardsIntoTheFuture :: Game -> Game
@@ -321,13 +353,18 @@ allCardsIntoTheFuture g =
   drawCards 3 g { present = []
                 , futures = allFutureCards (present g) (futures g) }
 
-exchangeCards :: Game -> Game
-exchangeCards g = (drawCard g) { question = Just ask }
+exchangeCards :: (Game -> Game) -> (Game -> Game)
+exchangeCards k g = g1 { question = Just ask }
   where
-  ask = Question "Choose a card from the present." $ \i ->
-          fromMaybe g
-        $ do (c,g1) <- getPresentCard i g
-             return g1 { deck = c : deck g, question = Nothing }
+  g1  = (drawCard g) { question = Just ask }
+  ask = Question "Choose a card to return." $ \i ->
+        case getPresentCard i g1 of
+          Just (c,g2) ->
+            let (n,c1) = clean c
+            in k g2 { deck = c1 : deck g1
+                    , sweetSupply = sweetSupply g2 + n
+                    , question = Nothing }
+          Nothing     -> g1
 
 
 removeSweets :: Game -> Game
@@ -337,7 +374,7 @@ removeSweets g =
     , futures = ds
     }
   where
-  ok c = supportsSweets c <= 1
+  ok c = number c /= 37
   (n1, cs) = cleanOnly ok (present g)
   (n2, ds) = cleanOnly ok (futures g)
 
@@ -347,6 +384,98 @@ continue :: Int -> Game -> Game
 continue n g = case question g of
                  Just (Question _ k) -> k n
                  Nothing -> g
+
+
+--------------------------------------------------------------------------------
+-- View
+
+showGame :: Game -> String
+showGame g = unlines [ stats
+                     , futureRows
+                     , row "present" (present g)
+                     , row "past" (past g), qu ]
+  where
+  stats = "sweets: " ++ show (sweets g) ++
+          ", sweetSupply: " ++ show (sweetSupply g) ++
+          ", coffee: " ++ show (coffee g) ++
+          ", finished: " ++ show (length (finished g))
+
+  rowChunk = intercalate "   " . map showCard
+  row x    = unlines . (("--- " ++ x ++ " ------"):) . map rowChunk . chunks 4
+
+  futureRows = concatMap futureRow (reverse (futures g))
+  futureRow x = case x of
+                 OneCard xs  -> row "future 1" xs
+                 AllCards xs -> row "future all" xs
+
+  qu = case question g of
+         Nothing -> ""
+         Just (Question a _) -> a
+
+showCard :: Card -> String
+showCard c = "[" ++ show (number c) ++ "|" ++ showAction (action c) ++
+                    acts ++ "]"
+  where
+  acts = concat $ replicate (hasSweets c) full ++
+                  replicate (supportsSweets c - hasSweets c) empty
+
+  full = "(*)"
+  empty = "( )"
+
+showAction :: Action -> String
+showAction a =
+  case a of
+    StartScoring          -> "start"
+    DrinkCoffee           -> "coffee"
+    TakeSweets            -> "sweet"
+    DrawCard              -> "card"
+    DrawCards2            -> "2 cards"
+    BelowTheStack         -> "all to deck"
+    CardsIntoThePast      -> "2 to past"
+    CardsFromThePast      -> "2 from past"
+    OneCardIntoTheFuture  -> "1 to future"
+    AllCardsIntoTheFuture -> "all to future"
+    ExchangeCards         -> "exchange"
+    RemoveSweets          -> "clear"
+
+
+--------------------------------------------------------------------------------
+-- Helpers
+
+chunks :: Int -> [a] -> [[a]]
+chunks n xs = case xs of
+                [] -> []
+                _  -> case splitAt n xs of
+                        (as,bs) -> as : chunks n bs
+
+findInPlace :: (a -> Bool) -> [a] -> Maybe ([a], a, [a])
+findInPlace p xs = case break p xs of
+                     (as,b:bs) -> Just (as, b, bs)
+                     _         -> Nothing
+
+--------------------------------------------------------------------------------
+
+main :: IO ()
+main = go =<< newGameIO Regular
+  where
+  go s = case question s of
+           Nothing -> if gameWon s then putStrLn "Victory!" else
+                      if gameLost s then putStrLn "You loose." else
+                      go (play s)
+           Just _  -> do putStrLn (showGame s)
+                         i <- getLine
+                         case readMaybe i of
+                           Just x -> go (continue x s)
+                           Nothing -> go s
+
+
+
+
+
+
+
+
+
 
 
 
