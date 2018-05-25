@@ -2,7 +2,7 @@ import Control.Monad(guard)
 import Data.Maybe(fromMaybe)
 import Util.Random(genRand, randSource, randSourceIO, shuffle, Gen)
 import Text.Read(readMaybe)
-import Data.List(intercalate,sortBy)
+import Data.List(intercalate,sortBy,partition)
 import Data.Function(on)
 
 
@@ -73,12 +73,13 @@ newGameIO d = do s <- randSourceIO
 -- | Setup a game, without shuffling the cards
 setupGame :: Difficulty -> Gen Game
 setupGame d =
-  do cs <- shuffle (filter ((48 /=) . number) cards)
+  do let (lastCard,otherCards) = partition ((48 ==) . number) cards
+     cs <- shuffle otherCards
      return $ drawCards 3 Game
         { coffee      = c
         , sweetSupply = 10 - s
         , sweets      = s
-        , deck        = cs ++ filter ((48 ==) . number) cards
+        , deck        = cs ++ lastCard
         , finished    = []
         , present     = []
         , past        = []
@@ -454,7 +455,7 @@ findInPlace p xs = case break p xs of
                      _         -> Nothing
 
 groupByPairwise :: (a -> a -> Bool) -> [a] -> [[a]]
-groupByPairwise p [] = []
+groupByPairwise _ [] = []
 groupByPairwise p (x : xs) =
   case groupByPairwise p xs of
     g : gs | p x (head g) -> (x:g) : gs
