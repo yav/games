@@ -24,7 +24,7 @@ marketsPerArea p
   | otherwise = p
 
 promotedEnds :: Int -> Int
-promotedEnds p = 4 + div p 2
+promotedEnds p = 4 + 2 * div p 2
 
 newtype Tile      = Tile Int
                     deriving (Eq,Ord,Show)
