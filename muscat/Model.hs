@@ -126,11 +126,12 @@ completeMarketArea mid a =
                     , areaStreet = loose ++ areaStreet a
                     })
 
-autoPromoteArea :: OwnedTile -> Area -> [(MarketId,Area)]
-autoPromoteArea ot a =
-  [ (mid, a1) | mid   <- Map.keys (areaMarkets a)
-              , Ok a1 <- [ addTileArea mid ot a ]
-              ]
+autoPromoteArea :: [MarketId] -> OwnedTile -> Area -> [(MarketId,Area)]
+autoPromoteArea excluded ot a =
+  [ (mid,a1) | mid   <- Map.keys (areaMarkets a)
+             , not (mid `elem` excluded)
+             , Ok a1 <- [ addTileArea mid ot a ]
+             ]
 
 --------------------------------------------------------------------------------
 
@@ -180,21 +181,26 @@ whenReady g =
     GameFinished -> Failed "This game has finished."
     Promote {}   -> Failed "Some tiles still need to be promoted."
 
-autoPromote :: Game -> [(AreaId,OwnedTile)] -> Perhaps Game
+autoPromote :: Game -> [PromoteTodo] -> Perhaps Game
 autoPromote g ots =
   case ots of
     [] -> pure g
-    (aid,ot) : rest ->
+    todo : rest ->
+      let aid = promStartFrom todo
+          ot  = promTile todo
+      in
       withArea aid g $ \a ->
-        case autoPromoteArea ot a of
+        case autoPromoteArea (promExcludeStart todo) ot a of
           [] ->
             case nextArea aid of
               Nothing -> pure g { gamePalace = ot : gamePalace g }
-              Just aid1 -> autoPromote g ((aid1,ot):rest)
+              Just aid1 -> autoPromote g (todo { promStartFrom = aid1 }:rest)
 
-          [(_,a1)] ->
+          [(mid,a1)] ->
             let g1 = g { gameAreas = Map.insert aid a1 (gameAreas g) }
-            in autoPromote g1 rest
+                gmid = GlobMarketId { gmAID = aid, gmMID = mid }
+                avoid t = t { promExclude = gmid : promExclude t }
+            in autoPromote g1 (map avoid rest)
 
           opts ->
             let tgt = PromotionTarget
@@ -246,7 +252,13 @@ complete aid mid g =
               let g1 = g { gameAreas = Map.insert aid a1 (gameAreas g) }
               case nextArea aid of
                 Nothing -> pure g1 { gamePalace = proms ++ gamePalace g1 }
-                Just aid1 -> autoPromote g1 (zip (repeat aid1) proms)
+                Just aid1 ->
+                  let todo t = PromoteTodo
+                                 { promTile = t
+                                 , promStartFrom = aid1
+                                 , promExclude = []
+                                 }
+                  in autoPromote g1 (map todo proms)
      pure (nextTurn g1)
 
 promote :: MarketId -> Game -> Perhaps Game
@@ -285,7 +297,10 @@ advanceTurnOrder o =
 
 data GameStatus = NextTurn
                 | GameFinished
-                | Promote PromotionTarget [(AreaId,OwnedTile)]
+                | Promote PromotionTarget [PromoteTodo]
+
+data GlobMarketId = GlobMarketId { gmAID :: AreaId, gmMID :: MarketId }
+                      deriving (Eq,Ord)
 
 data PromotionTarget = PromotionTarget
   { promoteArea     :: AreaId
@@ -293,7 +308,15 @@ data PromotionTarget = PromotionTarget
   , promoteTile     :: OwnedTile
   }
 
+data PromoteTodo = PromoteTodo
+  { promExclude   :: [GlobMarketId]
+  , promStartFrom :: AreaId
+  , promTile      :: OwnedTile
+  }
 
+promExcludeStart :: PromoteTodo -> [ MarketId ]
+promExcludeStart p = [ gmMID gmid | gmid <- promExclude p
+                                  , gmAID gmid /= promStartFrom p ]
 
 
 
