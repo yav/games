@@ -9,6 +9,9 @@ import qualified Data.Set as Set
 
 import Util.Perhaps
 
+--------------------------------------------------------------------------------
+-- Configuration
+
 tileNum :: Int
 tileNum = 4
 
@@ -25,6 +28,20 @@ marketsPerArea p
 
 promotedEnds :: Int -> Int
 promotedEnds p = 4 + 2 * div p 2
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+-- Identifying things
+
+newtype PlayerId  = PlayerId Int deriving (Eq,Ord)
+
+--------------------------------------------------------------------------------
+
+
+
+--------------------------------------------------------------------------------
+-- Tiles
 
 newtype Tile      = Tile Int
                     deriving (Eq,Ord,Show)
@@ -32,9 +49,15 @@ newtype Tile      = Tile Int
 ppTile :: Tile -> Text
 ppTile (Tile x) = " a " <> Text.pack (show x) <> " tile"
 
-newtype PlayerId  = PlayerId Int deriving (Eq,Ord)
-newtype AreaId    = AreaId   Int deriving (Eq,Ord)
-newtype MarketId  = MarketId Int deriving (Eq,Ord)
+
+data OwnedTile    = OwnedTile { tileType :: Tile, tileOwner :: PlayerId }
+                    deriving Eq
+--------------------------------------------------------------------------------
+
+
+
+--------------------------------------------------------------------------------
+-- Players
 
 data Player       = Player { playerName    :: Text
                            , playerStack   :: [Tile] -- top one is visible
@@ -51,13 +74,17 @@ useBlind p =
   case playerStack p of
     v : t : more -> Ok (t, p { playerStack = v : more })
     _  -> Failed "This player has no unrevealed tiles."
+--------------------------------------------------------------------------------
 
+
+
+--------------------------------------------------------------------------------
+-- Markets
 
 data Market       = Market { marketHas     :: Map Tile PlayerId
                            , marketMissing :: Set Tile
                            }
 
-data OwnedTile    = OwnedTile { tileType :: Tile, tileOwner :: PlayerId }
 
 emptyMarket :: Market
 emptyMarket =
@@ -91,17 +118,28 @@ completeMarket m =
       toOwnedTile (t,p) = OwnedTile { tileType = t, tileOwner = p }
 
     _ -> Failed "Market is not yet full."
+--------------------------------------------------------------------------------
+
+
 
 
 --------------------------------------------------------------------------------
+-- Areas
+
 data Area         = Area { areaMarkets :: Map MarketId Market
                          , areaStreet  :: [OwnedTile]
                          }
 
+newtype MarketId  = MarketId Int deriving (Eq,Ord)
+
+
 newArea :: Int -> Area
-newArea n = Area { areaMarkets = Map.fromList [ (MarketId i,emptyMarket)
-                                                    | i <- take n [ 0 .. ] ]
-                 , areaStreet = [] }
+newArea n = Area { areaMarkets = markets
+                 , areaStreet  = [] }
+  where
+  markets = Map.fromList [ (MarketId i,emptyMarket) | i <- take n [ 0 .. ] ]
+
+
 
 withMarket :: MarketId -> Area -> (Market -> Perhaps a) -> Perhaps a
 withMarket mid a f =
@@ -109,22 +147,18 @@ withMarket mid a f =
    Nothing -> Failed "There is no such market."
    Just m  -> f m
 
-updMarket :: MarketId -> (Market -> Perhaps Market) -> Area -> Perhaps Area
-updMarket mid f a =
-  withMarket mid a $ \m ->
-  do m1 <- f m
-     pure a { areaMarkets = Map.insert mid m1 (areaMarkets a) }
-
 addTileArea :: MarketId -> OwnedTile -> Area -> Perhaps Area
-addTileArea mid ot = updMarket mid (addTileMarket ot)
+addTileArea mid ot a =
+  withMarket mid a $ \m ->
+  do m1 <- addTileMarket ot m
+     pure a { areaMarkets = Map.insert mid m1 (areaMarkets a) }
 
 completeMarketArea :: MarketId -> Area -> Perhaps ([OwnedTile],Area)
 completeMarketArea mid a =
   withMarket mid a $ \m ->
-    do (win,loose) <- completeMarket m
-       pure (win, a { areaMarkets = Map.insert mid emptyMarket (areaMarkets a)
-                    , areaStreet = loose ++ areaStreet a
-                    })
+  do (win,loose) <- completeMarket m
+     pure (win, a { areaMarkets = Map.insert mid emptyMarket (areaMarkets a)
+                  , areaStreet = loose ++ areaStreet a })
 
 autoPromoteArea :: [MarketId] -> OwnedTile -> Area -> [(MarketId,Area)]
 autoPromoteArea excluded ot a =
@@ -133,11 +167,69 @@ autoPromoteArea excluded ot a =
              , Ok a1 <- [ addTileArea mid ot a ]
              ]
 
+rmVagrant :: OwnedTile -> Area -> Perhaps Area
+rmVagrant ot a = case break (ot ==) (areaStreet a) of
+                   (xs,_:ys) -> Ok a { areaStreet = xs ++ ys }
+                   _ -> Failed "Area does not have the required vagrant."
+
 --------------------------------------------------------------------------------
 
 
+--------------------------------------------------------------------------------
+-- Turn order
+
+data PlayerOrder  = PlayerOrder { playersDone :: [PlayerId]
+                                , curPlayer   :: PlayerId
+                                , nextPlayers :: [PlayerId]
+                                , firstPlayer :: PlayerId
+                                }
+
+advanceTurnOrder :: PlayerOrder -> PlayerOrder
+advanceTurnOrder o =
+  case nextPlayers o of
+    x : xs -> o { playersDone = curPlayer o : playersDone o
+                , curPlayer = x
+                , nextPlayers = xs }
+    [] -> case reverse (curPlayer o : playersDone o) of
+            ~(x : xs) -> o { playersDone = []
+                           , curPlayer = x
+                           , nextPlayers = xs }
+
+atRoundStart :: PlayerOrder -> Bool
+atRoundStart o = curPlayer o == firstPlayer o
+--------------------------------------------------------------------------------
+
 
 --------------------------------------------------------------------------------
+-- Promoting things
+
+data PromotionTarget = PromotionTarget
+  { promoteArea     :: AreaId
+  , promoteMarkets  :: Map MarketId Area
+  , promoteTile     :: OwnedTile
+  }
+
+data GlobMarketId = GlobMarketId { gmAID :: AreaId, gmMID :: MarketId }
+                      deriving (Eq,Ord)
+
+data PromoteTodo = PromoteTodo
+  { promExclude   :: [GlobMarketId]
+  , promStartFrom :: AreaId
+  , promTile      :: OwnedTile
+  }
+
+promExcludeStart :: PromoteTodo -> [ MarketId ]
+promExcludeStart p = [ gmMID gmid | gmid <- promExclude p
+                                  , gmAID gmid /= promStartFrom p ]
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- Game
+
 data Game         = Game { gameAreas    :: Map AreaId Area
                          , gamePlayers  :: Map PlayerId Player
                          , gamePalace   :: [OwnedTile]
@@ -146,20 +238,34 @@ data Game         = Game { gameAreas    :: Map AreaId Area
                          , gameStatus   :: GameStatus
                          }
 
+newtype AreaId    = AreaId   Int deriving (Eq,Ord)
+
+data GameStatus   = NextTurn
+                  | GameFinished
+                  | Promote PromotionTarget [PromoteTodo]
+                  | CompleteMarket AreaId MarketId MarketId
+
+
+
 firstArea :: AreaId
 firstArea = AreaId 0
 
 nextArea :: AreaId -> Maybe AreaId
 nextArea (AreaId x)
-  | y < x       = Just (AreaId y)
+  | y < areaNum = Just (AreaId y)
   | otherwise   = Nothing
   where y = x + 1
+
+
 
 withArea :: AreaId -> Game -> (Area -> Perhaps a) -> Perhaps a
 withArea aid g f =
   case Map.lookup aid (gameAreas g) of
     Nothing -> Failed "There is no such area."
     Just a  -> f a
+
+gameCurPlayerId :: Game -> PlayerId
+gameCurPlayerId = curPlayer . gameOrder
 
 withCurPlayer :: Game -> (PlayerId -> Player -> Perhaps a) -> Perhaps a
 withCurPlayer g f =
@@ -180,6 +286,7 @@ whenReady g =
     NextTurn     -> pure ()
     GameFinished -> Failed "This game has finished."
     Promote {}   -> Failed "Some tiles still need to be promoted."
+    CompleteMarket {} -> Failed "You need to choose which market to promote."
 
 autoPromote :: Game -> [PromoteTodo] -> Perhaps Game
 autoPromote g ots =
@@ -218,7 +325,9 @@ nextTurn g
   g1    = g { gameOrder = order }
 
 addThisTile :: MarketId -> OwnedTile -> Game -> Perhaps Game
-addThisTile mid ot g = whenReady g >> updArea firstArea g (addTileArea mid ot)
+addThisTile mid ot g =
+  do whenReady g
+     updArea firstArea g (addTileArea mid ot)
 
 addTile :: (Player -> Perhaps (Tile,Player)) -> MarketId -> Game -> Perhaps Game
 addTile how mid g =
@@ -246,20 +355,31 @@ addBlindTile = addTile useBlind
 
 complete :: AreaId -> MarketId -> Game -> Perhaps Game
 complete aid mid g =
-  do whenReady g
-     g1 <- withArea aid g $ \a ->
-           do (proms,a1) <- completeMarketArea mid a
-              let g1 = g { gameAreas = Map.insert aid a1 (gameAreas g) }
-              case nextArea aid of
-                Nothing -> pure g1 { gamePalace = proms ++ gamePalace g1 }
-                Just aid1 ->
-                  let todo t = PromoteTodo
-                                 { promTile = t
-                                 , promStartFrom = aid1
-                                 , promExclude = []
-                                 }
-                  in autoPromote g1 (map todo proms)
-     pure (nextTurn g1)
+  case gameStatus g of
+    NextTurn -> doComplete
+    CompleteMarket aid1 mid1 mid2
+      | aid == aid1 && (mid == mid1 || mid == mid2) -> doComplete
+      | otherwise -> Failed "This is not a valid market to complete."
+
+    GameFinished -> Failed "This game has finished."
+    Promote {} -> Failed "Some tiles still need to be promoted"
+
+  where
+  doComplete =
+    do g1 <- withArea aid g $ \a ->
+          do (proms,a1) <- completeMarketArea mid a
+             let g1 = g { gameAreas = Map.insert aid a1 (gameAreas g) }
+             case nextArea aid of
+               Nothing -> pure g1 { gamePalace = proms ++ gamePalace g1 }
+               Just aid1 ->
+                 let todo t = PromoteTodo
+                                { promTile = t
+                                , promStartFrom = aid1
+                                , promExclude = []
+                                }
+                 in autoPromote g1 (map todo proms)
+       pure (nextTurn g1)
+
 
 promote :: MarketId -> Game -> Perhaps Game
 promote mid g =
@@ -274,51 +394,22 @@ promote mid g =
         Nothing -> Failed "That's not a valid promotion choice."
     GameFinished -> Failed "This game has finished."
     NextTurn -> Failed "There is nothing to promote."
+    CompleteMarket {} -> Failed "A market still needs to be completed."
 
+rejoin :: AreaId -> Tile -> MarketId -> Game -> Perhaps Game
+rejoin aid t mid g =
+  do whenReady g
+     let ot = OwnedTile { tileType = t, tileOwner = gameCurPlayerId g }
+     g1 <- updArea aid g (\a -> addTileArea mid ot =<< rmVagrant ot a)
+     pure (nextTurn g1)
 
---------------------------------------------------------------------------------
-data PlayerOrder  = PlayerOrder { playersDone :: [PlayerId]
-                                , curPlayer   :: PlayerId
-                                , nextPlayers :: [PlayerId]
-                                , firstPlayer :: PlayerId
-                                }
+vagrantMoveSwap ::
+  AreaId -> Tile -> GlobMarketId -> Tile -> MarketId -> Game -> Perhaps Game
+vagrantMoveSwap = undefined
 
-advanceTurnOrder :: PlayerOrder -> PlayerOrder
-advanceTurnOrder o =
-  case nextPlayers o of
-    x : xs -> o { playersDone = curPlayer o : playersDone o
-                , curPlayer = x
-                , nextPlayers = xs }
-    [] -> case reverse (curPlayer o : playersDone o) of
-            ~(x : xs) -> o { playersDone = []
-                           , curPlayer = x
-                           , nextPlayers = xs }
---------------------------------------------------------------------------------
-
-data GameStatus = NextTurn
-                | GameFinished
-                | Promote PromotionTarget [PromoteTodo]
-
-data GlobMarketId = GlobMarketId { gmAID :: AreaId, gmMID :: MarketId }
-                      deriving (Eq,Ord)
-
-data PromotionTarget = PromotionTarget
-  { promoteArea     :: AreaId
-  , promoteMarkets  :: Map MarketId Area
-  , promoteTile     :: OwnedTile
-  }
-
-data PromoteTodo = PromoteTodo
-  { promExclude   :: [GlobMarketId]
-  , promStartFrom :: AreaId
-  , promTile      :: OwnedTile
-  }
-
-promExcludeStart :: PromoteTodo -> [ MarketId ]
-promExcludeStart p = [ gmMID gmid | gmid <- promExclude p
-                                  , gmAID gmid /= promStartFrom p ]
-
-
-
+vagrantJumpQueue ::
+  AreaId -> Tile ->
+  GlobMarketId -> Game -> Perhaps Game
+vagrantJumpQueue = undefined
 
 
