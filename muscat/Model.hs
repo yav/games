@@ -1,6 +1,6 @@
 {-# Language OverloadedStrings #-}
 {-# Language RecordWildCards #-}
-import Control.Monad(unless,when)
+import Control.Monad(when)
 
 import qualified Data.Map as Map
 
@@ -112,8 +112,8 @@ vagrantJumpQueue aid t gmid =
 endGame :: Updater Game ()
 endGame =
   do curPID  <- with turnOrder (ask curPlayer)
-     noTiles <- with (player curPID) $ ask (null . playerStack)
-     unless noTiles $ failure "You can't end the game if you still have tiles."
+     tilesLeft <- with (player curPID) $ ask hasTiles
+     when tilesLeft $ failure "You can't end the game if you still have tiles."
      mayRejoin <- ask (any (vagrantCanRejoin curPID) . gameAreas)
      when mayRejoin $ failure "You still have vagrants who can rejoin."
      upd $ \g -> g { gameStatus = GameFinished }

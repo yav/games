@@ -6,15 +6,13 @@ import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Set(Set)
 import qualified Data.Set as Set
+import Data.Maybe (isNothing)
 import Control.Monad(unless)
 
-
-import Util.Perhaps
-
-import Tile
+import Config(winnerNum)
+import Ids(PlayerId)
 import Updater
-import Ids
-import Config
+import Tile
 
 
 
@@ -35,9 +33,12 @@ marketIsFull m = Set.size (marketMissing m) == 1
 marketAccepts :: Tile -> Market -> Bool
 marketAccepts t m = not (marketIsFull m) && (t `Set.member` marketMissing m)
 
+marketOwnerOf :: Tile -> Market -> Maybe PlayerId
+marketOwnerOf t m = Map.lookup t (marketHas m)
+
 marketConatains :: OwnedTile -> Market -> Bool
-marketConatains OwnedTile { .. } Market { .. } =
-  case Map.lookup tileType marketHas of
+marketConatains OwnedTile { .. } m =
+  case marketOwnerOf tileType m of
     Just pid -> pid == tileOwner
     Nothing  -> False
 
@@ -79,21 +80,23 @@ completeMarket =
 
 
 vagrantJumpMarket :: OwnedTile -> Updater Market ()
-vagrantJumpMarket OwnedTile{..} = tryUpd $ \m@Market{..} ->
-  do unless (marketIsFull m) (Failed "This market is not full.")
+vagrantJumpMarket OwnedTile{..} =
+  do full <- ask marketIsFull
+     unless full (failure "This market is not full.")
 
      let t1 = nextTile tileType
          t2 = nextTile t1
 
-     unless (t1 `Set.member` marketMissing)
-        (Failed "Vagrant can jump only to the front of the line.")
+     isEmpty <- ask (isNothing . marketOwnerOf t1)
+     unless isEmpty (failure "Vagrant can jump only to the front of the line.")
 
-     case Map.lookup t2 marketHas of
-       Just pid | tileOwner == pid ->
-          pure Market { marketHas     = Map.insert t1 tileOwner marketHas
-                      , marketMissing = Set.insert t2 marketMissing
-                      }
-       _ -> Failed "Player needs to own last place."
+     isLast <- ask (marketConatains OwnedTile { tileType = t2, .. })
+     unless isLast (failure "Player needs to own last place.")
+
+     upd $ \Market{..} ->
+            Market { marketHas     = Map.insert t1 tileOwner marketHas
+                   , marketMissing = Set.insert t2 marketMissing
+                   }
 
 
 marketMoveSwap :: OwnedTile -> Updater Market (Maybe PlayerId)

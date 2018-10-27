@@ -1,7 +1,7 @@
-{-# Language OverloadedStrings, RecordWildCards #-}
-module Player where
+{-# Language OverloadedStrings #-}
+module Player (Player, newPlayer, hasTiles, useVisible, useBlind) where
 
-import Data.Text
+import Data.Text(Text)
 import Util.Random
 
 import Updater
@@ -11,19 +11,23 @@ data Player       = Player { playerName    :: Text
                            , playerStack   :: [Tile] -- top one is visible
                            }
 
+hasTiles :: Player -> Bool
+hasTiles = not . null . playerStack
+
 useVisible :: Updater Player Tile
 useVisible =
-  do Player { .. } <- get
-     case playerStack of
-       t : ts -> do set Player { playerStack = ts, .. }
+  do stack <- ask playerStack
+     case stack of
+       t : ts -> do upd $ \p -> p { playerStack = ts }
                     pure t
-       [] -> failure "This player has no more tiles."
+       []     -> failure "This player has no more tiles."
+
 
 useBlind :: Updater Player Tile
 useBlind =
-  do Player {..} <- get
-     case playerStack of
-       v : t : more -> do set Player { playerStack = v : more, .. }
+  do stack <- ask playerStack
+     case stack of
+       v : t : more -> do upd $ \p -> p { playerStack = v : more }
                           pure t
        _  -> failure "This player has no unrevealed tiles."
 

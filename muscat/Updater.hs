@@ -33,12 +33,6 @@ upd :: (s -> s) -> Updater s ()
 upd f = do s <- get
            set (f s)
 
-tryUpd :: (s -> Perhaps s) -> Updater s ()
-tryUpd f = do s <- get
-              case f s of
-                Ok s1 -> set s1
-                Failed a -> failure a
-
 ask :: (s -> a) -> Updater s a
 ask f = do s <- get
            pure (f s)
