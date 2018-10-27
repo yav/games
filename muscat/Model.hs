@@ -9,6 +9,7 @@ import Control.Monad(unless,when,liftM,ap)
 
 
 import Util.Perhaps
+import Util.Random(Gen,shuffle)
 
 --------------------------------------------------------------------------------
 -- Configuration
@@ -28,12 +29,6 @@ areaNum = 4
 -- | How many tiles are promoted when a market is completed
 winnerNum :: Int
 winnerNum = ceiling (fromIntegral (tileNum - 1) / 2 :: Float)
-
--- | How many markets are in each area
-marketsPerArea :: Int -> Int
-marketsPerArea p
-  | p <= 3    = 3
-  | otherwise = p
 
 -- | How many tiles do we need in the palace to end the game
 promotedEnds :: Int -> Int
@@ -101,6 +96,9 @@ newtype Tile      = Tile Int
 
 baseTiles :: [Tile]
 baseTiles = [ Tile n | n <- take tileNum [ 0 .. ] ]
+
+tileSet :: [Tile]
+tileSet = concatMap (replicate tileOfType) baseTiles
 
 nextTile :: Tile -> Tile
 nextTile (Tile x) = Tile (mod (x + 1) tileNum)
@@ -251,7 +249,6 @@ emptyArea n = Area { areaMarkets = markets
   markets = Map.fromList [ (MarketId i,emptyMarket) | i <- take n [ 0 .. ] ]
 
 
-
 addTileArea :: MarketId -> OwnedTile -> Updater Area ()
 addTileArea mid ot = with (market mid) (addTileMarket ot)
 
@@ -312,6 +309,16 @@ numberOfPlayers p = 1 + length (playersDone p) + length (nextPlayers p)
 
 atRoundStart :: PlayerOrder -> Bool
 atRoundStart o = curPlayer o == firstPlayer o
+
+
+newPlayerOrder :: [PlayerId] -> Perhaps PlayerOrder
+newPlayerOrder ps =
+  case ps of
+    [] -> Failed "We need at least one player."
+    p : rest -> Ok PlayerOrder { playersDone = []
+                               , curPlayer = p
+                               , nextPlayers = rest
+                               , firstPlayer = p }
 
 advanceTurnOrder :: Updater PlayerOrder ()
 advanceTurnOrder =
@@ -380,6 +387,13 @@ useBlind =
        v : t : more -> do set Player { playerStack = v : more, .. }
                           pure t
        _  -> failure "This player has no unrevealed tiles."
+
+newPlayer :: Text -> Gen Player
+newPlayer nm =
+  do ts <- shuffle tileSet
+     pure Player { playerName = nm, playerStack = ts }
+
+
 --------------------------------------------------------------------------------
 
 
@@ -413,6 +427,20 @@ nextArea (AreaId x)
   | y < areaNum = Just (AreaId y)
   | otherwise   = Nothing
   where y = x + 1
+
+newGame :: [Player] -> Perhaps Game
+newGame ps =
+  do gameOrder <- newPlayerOrder (Map.keys gamePlayers)
+     pure Game { .. }
+
+  where
+  pnum = Map.size gamePlayers
+  gamePlayers = Map.fromList [ (PlayerId i, p) | (i,p) <- zip [0..] ps ]
+  gameAreas = Map.fromList [ (AreaId i, emptyArea pnum)
+                              | i <- take areaNum [0..]]
+  gamePalace = []
+  gameRemoved = []
+  gameStatus = NextTurn
 
 --------------------------------------------------------------------------------
 -- Complex fields of Game
@@ -519,6 +547,11 @@ owned t g = OwnedTile { tileType = t, tileOwner = gameCurPlayerId g }
 --------------------------------------------------------------------------------
 -- Entry Points
 
+setupGame :: Updater Game ()
+setupGame =
+  do pnum <- with turnOrder (ask numberOfPlayers)
+     mapM_ addVisTile $ map MarketId $ take pnum [ 0 .. ]
+
 addVisTile :: MarketId -> Updater Game ()
 addVisTile = addTile useVisible
 
@@ -582,6 +615,7 @@ vagrantMoveSwap vaid vt from t toMID =
      -- spend vagrant
      vtile <- ask (owned vt)
      with (area vaid) (rmVagrantArea vtile)
+     upd $ \g -> g { gameRemoved = vtile : gameRemoved g }
 
      -- move or swap tile
      let aid     = gmAID from
@@ -592,6 +626,7 @@ vagrantMoveSwap vaid vt from t toMID =
         then upd $ \g -> g { gameStatus = CompleteMarket aid fromMID toMID }
         else complete aid toMID
 
+
 vagrantJumpQueue :: AreaId -> Tile -> GlobMarketId -> Updater Game ()
 vagrantJumpQueue aid t gmid =
   do whenReady
@@ -601,7 +636,11 @@ vagrantJumpQueue aid t gmid =
      let tgt = gmMID gmid
      with (area (gmAID gmid)) $
        with (market tgt) (vagrantJumpMarket ot)
+
+     upd $ \g -> g { gameRemoved = ot { tileType = nextTile (nextTile t) }
+                                 : gameRemoved g }
      complete aid tgt
+
 
 endGame :: Updater Game ()
 endGame =
