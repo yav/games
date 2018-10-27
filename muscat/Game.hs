@@ -68,25 +68,15 @@ data GameStatus   = NextTurn
 
 
 
-firstArea :: AreaId
-firstArea = AreaId 0
-
-nextArea :: AreaId -> Maybe AreaId
-nextArea (AreaId x)
-  | y < areaNum = Just (AreaId y)
-  | otherwise   = Nothing
-  where y = x + 1
-
 newGame :: [Player] -> Perhaps Game
 newGame ps =
   do gameOrder <- newPlayerOrder (Map.keys gamePlayers)
      pure Game { .. }
 
   where
-  pnum = Map.size gamePlayers
-  gamePlayers = Map.fromList [ (PlayerId i, p) | (i,p) <- zip [0..] ps ]
-  gameAreas = Map.fromList [ (AreaId i, emptyArea pnum)
-                              | i <- take areaNum [0..]]
+  pnum = length ps
+  gamePlayers = Map.fromList (zip (playerIds pnum) ps)
+  gameAreas = Map.fromList [ (i, emptyArea pnum) | i <- areaIds ]
   gamePalace = []
   gameRemoved = []
   gameStatus = NextTurn

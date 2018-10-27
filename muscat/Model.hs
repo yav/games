@@ -17,7 +17,7 @@ import Game
 setupGame :: Updater Game ()
 setupGame =
   do pnum <- with turnOrder (ask numberOfPlayers)
-     mapM_ addVisTile $ map MarketId $ take pnum [ 0 .. ]
+     mapM_ addVisTile (marketIds pnum)
 
 addVisTile :: MarketId -> Updater Game ()
 addVisTile = addTile useVisible

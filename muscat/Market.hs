@@ -1,13 +1,28 @@
 {-# Language OverloadedStrings #-}
 {-# Language RecordWildCards #-}
-module Market where
+module Market
+  ( Market
+  , emptyMarket
+  -- * Queries
+  , marketSingleEmpty
+  , marketIsFull
+  , marketConatains
+  , marketAccepts
+  , marketOwnerOf
+  -- * Modifications
+  , addTileMarket
+  , rmTileMarket
+  , completeMarket
+  , vagrantJumpMarket
+  , marketMoveSwap
+  ) where
 
 import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Set(Set)
 import qualified Data.Set as Set
-import Data.Maybe (isNothing)
-import Control.Monad(unless)
+import Data.Maybe (isNothing,isJust)
+import Control.Monad(unless,guard)
 
 import Config(winnerNum)
 import Ids(PlayerId)
@@ -27,8 +42,16 @@ emptyMarket =
          , marketMissing = Set.fromList baseTiles
          }
 
+
+
+marketSingleEmpty :: Market -> Maybe Tile
+marketSingleEmpty Market{..} =
+  do (a,rest) <- Set.minView marketMissing
+     guard (Set.null rest)
+     pure a
+
 marketIsFull :: Market -> Bool
-marketIsFull m = Set.size (marketMissing m) == 1
+marketIsFull = isJust . marketSingleEmpty
 
 marketAccepts :: Tile -> Market -> Bool
 marketAccepts t m = not (marketIsFull m) && (t `Set.member` marketMissing m)
@@ -62,23 +85,32 @@ rmTileMarket ot@OwnedTile {..} =
                    }
 
 
+-- | Clear a full market and return the tiles that are to be
+-- promoted, and the ones that get demoted.
 completeMarket :: Updater Market ([OwnedTile],[OwnedTile])
 completeMarket =
-  do Market{..} <- get
-     case Set.minView marketMissing of
-       Just (a,bs)
-         | Set.null bs ->
-           do set emptyMarket
-              pure $ splitAt winnerNum
-                   $ map toOwnedTile
-                   $ Map.toList sooner ++ Map.toList later
-         where
-         (later,sooner)    = Map.split a marketHas
-         toOwnedTile (t,p) = OwnedTile { tileType = t, tileOwner = p }
+  do mb <- ask marketSingleEmpty
+     case mb of
+       Nothing -> failure "This market is not yet full."
+       Just a ->
+         do res <- ask (marketSplitAt a)
+            set emptyMarket
+            pure res
+  where
+  marketSplitAt a m =
+    let (later,sooner) = Map.split a (marketHas m)
+    in splitAt winnerNum
+     $ map toOwnedTile
+     $ Map.toList sooner ++ Map.toList later
 
-       _ -> failure "Market is not yet full."
+  toOwnedTile (t,p) = OwnedTile { tileType = t, tileOwner = p }
 
 
+-- | Jump to the front of the market queue.
+-- Requirements:
+--  * Market is full
+--  * The new tile fits the empty space on the market
+--  * The current last tile has the same owner as the new tile.
 vagrantJumpMarket :: OwnedTile -> Updater Market ()
 vagrantJumpMarket OwnedTile{..} =
   do full <- ask marketIsFull
@@ -99,6 +131,9 @@ vagrantJumpMarket OwnedTile{..} =
                    }
 
 
+-- | Add a new tile to the market, with the requirement that the market
+-- becomes full afterwards.   If the new tile replaced an existing tile,
+-- then return its owner.
 marketMoveSwap :: OwnedTile -> Updater Market (Maybe PlayerId)
 marketMoveSwap ot =
   do full <- ask marketIsFull

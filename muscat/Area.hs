@@ -1,6 +1,22 @@
 {-# Language OverloadedStrings #-}
 {-# Language RecordWildCards #-}
-module Area where
+module Area
+  ( Area
+  , emptyArea
+
+    -- * Fields
+  , market
+
+    -- * Queries
+  , vagrantCanRejoin
+  , autoPromoteArea
+
+    -- * Modifications
+  , addTileArea
+  , completeMarketArea
+  , rmVagrantArea
+  , areaMoveSwap
+  ) where
 
 import Data.Map(Map)
 import qualified Data.Map as Map
@@ -29,7 +45,17 @@ emptyArea :: Int -> Area
 emptyArea n = Area { areaMarkets = markets
                    , areaStreet  = [] }
   where
-  markets = Map.fromList [ (MarketId i,emptyMarket) | i <- take n [ 0 .. ] ]
+  markets = Map.fromList [ (i,emptyMarket) | i <- marketIds n ]
+
+
+vagrantCanRejoin :: PlayerId -> Area -> Bool
+vagrantCanRejoin pid a =
+  any canRejoin [ tileType ot | ot <- areaStreet a, tileOwner ot == pid ]
+  where
+  canRejoin t = any (marketAccepts t) (areaMarkets a)
+
+
+
 
 
 addTileArea :: MarketId -> OwnedTile -> Updater Area ()
@@ -68,12 +94,6 @@ areaMoveSwap ot from to =
             Nothing  -> pure ()
             Just pid -> addTileMarket ot { tileOwner = pid }
           ask marketIsFull
-
-vagrantCanRejoin :: PlayerId -> Area -> Bool
-vagrantCanRejoin pid a =
-  any canRejoin [ tileType ot | ot <- areaStreet a, tileOwner ot == pid ]
-  where
-  canRejoin t = any (marketAccepts t) (areaMarkets a)
 
 
 
