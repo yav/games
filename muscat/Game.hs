@@ -23,10 +23,10 @@ import Player
 --------------------------------------------------------------------------------
 -- Promoting things
 
--- | Where a promoted tile can go.
-data PromotionTarget = PromotionTarget
-  { promoteArea     :: AreaId             -- ^ Going to this area
-  , promoteMarkets  :: Map MarketId Area  -- ^ One of these markets
+-- | Choose a market
+data ChooseMarket = ChooseMarket
+  { inArea      :: AreaId             -- ^ Going to this area
+  , updatedArea :: Map MarketId Area  -- ^ One of these markets
   }
 
 -- | Identifies any market in the game.
@@ -63,7 +63,7 @@ data Game         = Game { gameAreas    :: Map AreaId Area
 
 data GameStatus   = NextTurn
                   | GameFinished
-                  | Promote PromotionTarget [PromoteTodo]
+                  | Promote ChooseMarket [PromoteTodo]
                   | CompleteMarket AreaId MarketId MarketId
 
 
@@ -111,6 +111,12 @@ turnOrder = Field { .. }
 gameCurPlayerId :: Game -> PlayerId
 gameCurPlayerId = curPlayer . gameOrder
 
+
+owned :: Tile -> Game -> OwnedTile
+owned t g = OwnedTile { tileType = t, tileOwner = gameCurPlayerId g }
+
+
+--------------------------------------------------------------------------------
 addPalace :: OwnedTile -> Updater Game ()
 addPalace ot = upd $ \g -> g { gamePalace = ot : gamePalace g }
 
@@ -148,9 +154,9 @@ autoPromote ots =
                     avoid t = t { promExclude = gmid : promExclude t }
                 autoPromote (map avoid rest)
 
-           _ -> do let tgt = PromotionTarget
-                               { promoteArea    = aid
-                               , promoteMarkets = Map.fromList opts }
+           _ -> do let tgt = ChooseMarket
+                               { inArea = aid
+                               , updatedArea = Map.fromList opts }
                    upd $ \g -> g { gameStatus = Promote tgt rest }
 
 
@@ -161,6 +167,8 @@ nextTurn =
                                     cur   <- ask curPlayer
                                     pure (start == cur)
      when atStart checkGameFinished
+
+
 
 
 addTile :: Updater Player Tile -> MarketId -> Updater Game ()
@@ -180,6 +188,4 @@ checkGameFinished =
      when (promNum >= promotedEnds pnum) $
        upd $ \g -> g { gameStatus = GameFinished }
 
-owned :: Tile -> Game -> OwnedTile
-owned t g = OwnedTile { tileType = t, tileOwner = gameCurPlayerId g }
 

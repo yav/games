@@ -56,10 +56,10 @@ promote :: MarketId -> Updater Game ()
 promote mid =
   do status <- ask gameStatus
      case status of
-       Promote pt rest ->
-         case Map.lookup mid (promoteMarkets pt) of
+       Promote choices rest ->
+         case Map.lookup mid (updatedArea choices) of
            Just a ->
-             do with (area (promoteArea pt)) $ set a
+             do with (area (inArea choices)) $ set a
                 autoPromote rest
            Nothing -> failure "That's not a valid promotion choice."
        GameFinished      -> failure "This game has finished."
