@@ -1,5 +1,7 @@
 {-# Language OverloadedStrings #-}
 {-# Language RecordWildCards #-}
+module Model where
+
 import Control.Monad(when)
 
 import qualified Data.Map as Map
