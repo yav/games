@@ -19,7 +19,7 @@ executable muscat
   main-is:             Main.hs
   other-modules:       Model, Game, Area, Market, Tile,
                        Player, TurnOrder, Config, Ids,
-                       Updater
+                       Updater, Interact
 
   build-depends:       base >=4.11 && <4.12,
                        containers >=0.5 && <0.6,
