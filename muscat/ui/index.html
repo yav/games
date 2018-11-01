@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="style.css" rel="stylesheet">
+<script src="jquery.js"></script>
+<script src="ui.js"></script>
+<script>
+$(document).ready(function() {
+
+  function area(i) {
+    return { markets: [ [3], [], [], [] ]
+           , vagrants: [ { owner: 1, tile: 0 }, { owner: 2, tile: 2 } ]
+           }
+  }
+
+  var board = { palace: []
+              , areas: [ area(0), area(1), area(2), area(3) ]
+              }
+
+  $('body').append(drawBoard(board))
+})
+</script>
+</head>
+<body></body></html>

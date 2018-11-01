@@ -1,0 +1,62 @@
+.tile {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  margin: 2px;
+  cursor: pointer;
+}
+.bl {}
+.tl { transform: rotate(90deg); }
+.tr { transform: rotate(180deg); }
+.br { transform: rotate(-90deg); }
+
+.blank {
+  opacity: 0.15;
+  background-color: #ccc;
+}
+
+.full {
+  opacity: 0.1;
+  background-color: #fff;
+}
+
+.p1 { background-color: rgb(146,0,0); }
+.p2 { background-color: rgb(255,150,0); }
+.p3 { background-color: rgb(0,146,146); }
+.p4 { background-color: rgb(182,109,255); }
+.p5 { background-color: rgb(0,180,255); }
+
+.market {
+  border-collapse: separate;
+  border-spacing: 2px;
+  background-color: #fff;
+  border: 1px solid black;
+}
+
+.board {
+  background-color: #003;
+  transform: scale(0.90);
+}
+
+.street {
+  height: 70px;
+}
+
+.palace {
+  height: 70px;
+  background-color: #fca;
+}
+
+
+.value {
+  color: white;
+  background-color: rgba(255,255,255,0.5);
+  font-weight: bold;
+  padding: 2px;
+}
+
+.market td {
+  padding: 0;
+  margin: 0;
+  line-height: 0;
+}
