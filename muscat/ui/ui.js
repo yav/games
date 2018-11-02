@@ -100,6 +100,8 @@ function drawBoard(board) {
   return dom
 }
 
+
+
 // -----------------------------------------------------------------------------
 // Moving tiles
 
@@ -208,6 +210,11 @@ function vagrantClicked(areaid,pid,tile) {
    console.log('Clicked on vagrant in area ' + areaid +
                ', tile ' + tile +  ", owned by " + pid)
   }
+}
+
+
+function select(x) {
+  x.addClass('selected')
 }
 
 
