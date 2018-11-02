@@ -2,16 +2,35 @@ function tileCalss(tile) {
   return [ 'tl', 'tr', 'br', 'bl' ] [tile]
 }
 
-function drawTile(tile, owner) {
-  var style = (owner === undefined || owner === null) ? 'blank' : 'p' + owner;
-  return $('<img/>').attr('src','img/tile.svg')
-                    .addClass('tile')
-                    .addClass(tileCalss(tile))
-                    .addClass(style)
+function ownerClass(owner) {
+  return (owner === undefined || owner === null) ? 'blank' : 'p' + owner;
 }
+
+function drawTile(tile, owner) {
+  var style = ownerClass(owner)
+  var dom = $('<img/>').attr('src','img/tile.svg')
+                       .addClass('tile')
+                       .addClass(tileCalss(tile))
+                       .addClass(style)
+                       .data('owner',owner)
+  return dom
+}
+
+function setOwner(dom,owner) {
+  var cur = dom.data('owner')
+  dom.removeClass(ownerClass(cur))
+     .addClass(ownerClass(owner))
+     .data('owner',owner)
+}
+
+
 
 function marketStallName(areaid,mid,tile) {
   return 'market_' + areaid + '_' + mid + '_' + tile
+}
+
+function streeName(aid) {
+  return 'street_' + aid
 }
 
 
@@ -46,7 +65,10 @@ function drawArea(areaid,area) {
   marketRow.append(drawValue(2 * areaVal))
 
   var streetRow = $('<tr/>')
-  var street = $('<td/>').addClass('street').attr('colspan','4')
+  var street = $('<td/>')
+               .attr('id',streeName(areaid))
+               .addClass('street')
+               .attr('colspan','4')
   jQuery.each(area.vagrants,function(unused,s) {
     var t = drawTile(s.tile,s.owner)
             .click(vagrantClicked(area,s.tile,s.owner))
@@ -78,86 +100,100 @@ function drawBoard(board) {
   return dom
 }
 
+// -----------------------------------------------------------------------------
+// Moving tiles
+
+function movingTile(obj,end,done) {
+  var cl = obj.data('owner')
+
+  var pos = obj.offset()
+  var t = obj.clone()
+             .css('position','absolute')
+             .css('visibility','visible')
+             .css('z-index','10')
+             .css('left',pos.left)
+             .css('top',pos.top)
+
+  setOwner(obj,null)
+  $('body').append(t)
+  t.animate( {left:end.left, top:end.top}
+           , 'slow'
+           , 'swing'
+           , function() { t.remove(); done(cl) })
+
+}
+
+function getMarketTile(aid,mid,tile) {
+  return $('#' + marketStallName(aid,mid,tile) + ' img')
+}
+
+function getStreet(aid) {
+  return $('#' + streeName(aid))
+}
+
+function getPalace() {
+  return $('#palace')
+}
+
+function getVagrantFrom(str,owner,tile) {
+  var query = '.' + ownerClass(owner) + '.' + tileCalss(tile)
+  var res = null
+  jQuery.each(str.find(query).first(), function(ix,a) {
+    res = $(a)
+  })
+  return res
+}
+
 function moveBetweenMarkets(aid1,mid1,aid2,mid2,tile) {
-  var body = $('body')
-  var src = $('#' + marketStallName(aid1,mid1,tile) + ' img')
-  var tgt = $('#' + marketStallName(aid2,mid2,tile) + ' img')
-
-  var cl = 'blank'
-  for (var c = 0; c < 5; ++c) {
-    if (src.hasClass('p' + c)) cl = 'p' + c;
-  }
-  if (cl === 'blank') return
-
-
-  var start = src.offset()
-  var end   = tgt.offset()
-  var tile = src.clone()
-                .css('position','absolute')
-                .css('z-index','10')
-                .css('left',start.left)
-                .css('top',start.top)
-
-  src.removeClass(cl).addClass('blank')
-  body.append(tile)
-                tile
-                .animate({left:end.left, top:end.top},'slow','swing',function(){
-                  tile.remove()
-                  tgt.removeClass('blank').addClass(cl)
-                })
+  var src = getMarketTile(aid1,mid1,tile)
+  var tgt = getMarketTile(aid2,mid2,tile)
+  movingTile(src,tgt.offset(),function(cl) { setOwner(tgt,cl) })
 }
 
 function swapBetweenMarket(aid,mid1,mid2,tile) {
-  var body = $('body')
-  var src = $('#' + marketStallName(aid,mid1,tile) + ' img')
-  var tgt = $('#' + marketStallName(aid,mid2,tile) + ' img')
+  var src = getMarketTile(aid,mid1,tile)
+  var tgt = getMarketTile(aid,mid2,tile)
 
-  var cl1 = 'blank'
-  var cl2 = 'blank'
-  for (var c = 0; c < 5; ++c) {
-    if (src.hasClass('p' + c)) cl1 = 'p' + c;
-    if (tgt.hasClass('p' + c)) cl2 = 'p' + c;
-  }
-  if      (cl1 === 'blank') {
-      moveBetweenMarkets(aid,mid2,aid,mid1,tile)
-      return
-  }
-  else if (cl2 === 'blank') {
-    moveBetweenMarkets(aid,mid1,aid,mid2,tile)
-    return
-  }
-
-  var start = src.offset()
-  var end   = tgt.offset()
-  var tile1 = src.clone()
-                 .css('position','absolute')
-                 .css('z-index','10')
-                 .css('left',start.left)
-                 .css('top',start.top)
-
-  var tile2 = tgt.clone()
-                 .css('position','absolute')
-                 .css('z-index','10')
-                 .css('left',end.left)
-                 .css('top',end.top)
-
-  body.append(tile1)
-  body.append(tile2)
-
-  src.removeClass(cl1).addClass('blank')
-  tgt.removeClass(cl2).addClass('blank')
-
-  tile1.animate({left:end.left, top:end.top},'slow','swing',function(){
-     tile1.remove()
-     tgt.removeClass('blank').addClass(cl1)
-   })
-
-  tile2.animate({left:start.left, top:start.top},'slow','swing',function(){
-    tile2.remove()
-    src.removeClass('blank').addClass(cl2)
-  })
-
+  movingTile(src,tgt.offset(), function(cl) { setOwner(tgt,cl) })
+  movingTile(tgt,src.offset(), function(cl) { setOwner(src,cl) })
 }
+
+function moveMarketStreet(aid,mid,tile) {
+  var src  = getMarketTile(aid,mid,tile)
+  var str  = getStreet(aid)
+  var tgt  = drawTile(tile,null).css('visibility','hidden')
+  str.append(tgt)
+  movingTile(src,tgt.offset(), function(cl) {
+    setOwner(tgt,cl)
+    tgt.css('visibility','visible')
+  })
+}
+
+function moveStreeMarket(aid1,aid2,mid2,owner,tile) {
+  var str = getStreet(aid1)
+  var src = getVagrantFrom(str,owner,tile)
+  if (src === null) return
+  var tgt = getMarketTile(aid2,mid2,tile)
+
+  src.css('visibility','hidden')
+  movingTile(src,tgt.offset(),function(newOwner) {
+    setOwner(tgt,newOwner)
+    src.remove()
+  })
+}
+
+function moveMarketPalace(aid,mid,tile) {
+  var src = getMarketTile(aid,mid,tile)
+  var pal = getPalace()
+  var tgt = drawTile(tile,null).css('visibility','hidden')
+  pal.append(tgt)
+  movingTile(src,tgt.offset(), function(cl) {
+    setOwner(tgt,cl)
+    tgt.css('visibility','visible')
+  })
+}
+
+
 
 /* Events */
 
