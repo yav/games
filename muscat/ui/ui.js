@@ -79,6 +79,39 @@ function drawArea(areaid,area) {
   return [marketRow,streetRow]
 }
 
+function drawPlayer(pid,player) {
+  // Player = { name :: String
+  //          , visible :: Maybe Tile, hiddenNum :: Int
+  //          , discarded :: [Tile] }
+
+
+
+  var lab = $('<div/>')
+            .addClass('label')
+            .addClass(ownerClass(pid))
+            .text(player.name)
+
+  var vis = player.visible ? [ drawTile(player.visible, pid) ]
+                           : [ ]
+
+  var stack = $('<div/>')
+              .addClass('stack')
+              .text(player.hiddenNum)
+
+  var discards = $('<div/>')
+                 .addClass('discards')
+
+  jQuery.each(player.discarded, function(ix,t) {
+    discards.append(drawTile(t,pid).addClass('discarded_tile')
+                                   .removeClass('tile'))
+  })
+
+
+  return $('<div/>')
+         .addClass('player')
+         .append(lab,vis,stack,discards)
+}
+
 
 function drawBoard(board) {
   var dom = $('<table/>').addClass('board')
@@ -96,6 +129,25 @@ function drawBoard(board) {
   })
   palaceRow.append(palace,drawValue(2 * (1 + board.areas.length)))
   dom.prepend(palaceRow)
+
+  return dom
+}
+
+function drawState(state) {
+  // state : { board: Board, players : [Player] }
+
+  var dom = $('<table/>').addClass('game')
+  jQuery.each(state.players,function(ix,p) {
+    var r = $('<tr/>')
+    if (ix === 0) {
+      r.append($('<td/>')
+               .attr('rowspan',state.players.length)
+               .append(drawBoard(state.board)))
+    }
+
+    r.append($('<td/>').append(drawPlayer(ix,p)))
+    dom.append(r)
+  })
 
   return dom
 }
