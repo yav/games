@@ -23,6 +23,8 @@ function setOwner(dom,owner) {
      .data('owner',owner)
 }
 
+function getOwner(dom) { return dom.data('owner') }
+
 
 
 function marketStallName(areaid,mid,tile) {
@@ -40,6 +42,7 @@ function drawMarket(areaid,mid,owner) {
     return dom = $('<td/>')
                  .attr('id',marketStallName(areaid,mid,tile))
                  .append(drawTile(tile,owner[tile]))
+                 .addClass('clickable')
                  .click(marketClicked(areaid,mid))
   }
 
@@ -71,6 +74,7 @@ function drawArea(areaid,area) {
                .attr('colspan','4')
   jQuery.each(area.vagrants,function(unused,s) {
     var t = drawTile(s.tile,s.owner)
+            .addClass('clickable')
             .click(vagrantClicked(area,s.tile,s.owner))
     street.append(t)
   })
@@ -79,37 +83,50 @@ function drawArea(areaid,area) {
   return [marketRow,streetRow]
 }
 
-function drawPlayer(pid,player) {
+function drawPlayer(pid,player,isCur) {
   // Player = { name :: String
   //          , visible :: Maybe Tile, hiddenNum :: Int
   //          , discarded :: [Tile] }
 
+  var dom = $('<div/>').addClass('player')
 
+  if (isCur) dom.addClass('current')
 
   var lab = $('<div/>')
             .addClass('label')
             .addClass(ownerClass(pid))
             .text(player.name)
+  dom.append(lab)
 
-  var vis = player.visible ? [ drawTile(player.visible, pid) ]
-                           : [ ]
+  if (player.visible) {
+     var ti = drawTile(player.visible, pid).addClass('vis')
+     if (isCur) ti.addClass('clickable').click(visClicked)
+     dom.append(ti)
+  }
 
   var stack = $('<div/>')
               .addClass('stack')
+              .addClass('label')
               .text(player.hiddenNum)
 
+  if (isCur && player.hiddenNum > 0) {
+    stack.addClass('clickable').click(stackClicked)
+  }
+
+  dom.append(stack)
+/*
   var discards = $('<div/>')
                  .addClass('discards')
-
+*/
   jQuery.each(player.discarded, function(ix,t) {
-    discards.append(drawTile(t,pid).addClass('discarded_tile')
-                                   .removeClass('tile'))
+    dom.append(drawDiscardedTile(t,pid))
   })
 
+  return dom
+}
 
-  return $('<div/>')
-         .addClass('player')
-         .append(lab,vis,stack,discards)
+function drawDiscardedTile(t,pid) {
+  return drawTile(t,pid).addClass('discarded_tile').removeClass('tile')
 }
 
 
@@ -134,7 +151,7 @@ function drawBoard(board) {
 }
 
 function drawState(state) {
-  // state : { board: Board, players : [Player] }
+  // state : { board: Board, players : [Player], curPlayer : int }
 
   var dom = $('<table/>').addClass('game')
   jQuery.each(state.players,function(ix,p) {
@@ -145,7 +162,7 @@ function drawState(state) {
                .append(drawBoard(state.board)))
     }
 
-    r.append($('<td/>').append(drawPlayer(ix,p)))
+    r.append($('<td/>').append(drawPlayer(ix,p,state.curPlayer===ix)))
     dom.append(r)
   })
 
@@ -186,6 +203,8 @@ function getStreet(aid) {
 function getPalace() {
   return $('#palace')
 }
+
+function getPlayer(p) { return $('.player:has(.' + ownerClass(p) + ')') }
 
 function getVagrantFrom(str,owner,tile) {
   var query = '.' + ownerClass(owner) + '.' + tileCalss(tile)
@@ -245,7 +264,32 @@ function moveMarketPalace(aid,mid,tile) {
   })
 }
 
+function moveStreeMarketDiscard(aid,owner,tile) {
+  var str = getStreet(aid)
+  var src = getVagrantFrom(str,owner,tile)
+  if (src === null) return
+  var box = getPlayer(owner)
+  var tgt = drawDiscardedTile(tile,owner).css('visibility','hidden')
+  box.append(tgt)
+  src.css('visibility','hidden')
+  movingTile(src,tgt.offset(), function(cl) {
+    src.remove()
+    tgt.css('visibility','visible')
+  })
+}
 
+function moveMarketDiscard(aid,mid,tile) {
+  var src   = getMarketTile(aid,mid,tile)
+  var owner = getOwner(src)
+  var box   = getPlayer(owner)
+  console.log(box)
+  var tgt   = drawDiscardedTile(tile,owner).css('visibility','hidden')
+  box.append(tgt)
+  movingTile(src,tgt.offset(),function(cl) {
+    setOwner(src,null)
+    tgt.css('visibility','visible')
+  })
+}
 
 /* Events */
 
@@ -262,6 +306,15 @@ function vagrantClicked(areaid,pid,tile) {
   }
 }
 
+function visClicked() {
+  console.log('Vis clicked')
+}
+
+function stackClicked() {
+  console.log('Stack clicked')
+}
+
+// -----------
 
 function select(x) {
   x.addClass('selected')

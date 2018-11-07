@@ -28,6 +28,7 @@ $(document).ready(function() {
 
   var state = { board: board
               , players: [ mkPlayer(0), mkPlayer(1), mkPlayer(2), mkPlayer(3) ]
+              , curPlayer: 1
               }
 
   $('body').append(drawState(state))
