@@ -8,8 +8,34 @@
   padding: 0;
   margin: 2px;
   cursor: pointer;
+  vertical-align: top;
   border: 0;
 }
+
+.discarded_tile {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 2px;
+}
+
+.label {
+  padding: 4px;
+  border-radius: 5px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.stack {
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  border: 1px solid black;
+  margin: 2px;
+  font-size: 24px;
+  text-align: center;
+}
+
 .bl {}
 .tl { transform: rotate(90deg); }
 .tr { transform: rotate(180deg); }
@@ -31,9 +57,17 @@
 .p3 { background-color: rgb(182,109,255); }
 .p4 { background-color: rgb(0,180,255); }
 
+.p0.label { color: #fcc; }
+.p1.label { color: #fec; }
+.p2.label { color: #cff; }
+.p3.label { color: #eef; }
+.p4.label { color: #cff; }
+
+
+
 .market {
   border-collapse: separate;
-  border-spacing: 0px;
+  border-spacing: 2px;
   background-color: #fff;
   border: 1px solid black;
 }
@@ -60,6 +94,7 @@
   padding: 2px;
   text-align: center;
 }
+
 
 .market td {
   padding: 0;
