@@ -6,15 +6,35 @@ function ownerClass(owner) {
   return (owner === undefined || owner === null) ? 'blank' : 'p' + owner;
 }
 
-function drawTile(tile, owner) {
-  var style = ownerClass(owner)
-  var dom = $('<img/>').attr('src','img/tile.svg')
-                       .addClass('tile')
-                       .addClass(tileCalss(tile))
-                       .addClass(style)
-                       .data('owner',owner)
-  return dom
+function marketStallName(areaid,mid,tile) {
+  return 'market_' + areaid + '_' + mid + '_' + tile
 }
+
+function streeName(aid) {
+  return 'street_' + aid
+}
+
+
+
+function getMarketTile(aid,mid,tile) {
+  return $('#' + marketStallName(aid,mid,tile) + ' img')
+}
+
+function getStreet(aid) {
+  return $('#' + streeName(aid))
+}
+
+function getPalace() {
+  return $('#palace')
+}
+
+function getPlayer(p) {
+  return $('.player:has(.' + ownerClass(p) + ')')
+}
+
+
+/* ----------------------------------------- */
+
 
 function setOwner(dom,owner) {
   var cur = dom.data('owner')
@@ -25,15 +45,29 @@ function setOwner(dom,owner) {
 
 function getOwner(dom) { return dom.data('owner') }
 
+/* ----------------------------------------- */
 
 
-function marketStallName(areaid,mid,tile) {
-  return 'market_' + areaid + '_' + mid + '_' + tile
+
+
+
+function drawTile(t) {
+  // t : { owner: int; tile: int }
+
+  var style = ownerClass(t.owner)
+  var dom = $('<img/>').attr('src','img/tile.svg')
+                       .addClass('tile')
+                       .addClass(tileCalss(t.tile))
+                       .addClass(style)
+                       .data('owner',t.owner)
+  return dom
 }
 
-function streeName(aid) {
-  return 'street_' + aid
+function drawDiscardedTile(t) {
+  return drawTile(t).addClass('discarded_tile').removeClass('tile')
 }
+
+
 
 
 function drawMarket(areaid,mid,owner) {
@@ -41,7 +75,7 @@ function drawMarket(areaid,mid,owner) {
   function stall(tile) {
     return dom = $('<td/>')
                  .attr('id',marketStallName(areaid,mid,tile))
-                 .append(drawTile(tile,owner[tile]))
+                 .append(drawTile( { tile:tile, owner: owner[tile] }))
                  .addClass('clickable')
                  .click(marketClicked(areaid,mid))
   }
@@ -56,7 +90,9 @@ function drawMarket(areaid,mid,owner) {
 
 function drawValue(x) { return $('<td/>').addClass('value').text(x) }
 
+
 function drawArea(areaid,area) {
+  // Area = { markets: [ Market ], vagrants: [ OwnedTile ] }
 
   var areaVal = 1 + areaid
 
@@ -73,15 +109,16 @@ function drawArea(areaid,area) {
                .addClass('street')
                .attr('colspan','4')
   jQuery.each(area.vagrants,function(unused,s) {
-    var t = drawTile(s.tile,s.owner)
+    var t = drawTile(s)
             .addClass('clickable')
-            .click(vagrantClicked(area,s.tile,s.owner))
+            .click(vagrantClicked(area,s))
     street.append(t)
   })
   streetRow.append(street,drawValue(-1 * areaVal))
 
   return [marketRow,streetRow]
 }
+
 
 function drawPlayer(pid,player,isCur) {
   // Player = { name :: String
@@ -99,7 +136,7 @@ function drawPlayer(pid,player,isCur) {
   dom.append(lab)
 
   if (player.visible) {
-     var ti = drawTile(player.visible, pid).addClass('vis')
+     var ti = drawTile( { tile: player.visible, owner: pid }).addClass('vis')
      if (isCur) ti.addClass('clickable').click(visClicked)
      dom.append(ti)
   }
@@ -114,23 +151,18 @@ function drawPlayer(pid,player,isCur) {
   }
 
   dom.append(stack)
-/*
-  var discards = $('<div/>')
-                 .addClass('discards')
-*/
   jQuery.each(player.discarded, function(ix,t) {
-    dom.append(drawDiscardedTile(t,pid))
+    dom.append(drawDiscardedTile({tile:t,owner:pid}))
   })
 
   return dom
 }
 
-function drawDiscardedTile(t,pid) {
-  return drawTile(t,pid).addClass('discarded_tile').removeClass('tile')
-}
 
 
 function drawBoard(board) {
+  // board : { areas: [Area], palace: [ OwnedTile ] }
+
   var dom = $('<table/>').addClass('board')
 
   jQuery.each(board.areas,function(areaid,area) {
@@ -142,13 +174,15 @@ function drawBoard(board) {
                .attr('id','palace')
                .addClass('palace').attr('colspan','4')
   jQuery.each(board.palace, function(unused,s) {
-    palace.append(drawTile(s.tile,s.owner))
+    palace.append(drawTile(s))
   })
   palaceRow.append(palace,drawValue(2 * (1 + board.areas.length)))
   dom.prepend(palaceRow)
 
   return dom
 }
+
+
 
 function drawState(state) {
   // state : { board: Board, players : [Player], curPlayer : int }
@@ -192,19 +226,6 @@ function movingTile(obj,end,done) {
 
 }
 
-function getMarketTile(aid,mid,tile) {
-  return $('#' + marketStallName(aid,mid,tile) + ' img')
-}
-
-function getStreet(aid) {
-  return $('#' + streeName(aid))
-}
-
-function getPalace() {
-  return $('#palace')
-}
-
-function getPlayer(p) { return $('.player:has(.' + ownerClass(p) + ')') }
 
 function getVagrantFrom(str,owner,tile) {
   var query = '.' + ownerClass(owner) + '.' + tileCalss(tile)
@@ -232,7 +253,7 @@ function swapBetweenMarket(aid,mid1,mid2,tile) {
 function moveMarketStreet(aid,mid,tile) {
   var src  = getMarketTile(aid,mid,tile)
   var str  = getStreet(aid)
-  var tgt  = drawTile(tile,null).css('visibility','hidden')
+  var tgt  = drawTile( {tile: tile, owner: null }).css('visibility','hidden')
   str.append(tgt)
   movingTile(src,tgt.offset(), function(cl) {
     setOwner(tgt,cl)
@@ -256,7 +277,7 @@ function moveStreeMarket(aid1,aid2,mid2,owner,tile) {
 function moveMarketPalace(aid,mid,tile) {
   var src = getMarketTile(aid,mid,tile)
   var pal = getPalace()
-  var tgt = drawTile(tile,null).css('visibility','hidden')
+  var tgt = drawTile( {tile: tile, owner: null} ).css('visibility','hidden')
   pal.append(tgt)
   movingTile(src,tgt.offset(), function(cl) {
     setOwner(tgt,cl)
@@ -299,10 +320,10 @@ function marketClicked(areaid,mid) {
   }
 }
 
-function vagrantClicked(areaid,pid,tile) {
+function vagrantClicked(areaid,t) {
   return function() {
    console.log('Clicked on vagrant in area ' + areaid +
-               ', tile ' + tile +  ", owned by " + pid)
+               ', tile ' + t.tile +  ", owned by " + t.owner)
   }
 }
 
