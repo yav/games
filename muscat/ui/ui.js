@@ -122,6 +122,7 @@ function drawArea(areaid,area) {
 
 function drawPlayer(pid,player,isCur) {
   // Player = { name :: String
+  //          , score :: Int
   //          , visible :: Maybe Tile, hiddenNum :: Int
   //          , discarded :: [Tile] }
 
@@ -129,10 +130,13 @@ function drawPlayer(pid,player,isCur) {
 
   if (isCur) dom.addClass('current')
 
+  var name  = $('<span/>').addClass('name').text(player.name)
+  var score = $('<span/>').addClass('score').text(player.score)
+
   var lab = $('<div/>')
             .addClass('label')
             .addClass(ownerClass(pid))
-            .text(player.name)
+            .append(score,name)
   dom.append(lab)
 
   if (player.visible) {
@@ -187,21 +191,19 @@ function drawBoard(board) {
 function drawState(state) {
   // state : { board: Board, players : [Player], curPlayer : int }
 
-  var dom = $('<table/>').addClass('game')
-  jQuery.each(state.players,function(ix,p) {
-    var r = $('<tr/>')
-    if (ix === 0) {
-      r.append($('<td/>')
-               .attr('rowspan',state.players.length)
-               .append(drawBoard(state.board)))
-    }
+  var dom   = $('<table/>').addClass('game')
+  var row   = $('<tr/>')
+  var board = $('<td/>').append(drawBoard(state.board))
+  var play  = $('<td/>').addClass('players')
 
-    r.append($('<td/>').append(drawPlayer(ix,p,state.curPlayer===ix)))
-    dom.append(r)
+  jQuery.each(state.players,function(ix,p) {
+    play.append(drawPlayer(ix,p,state.curPlayer===ix))
   })
 
-  return dom
+  return dom.append(row.append(board,play))
 }
+
+
 
 // -----------------------------------------------------------------------------
 // Moving tiles

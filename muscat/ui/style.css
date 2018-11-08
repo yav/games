@@ -21,6 +21,7 @@
 .player {
   display: inline-block;
   width: 200px;
+  margin: 10px;
 }
 
 .player .vis {
@@ -35,8 +36,13 @@
 .label {
   padding: 4px;
   border-radius: 5px;
-  text-align: right;
   font-weight: bold;
+  text-align: right;
+}
+
+
+.label .score {
+  float: left;
 }
 
 .clickable {
@@ -96,7 +102,12 @@
 
 .board {
   background-color: #003;
-  transform: scale(0.90);
+  vertical-align: top;
+}
+
+.players {
+  width: 300px;
+  vertical-align: top;
 }
 
 .street {
