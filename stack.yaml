@@ -1,5 +1,0 @@
-packages:
-- game-utils
-- hyperborea
-# - elements
-resolver: lts-5.8
