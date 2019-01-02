@@ -49,7 +49,7 @@ mUpdate t es m =
   followMouse = case foldr checMouse Nothing es of
                   Nothing -> hLoc m
                   Just (P (V2 x y)) ->
-                    Hex.pixelToLoc 24 (fromIntegral x, fromIntegral y)
+                    Hex.pixelToLoc 32 (fromIntegral x, fromIntegral y)
 
   checMouse ev have = have `mplus` mouse ev
   mouse e =
@@ -84,6 +84,6 @@ mDraw r m =
 -- drawHex :: Renderer -> VHex.Loc -> IO ()
 drawHex r col l = fillPolygon r (Vector.fromList xs) (Vector.fromList ys) col
   where
-  (xs,ys) = unzip [ (round x, round y) | (x,y) <- Hex.locPoints 24 l ]
+  (xs,ys) = unzip [ (round x, round y) | (x,y) <- Hex.locPoints 32 24 l ]
 
 
