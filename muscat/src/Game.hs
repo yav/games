@@ -62,9 +62,24 @@ data Game         = Game { gameAreas    :: Map AreaId Area
 
 
 data GameStatus   = NextTurn
-                  | GameFinished
-                  | Promote ChooseMarket [PromoteTodo]
+                    -- ^ At start of turn:
+                    -- 1. click on vis (if any)
+                    -- 2. click on stack (if any)
+                    -- 3. click on empty spot of complete market (if any)
+                    -- 4. click on vagrant if:
+                    --     - (reinstate) empty space above, or
+                    --     - (jump q) tile in last place in a full market
+                    --     - (swap) tile in area, with a full market same spot occupied
+                    --     - (move) tile in area, other area with 2, and empty
+
+                  | ChooseNewTileLoc ChooseMarket   -- ^ (after 1 or 2)
+                  | Promote ChooseMarket [PromoteTodo]  -- ^ (after 3)
+
+
                   | CompleteMarket AreaId MarketId MarketId
+                    -- ^ After swap, and both markets are full
+
+                  | GameFinished    -- ^ After end game
 
 
 
