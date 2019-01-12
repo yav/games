@@ -5,6 +5,8 @@ import Control.Monad(unless,msum,mplus)
 import SDL
 import SDL.Primitive
 import qualified SDL.Framerate as FR
+import SDL.Font (Font)
+import qualified SDL.Font as Font
 import qualified Data.Vector.Storable as Vector
 
 import qualified Util.Hex as Hex
@@ -12,17 +14,32 @@ import qualified Util.Hex as Hex
 main :: IO ()
 main =
   do initializeAll
+     Font.initialize
      w <- createWindow "Yav 1" defaultWindow
      r <- createRenderer w (-1) defaultRenderer
-     FR.with 400 $ \fm -> go r fm mStart
+     font <- Font.load "data/Charm-Regular.ttf" 64
+     FR.with 400 $ \fm ->
+        let res = Resources { rFRManager = fm
+                            , rWindow = w
+                            , rRenderer = r
+                            , rFont = font
+                            }
+        in go res mStart
   where
-  go r fm m =
-    do t <- FR.delay fm
+  go res m =
+    do t <- FR.delay (rFRManager res)
        es <- pollEvents
        let m1 = mUpdate t es m
-       mDraw r m1
-       present r
-       unless (done m1) (go r fm m1)
+       mDraw res m1
+       present (rRenderer res)
+       unless (done m1) (go res m1)
+
+data Resources = Resources
+  { rFont :: Font
+  , rWindow :: Window
+  , rRenderer :: Renderer
+  , rFRManager :: FR.Manager
+  }
 
 data M = M { loc :: !(Point V2 Word), done :: !Bool, mTime :: !Int
            , hLoc :: !Hex.Loc }
@@ -66,11 +83,20 @@ mUpdate t es m =
 
 
 
-mDraw :: Renderer -> M -> IO ()
-mDraw r m =
-  do rendererDrawColor r $= V4 0 0 0 255
+mDraw :: Resources -> M -> IO ()
+mDraw res m =
+  do let r = rRenderer res
+     rendererDrawColor r $= V4 0 0 0 255
      clear r
      let c = V4 0 0 255 255
+     msg <- Font.shaded (rFont res) (V4 255 255 255 255)
+                                    (V4 0 0 0 255)
+                                     "Hello"
+     msgTxt <- createTextureFromSurface r msg
+     freeSurface msg
+     copy r msgTxt Nothing Nothing
+
+
      mapM_ (drawHex r c) [ Hex.Loc x y | x <- [ 1 .. 10 ], y <- [ 1 .. 10 ] ]
      drawHex r (V4 255 0 0 255) (hLoc m)
      -- let rect = Rectangle (fromIntegral <$> loc m) (V2 50 50)
