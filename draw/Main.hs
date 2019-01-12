@@ -17,7 +17,7 @@ main =
      Font.initialize
      w <- createWindow "Yav 1" defaultWindow
      r <- createRenderer w (-1) defaultRenderer
-     font <- Font.load "data/Charm-Regular.ttf" 64
+     font <- Font.load "data/Coiny-Regular.ttf" 64
      FR.with 400 $ \fm ->
         let res = Resources { rFRManager = fm
                             , rWindow = w
