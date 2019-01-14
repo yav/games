@@ -86,16 +86,18 @@ pixelToLoc s (x,y) = roundLoc (e / s3) (se / s3)
         se = 2 * y
         s3 = 3 * s
 
-locPoints :: Double {- ^ Size of edge -} -> Loc -> [(Double,Double)]
-locPoints s loc = [ (l, u), (x,y-s), (r, u), (r, d), (x,y+s), (l,d) ]
+locPoints :: Double {- ^ Size of edge for grid -} ->
+             Double {- ^ Size of edge for hex  -} ->
+              Loc -> [(Double,Double)]
+locPoints s s2 loc = [ (l, u), (x,y-s2), (r, u), (r, d), (x,y+s2), (l,d) ]
   where
   (x,y)  = locToPixel s loc
   l      = x - halfW
   r      = x + halfW
   u      = y - halfS
   d      = y + halfS
-  halfS  = s / 2
-  halfW  = (sqrt_3 / 2) * s
+  halfS  = s2 / 2
+  halfW  = (sqrt_3 / 2) * s2
 
 -- | Fractional location coordinates to closest location.
 roundLoc :: Double -> Double -> Loc

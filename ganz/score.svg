@@ -126,6 +126,19 @@
          stdDeviation="7.9926719"
          id="feGaussianBlur5273" />
     </filter>
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter6190"
+       x="-0.6948"
+       width="2.3896"
+       y="-0.6948"
+       height="2.3896">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="3.2842324"
+         id="feGaussianBlur6192" />
+    </filter>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -135,16 +148,16 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.1194853"
-     inkscape:cx="776.71903"
-     inkscape:cy="997.89273"
+     inkscape:cx="619.95056"
+     inkscape:cy="738.69626"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
      units="in"
      inkscape:snap-global="false"
-     inkscape:window-width="3840"
-     inkscape:window-height="2040"
-     inkscape:window-x="1920"
+     inkscape:window-width="2560"
+     inkscape:window-height="1331"
+     inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      showguides="true" />
@@ -156,7 +169,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -165,6 +178,12 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-17.6)">
+    <circle
+       r="5.6722493"
+       cy="203.06728"
+       cx="25.52512"
+       id="circle6331"
+       style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)" />
     <rect
        style="opacity:1;fill:#8080ff;fill-opacity:1;stroke:none;stroke-width:6.3499999;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;filter:url(#filter4746)"
        id="rect2691"
@@ -3588,6 +3607,276 @@
            x="234.10732"
            id="tspan5299"
            sodipodi:role="line">x3</tspan></text>
+    </g>
+    <g
+       id="g6208"
+       transform="translate(47.268746,115.57208)">
+      <circle
+         r="5.6722493"
+         cy="77.436668"
+         cx="-34.033501"
+         id="path4823"
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)" />
+      <g
+         id="g6201">
+        <g
+           id="g6196">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             x="-38.856899"
+             y="81.694809"
+             id="text6511-3"><tspan
+               sodipodi:role="line"
+               id="tspan6509-6"
+               x="-38.856899"
+               y="81.694809"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       transform="translate(70.552082,115.57208)"
+       id="g6220">
+      <circle
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)"
+         id="circle6210"
+         cx="-34.033501"
+         cy="77.436668"
+         r="5.6722493" />
+      <g
+         id="g6218">
+        <g
+           id="g6216">
+          <text
+             id="text6214"
+             y="81.694809"
+             x="-38.856899"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             xml:space="preserve"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332"
+               y="81.694809"
+               x="-38.856899"
+               id="tspan6212"
+               sodipodi:role="line">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       id="g6232"
+       transform="translate(94.364585,115.57208)">
+      <circle
+         r="5.6722493"
+         cy="77.436668"
+         cx="-34.033501"
+         id="circle6222"
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)" />
+      <g
+         id="g6230">
+        <g
+           id="g6228">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             x="-38.856899"
+             y="81.694809"
+             id="text6226"><tspan
+               sodipodi:role="line"
+               id="tspan6224"
+               x="-38.856899"
+               y="81.694809"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       transform="translate(119.23542,115.57208)"
+       id="g6244">
+      <circle
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)"
+         id="circle6234"
+         cx="-34.033501"
+         cy="77.436668"
+         r="5.6722493" />
+      <g
+         id="g6242">
+        <g
+           id="g6240">
+          <text
+             id="text6238"
+             y="81.694809"
+             x="-38.856899"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             xml:space="preserve"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332"
+               y="81.694809"
+               x="-38.856899"
+               id="tspan6236"
+               sodipodi:role="line">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       id="g6268"
+       transform="translate(143.04795,115.57208)">
+      <circle
+         r="5.6722493"
+         cy="77.436668"
+         cx="-34.033501"
+         id="circle6258"
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)" />
+      <g
+         id="g6266">
+        <g
+           id="g6264">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             x="-38.856899"
+             y="81.694809"
+             id="text6262"><tspan
+               sodipodi:role="line"
+               id="tspan6260"
+               x="-38.856899"
+               y="81.694809"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       transform="translate(166.3314,115.57208)"
+       id="g6280">
+      <circle
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)"
+         id="circle6270"
+         cx="-34.033501"
+         cy="77.436668"
+         r="5.6722493" />
+      <g
+         id="g6278">
+        <g
+           id="g6276">
+          <text
+             id="text6274"
+             y="81.694809"
+             x="-38.856899"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             xml:space="preserve"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332"
+               y="81.694809"
+               x="-38.856899"
+               id="tspan6272"
+               sodipodi:role="line">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       id="g6293"
+       transform="translate(190.14393,115.57208)">
+      <circle
+         r="5.6722493"
+         cy="77.436668"
+         cx="-34.033501"
+         id="circle6282"
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)" />
+      <g
+         id="g6291">
+        <g
+           id="g6289">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             x="-38.856899"
+             y="81.694809"
+             id="text6286"><tspan
+               sodipodi:role="line"
+               id="tspan6284"
+               x="-38.856899"
+               y="81.694809"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       transform="translate(214.48563,115.57208)"
+       id="g6305">
+      <circle
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)"
+         id="circle6295"
+         cx="-34.033501"
+         cy="77.436668"
+         r="5.6722493" />
+      <g
+         id="g6303">
+        <g
+           id="g6301">
+          <text
+             id="text6299"
+             y="81.694809"
+             x="-38.856899"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             xml:space="preserve"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332"
+               y="81.694809"
+               x="-38.856899"
+               id="tspan6297"
+               sodipodi:role="line">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       id="g6317"
+       transform="translate(238.29816,115.57208)">
+      <circle
+         r="5.6722493"
+         cy="77.436668"
+         cx="-34.033501"
+         id="circle6307"
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)" />
+      <g
+         id="g6315">
+        <g
+           id="g6313">
+          <text
+             xml:space="preserve"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             x="-38.856899"
+             y="81.694809"
+             id="text6311"><tspan
+               sodipodi:role="line"
+               id="tspan6309"
+               x="-38.856899"
+               y="81.694809"
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332">&lt;</tspan></text>
+        </g>
+      </g>
+    </g>
+    <g
+       transform="translate(262.11069,115.57208)"
+       id="g6329">
+      <circle
+         style="fill:#ff00ff;stroke-width:0.26458332;filter:url(#filter6190)"
+         id="circle6319"
+         cx="-34.033501"
+         cy="77.436668"
+         r="5.6722493" />
+      <g
+         id="g6327">
+        <g
+           id="g6325">
+          <text
+             id="text6323"
+             y="81.694809"
+             x="-38.856899"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+             xml:space="preserve"><tspan
+               style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;line-height:8.25;font-family:Dyuthi;-inkscape-font-specification:Dyuthi;fill:#ffffff;stroke-width:0.26458332"
+               y="81.694809"
+               x="-38.856899"
+               id="tspan6321"
+               sodipodi:role="line">&lt;</tspan></text>
+        </g>
+      </g>
     </g>
   </g>
 </svg>
