@@ -71,7 +71,8 @@ distribute c g =
         Nothing -> g
         Just newTodo
           | bagIsEmpty newTodo -> g1 { status = Activate }
-          | otherwise          -> g1 { status = Distribute (nextDir d) newTodo }
+          | otherwise          -> autoDist
+                                  g1 { status = Distribute (nextDir d) newTodo }
             where g1 = g { controls = Map.adjust (bagAdd 1 c) d (controls g) }
     _ -> g
 
@@ -83,6 +84,7 @@ activate d g =
     _        -> g
   where
   newG = checkGameEnd
+       $ autoDist
          g { meeples  = newMp
            , controls = Map.insert d newCs (controls g)
            , status   = if bagIsEmpty toDistr
@@ -119,3 +121,9 @@ checkGameEnd g
               [] -> True
               x : rest -> all (x ==) rest
 
+autoDist :: Game -> Game
+autoDist g =
+  case status g of
+    Distribute i xs
+      | [(a,_)] <- bagToListGrouped xs -> distribute a g
+    _ -> g
