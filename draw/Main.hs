@@ -108,7 +108,23 @@ mDraw res m =
          y = fromIntegral y'
      -- fillRoundRectangle r (V2 x y) (V2 (x+50) (y+50)) 5 (V4 255 0 255 255)
      smoothCircle r (V2 x y) 50 (V4 255 0 255 255)
-     drawCurve r (b3 (0,0) (200,25) (200,175) (0,200))
+     let p0 = (100,100)
+         p1 = (300,100)
+         p2 = (300,275)
+         p3 = (100,300)
+
+         dx = 100 - 300
+         dy = 300 - 275
+         p4 = (100 + dx, 300 + dy)
+         p5 = (0,400)
+         p6 = (100,500)
+     dLine r p0 p1
+     dLine r p2 p3
+     drawCurve r (b3 p0 p1 p2 p3)
+
+     dLine r p3 p4
+     dLine r p5 p6
+     drawCurve r (b3 p3 p4 p5 p6)
 
 -- drawHex :: Renderer -> VHex.Loc -> IO ()
 drawHex r col l = fillPolygon r (Vector.fromList xs) (Vector.fromList ys) col
@@ -116,10 +132,15 @@ drawHex r col l = fillPolygon r (Vector.fromList xs) (Vector.fromList ys) col
   (xs,ys) = unzip [ (round x, round y) | (x,y) <- Hex.locPoints 32 24 l ]
 
 
+dLine :: Renderer -> (Double,Double) -> (Double,Double) -> IO ()
+dLine r from to = smoothLine r (pt from) (pt to) (V4 255 0 0 255)
+  where
+  pt (x,y) = V2 (round x) (round y)
+
 drawCurve :: Renderer -> (Double -> (Double,Double)) -> IO ()
 drawCurve r f = mapM_ pt (takeWhile (<= 1) (iterate (+ step) 0))
   where
-  step = 0.1
+  step = 0.05
   pt t = let (x,y) = f t
          in fillCircle r (V2 (round x) (round y)) 3 (V4 0xFF 0xFF 0xFF 0xFF)
 
