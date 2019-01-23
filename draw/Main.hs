@@ -11,6 +11,8 @@ import qualified Data.Vector.Storable as Vector
 
 import qualified Util.Hex as Hex
 
+import Bezier
+
 main :: IO ()
 main =
   do initializeAll
@@ -94,7 +96,7 @@ mDraw res m =
                                      "Hello"
      msgTxt <- createTextureFromSurface r msg
      freeSurface msg
-     copy r msgTxt Nothing Nothing
+     -- copy r msgTxt Nothing Nothing
 
 
      mapM_ (drawHex r c) [ Hex.Loc x y | x <- [ 1 .. 10 ], y <- [ 1 .. 10 ] ]
@@ -106,10 +108,26 @@ mDraw res m =
          y = fromIntegral y'
      -- fillRoundRectangle r (V2 x y) (V2 (x+50) (y+50)) 5 (V4 255 0 255 255)
      smoothCircle r (V2 x y) 50 (V4 255 0 255 255)
+     drawCurve r $
+        curve (Pt 0 100) (Pt 50 150)
+             [ B2 (Pt 100 100), B2 (Pt 200 100), B2 (Pt 300 100) ]
+
 
 -- drawHex :: Renderer -> VHex.Loc -> IO ()
 drawHex r col l = fillPolygon r (Vector.fromList xs) (Vector.fromList ys) col
   where
   (xs,ys) = unzip [ (round x, round y) | (x,y) <- Hex.locPoints 32 24 l ]
 
+
+dLine :: Renderer -> (Double,Double) -> (Double,Double) -> IO ()
+dLine r from to = smoothLine r (pt from) (pt to) (V4 255 0 0 255)
+  where
+  pt (x,y) = V2 (round x) (round y)
+
+drawCurve :: Renderer -> Curve -> IO ()
+drawCurve r f = mapM_ pt (takeWhile (<= 1) (iterate (+ step) 0))
+  where
+  step = 0.05
+  pt t = let Pt x y = f t
+         in fillCircle r (V2 (round x) (round y)) 3 (V4 0xFF 0xFF 0xFF 0xFF)
 
