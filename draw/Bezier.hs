@@ -1,6 +1,9 @@
-module Bezier (Pt(..), Curve, b1,b2,b3, CurveStep(..), curve) where
+module Bezier
+  ( Pt(..), Coord(..), Coord2
+  , path, Path(..), Sharp(..), Smooth(..), EndPath(..)
+  ) where
 
-data Pt  = Pt !Double !Double
+data Pt = Pt !Double !Double
   deriving Show
 
 scale :: Double -> Pt -> Pt
@@ -17,16 +20,6 @@ reflect (Pt x0 y0) (Pt x1 y1) = Pt (2*x1-x0) (2*y1-y0)
 
 -- | The domain of the input is between 0 and 1, inclusive.
 type Curve = Double -> Pt
-
--- | Concatenate two curves.  The first input (between 0 and 1, inclusive)
--- indicates where the first curve ends: for values less then it, we use
--- the first curve, after we use the second one.
-cat :: Double -> Curve -> Curve -> Curve
-cat s f g = \t -> if t < s then f (inFst t) else g (inSnd t)
-  where
-  inFst t = t / s
-  inSnd t = (t - s) / (1 - s)
-{-# INLINE cat #-}
 
 -- | Linear interpolation between two curves:
 -- at 0 we behave like the first one, and at 1 like the second one.
@@ -49,28 +42,107 @@ b3 p0 p1 p2 p3 = interp (b2 p0 p1 p2) (b2 p1 p2 p3)
 
 --------------------------------------------------------------------------------
 
-data CurveStep = B2 Pt | B3 Pt Pt
 
 
 
-curve :: Pt -> Pt -> [CurveStep] -> Curve
-curve a b ps0 = foldr1 (cat step) segments
+data Path       = From Coord2 Sharp | Join Path Double Path
+data Smooth     = EndPt  Double        Coord2 EndPath
+                | EndVec Double Coord2 Coord2 EndPath
+data Sharp      = Toward Coord2 Smooth
+data EndPath    = End
+                | Smooth Smooth
+                | Sharp  Sharp
+
+data Coord      = To Double | By Double
+type Coord2     = (Coord,Coord)
+
+fromFlex :: Double -> Coord -> Double
+fromFlex x f =
+  case f of
+    To x' -> x'
+    By x' -> x + x'
+
+fromCoord2 :: Pt -> Coord2 -> Pt
+fromCoord2 (Pt x y) (x',y') = Pt (fromFlex x x') (fromFlex y y')
+
+path :: Path -> Double -> Pt
+path p = lkp tree
   where
-  step = 1 / fromIntegral (length segments)
+  s = segments p
+  (tree,_) = toT tot (length s) s
+  tot = sum (map snd s)
 
-  segments = go True a b ps0
+data T = Node !Double T T
+       | Leaf Curve
 
-  go isFst p' p0 todo =
-    case todo of
-      []              -> []
-      B2 p2 : more
-        | isFst     -> b2 p' p0 p2 : go False p0 p2 more
-        | otherwise -> b2 p0 i p2  : go False i  p2 more
-      B3 p3 p4 : more
-        | isFst     -> b3 p' p0 p3 p4 : go False p3 p4 more
-        | otherwise -> b3 p0 i  p3 p4 : go False p3 p4 more
-    where i = reflect p' p0
+lkp :: T -> Double -> Pt
+lkp t x =
+  case t of
+    Leaf c -> c x
+    Node d l r
+      | d < x -> lkp r (x - d)
+      | otherwise -> lkp l x
 
+toT :: Double -> Int -> [(Curve,Double)] -> (T,Double)
+toT tot n ss =
+  case ss of
+    []      -> error "toT: []"
+    [(c,t)] -> let l = t / tot
+               in (Leaf (c . (* recip l)), l)
+    _ -> let n2 = div n 2
+         in case splitAt n2 ss of
+              (as,bs) ->
+                let (l,t1) = toT tot n2 as
+                    (r,t2) = toT tot (n-n2) bs
+                in (Node t1 l r, t1 + t2)
+
+
+
+segments :: Path -> [(Curve,Double)]
+segments pa = let ((p1,s),r) = flat pa []
+              in sharp (fromCoord2 (Pt 0 0) p1) s r
+  where
+  flat p rest =
+    case p of
+      Join p1 d p2 -> let (s2,r) = flat p2 rest
+                      in flat p1 ((d,s2) : r)
+      From p1 s -> ((p1,s), rest)
+
+
+  sharp a (Toward p1' step) rest =
+    let p1 = fromCoord2 a p1'
+    in case step of
+         EndPt s p2' more ->
+           let p2 = fromCoord2 p1 p2'
+           in (b2 a p1 p2,s) : end p1 p2 more rest
+         EndVec s p2' p3' more ->
+           let p2 = fromCoord2 p1 p2'
+               p3 = fromCoord2 p1 p3'
+           in (b3 a p1 p2 p3,s) : end p2 p3 more rest
+
+
+  end a b step rest =
+    let i = reflect a b
+    in case step of
+         End -> case rest of
+                  [] -> []
+                  (s,(p1',Toward p2' more)) : rest' ->
+                     let p1 = fromCoord2 b p1'
+                         p2 = fromCoord2 b p2'
+                         j  = scale (-1) $ reflect p2 p1
+                     in (b3 b i j p1,s) : sharp p1 (Toward p2' more) rest'
+
+         Smooth s ->
+           case s of
+             EndPt speed c' more ->
+               let c = fromCoord2 b c'
+               in (b2 b i c,speed) : end i c more rest
+             EndVec speed c' d' more ->
+               let c = fromCoord2 b c'
+                   d = fromCoord2 b d'
+              in (b3 b i c d,speed) : end c d more rest
+
+         Sharp s -> sharp b s rest
 
 
 

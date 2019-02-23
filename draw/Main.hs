@@ -108,10 +108,24 @@ mDraw res m =
          y = fromIntegral y'
      -- fillRoundRectangle r (V2 x y) (V2 (x+50) (y+50)) 5 (V4 255 0 255 255)
      smoothCircle r (V2 x y) 50 (V4 255 0 255 255)
-     drawCurve r $
-        curve (Pt 0 100) (Pt 50 150)
-             [ B2 (Pt 100 100), B2 (Pt 200 100), B2 (Pt 300 100) ]
 
+     let p1 = From (To 0, To 100) $ Toward (By 50, By 50)
+                       $ EndPt 1 (By 50,  By (-50))
+              $ Smooth $ EndPt 1 (By 100, By 0)
+              $ Smooth $ EndPt 1 (By 100, By 0)
+              $ Sharp  $ Toward (By 20, By 50) $ EndPt 1 (By 20, By (-50))
+              -- $ End
+              $ Smooth $ EndVec 1 (To 280, To 100) (To 300, To 200)
+              $ End
+ 
+         p2 = From (To 300, To 200) $ Toward (By 20, By 100)
+              $ EndPt 1 (By 100, By 0) $ End
+
+     drawCurve r (V4 0 255 255 255) $ path p1
+
+     drawCurve r (V4 255 0 0 255) $ path p2
+
+     -- drawCurve r (V4 255 255 0 255) $ path (Join p1 1 p2)
 
 -- drawHex :: Renderer -> VHex.Loc -> IO ()
 drawHex r col l = fillPolygon r (Vector.fromList xs) (Vector.fromList ys) col
@@ -124,10 +138,10 @@ dLine r from to = smoothLine r (pt from) (pt to) (V4 255 0 0 255)
   where
   pt (x,y) = V2 (round x) (round y)
 
-drawCurve :: Renderer -> Curve -> IO ()
-drawCurve r f = mapM_ pt (takeWhile (<= 1) (iterate (+ step) 0))
+drawCurve :: Renderer -> V4 Word8 -> (Double -> Pt) -> IO ()
+drawCurve r c f = mapM_ pt (takeWhile (<= 1) (iterate (+ step) 0))
   where
-  step = 0.05
+  step = 0.005
   pt t = let Pt x y = f t
-         in fillCircle r (V2 (round x) (round y)) 3 (V4 0xFF 0xFF 0xFF 0xFF)
+         in fillCircle r (V2 (round x) (round y)) 3 c
 
