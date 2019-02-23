@@ -128,8 +128,8 @@ segments pa = let ((p1,s),r) = flat pa []
                   [] -> []
                   (s,(p1',Toward p2' more)) : rest' ->
                      let p1 = fromCoord2 b p1'
-                         p2 = fromCoord2 b p2'
-                         j  = scale (-1) $ reflect p2 p1
+                         p2 = fromCoord2 p1 p2'
+                         j  = reflect p2 p1
                      in (b3 b i j p1,s) : sharp p1 (Toward p2' more) rest'
 
          Smooth s ->

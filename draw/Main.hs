@@ -114,18 +114,16 @@ mDraw res m =
               $ Smooth $ EndPt 1 (By 100, By 0)
               $ Smooth $ EndPt 1 (By 100, By 0)
               $ Sharp  $ Toward (By 20, By 50) $ EndPt 1 (By 20, By (-50))
-              -- $ End
-              $ Smooth $ EndVec 1 (To 280, To 100) (To 300, To 200)
               $ End
  
          p2 = From (To 300, To 200) $ Toward (By 20, By 100)
               $ EndPt 1 (By 100, By 0) $ End
 
-     drawCurve r (V4 0 255 255 255) $ path p1
+     -- drawCurve r (V4 0 255 255 255) $ path p1
 
-     drawCurve r (V4 255 0 0 255) $ path p2
+     -- drawCurve r (V4 255 0 0 255) $ path p2
 
-     -- drawCurve r (V4 255 255 0 255) $ path (Join p1 1 p2)
+     drawCurve r (V4 255 255 0 255) $ path (Join p1 5 p2)
 
 -- drawHex :: Renderer -> VHex.Loc -> IO ()
 drawHex r col l = fillPolygon r (Vector.fromList xs) (Vector.fromList ys) col
@@ -141,7 +139,7 @@ dLine r from to = smoothLine r (pt from) (pt to) (V4 255 0 0 255)
 drawCurve :: Renderer -> V4 Word8 -> (Double -> Pt) -> IO ()
 drawCurve r c f = mapM_ pt (takeWhile (<= 1) (iterate (+ step) 0))
   where
-  step = 0.005
+  step = 0.05
   pt t = let Pt x y = f t
          in fillCircle r (V2 (round x) (round y)) 3 c
 
