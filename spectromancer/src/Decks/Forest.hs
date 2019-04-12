@@ -36,7 +36,7 @@ creatures = Map.fromList
               do atk <- getRabbitAttack Caster
                  if atk <= 0
                   then return ()
-                  else do Just c <- getCreatureAt l
+                  else do ~(Just c) <- getCreatureAt l
                           doWizardDamage Opponent c atk
                           damageCreatures Effect atk (slotsFor Opponent) })
 

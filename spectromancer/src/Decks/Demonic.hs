@@ -21,7 +21,7 @@ creatures = Map.fromList
           { onSummoned = \l ->
               do fp <- withGame (view (player Caster . playerPower Fire))
                  let dmg = min 10 fp
-                 Just c <- getCreatureAt l
+                 ~(Just c) <- getCreatureAt l
                  doWizardDamage Opponent c dmg
                  damageCreatures Effect dmg (slotsFor Opponent) })
   ]

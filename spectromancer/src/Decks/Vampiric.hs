@@ -26,7 +26,7 @@ creatures = Map.fromList
     , (vampiric_magister_of_blood,
         defaultCreature
           { onSummoned = \l ->
-            do Just c <- getCreatureAt l
+            do ~(Just c) <- getCreatureAt l
                doWizardDamage Opponent c 16
                forM_ (slotsFor Opponent) $ \loc ->
                  do mb <- getCreatureAt (oppositeOf loc)

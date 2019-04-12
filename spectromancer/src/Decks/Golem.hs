@@ -22,7 +22,7 @@ creatures = Map.fromList
         defaultCreature
           { onSummoned = \l ->
             do (golem_loc, _) <- getGolem
-               Just c <- getCreatureAt l
+               ~(Just c) <- getCreatureAt l
                doSomething l
                creatureMove golem_loc l
                summonCreature c golem_loc })

@@ -33,7 +33,7 @@ creatures = Map.fromList
         defaultCreature
           { onSummonedOther = \cl sl ->
               when (isNeighbor cl sl) $
-                do Just c <- getCreatureAt cl
+                do ~(Just c) <- getCreatureAt cl
                    doWizardDamage (theOtherOne (locWho cl)) c 4 })
 
   , (spirit_holy_avenger,

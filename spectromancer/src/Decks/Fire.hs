@@ -32,7 +32,7 @@ creatures = Map.fromList
     , (fire_fire_elemental,
         defaultCreature
           { onSummoned = \l ->
-              do Just c <- getCreatureAt l
+              do ~(Just c) <- getCreatureAt l
                  doWizardDamage Opponent c 3
                  damageCreatures Effect 3 (slotsFor Opponent) })
 

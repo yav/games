@@ -18,7 +18,7 @@ creatures = Map.fromList
   [
        (illusion_spectral_assassin,
         defaultCreature
-          { onSummoned = \l -> do Just c <- getCreatureAt l
+          { onSummoned = \l -> do ~(Just c) <- getCreatureAt l
                                   doWizardDamage Opponent c 12 })
 
     , (illusion_spectral_mage,
@@ -32,7 +32,7 @@ creatures = Map.fromList
     , (illusion_hypnotist,
         defaultCreature
           { onSummoned = \l ->
-              do Just c <- getCreatureAt l
+              do ~(Just c) <- getCreatureAt l
                  doWizardDamage Opponent c 5
                  damageCreatures Effect 5 (slotsFor Opponent) })
 

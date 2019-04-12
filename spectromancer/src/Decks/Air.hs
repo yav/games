@@ -20,7 +20,7 @@ creatures = Map.fromList
       (air_griffin,
         defaultCreature
           { onSummoned = \l ->
-              do Just c <- getCreatureAt l
+              do ~(Just c) <- getCreatureAt l
                  p <- withGame (view (player Caster . playerPower Air))
                  when (p >= 5) (doWizardDamage Opponent c 5) })
 
@@ -32,7 +32,7 @@ creatures = Map.fromList
 
     , (air_air_elemental,
         defaultCreature
-          { onSummoned = \l -> do Just c <- getCreatureAt l
+          { onSummoned = \l -> do ~(Just c) <- getCreatureAt l
                                   doWizardDamage Opponent c 8 })
 
     , (air_titan,

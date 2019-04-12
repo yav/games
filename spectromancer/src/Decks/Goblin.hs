@@ -16,7 +16,7 @@ creatures = Map.fromList
       (goblin's_goblin_raider,
         defaultCreature
           { onSummoned = \l ->
-              do Just c <- getCreatureAt l
+              do ~(Just c) <- getCreatureAt l
                  let addFriend = do mb <- randomBlankSlot (locWho l)
                                     case mb of
                                       Nothing -> return ()

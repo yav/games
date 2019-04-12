@@ -95,7 +95,7 @@ pickDecks special1 special2 =
 
 fromChunk :: [a] -> Gen (a,a)
 fromChunk xs =
-  do a : b : _ <- shuffle xs
+  do ~(a : b : _) <- shuffle xs
      return (a,b)
 
 

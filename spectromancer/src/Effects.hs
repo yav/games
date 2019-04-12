@@ -633,7 +633,7 @@ damageCreature dmg amt l =
     , (illusion_wall_of_reflection,
       do lifeChange <- doDamage' amt
          unless (lifeChange == 0) $
-           do Just c <- getCreatureAt l
+           do ~(Just c) <- getCreatureAt l
               doWizardDamage (theOtherOne $ locWho l) c (negate lifeChange))
 
     , (forest_angry_angry_bear,
@@ -781,7 +781,7 @@ creatureKill l =
          do leave
             let newGolem = c & deckCardLife .~
                            c ^. deckCardOrig . creatureCard . creatureLife
-            Just newLoc <- randomBlankSlot (locWho l)
+            ~(Just newLoc) <- randomBlankSlot (locWho l)
             summonCreature newGolem newLoc
             doSomething newLoc
             doWizardDamage (locWho newLoc) c 10)
