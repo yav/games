@@ -10,7 +10,9 @@ import CardTypes
 
 
 data DamageSource = Attack Location   -- ^ Attack from creature in this slot
-                  | Effect
+                  | Effect EffectType
+
+data EffectType = SpellDamage | AbilityDamage
 
 data CreatureEffects = CreatureEffects
   {

@@ -15,12 +15,14 @@ creatures = Map.fromList
   [
       (mechanical_steam_tank,
         defaultCreature
-          { onSummoned = \_ -> damageCreatures Effect 12 (slotsFor Opponent) })
+          { onSummoned = \_ ->
+              damageCreatures (Effect AbilityDamage) 12 (slotsFor Opponent) })
 
     , (mechanical_dwarven_rifleman,
         defaultCreature
           { onSummonedOther = \cl sl ->
-              when (locWho cl /= locWho sl) (damageCreature Effect 4 sl) })
+              when (locWho cl /= locWho sl)
+                (damageCreature (Effect AbilityDamage) 4 sl) })
 
 
 

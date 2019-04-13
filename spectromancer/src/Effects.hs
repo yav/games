@@ -120,8 +120,8 @@ creatureStartOfTurn l =
   abilities =
     Map.fromList
       [ (fire_goblin_berserker,
-           do damageCreature Effect 2 (leftOf l)
-              damageCreature Effect 2 (rightOf l)
+           do damageCreature (Effect AbilityDamage) 2 (leftOf l)
+              damageCreature (Effect AbilityDamage) 2 (rightOf l)
         )
 
       , (water_sea_sprite, card >>= \c -> doWizardDamage Caster c 2)
@@ -138,8 +138,9 @@ creatureStartOfTurn l =
       , (earth_hydra, creatureChangeLife_ l 4)
 
 
-      , (mechanical_ornithopter, damageCreatures Effect 2 (slotsFor Opponent))
-      , (mechanical_cannon, 
+      , (mechanical_ornithopter,
+            damageCreatures (Effect AbilityDamage) 2 (slotsFor Opponent))
+      , (mechanical_cannon,
           do g <- getGame
              let oppCr = inhabitedSlots g (slotsFor Opponent)
              case oppCr of
@@ -147,7 +148,7 @@ creatureStartOfTurn l =
               _  -> do
                 let compareLife = (compare `on` (\(_,c1) -> c1 ^. deckCardLife))
                     (lh,_) = (maximumBy compareLife oppCr)
-                damageCreatures Effect 8 [lh]
+                damageCreatures (Effect AbilityDamage) 8 [lh]
         )
 
 
@@ -157,7 +158,7 @@ creatureStartOfTurn l =
              doWizardDamage Opponent c p)
 
       , (goblin's_ratmaster,
-            do damageCreatures Effect 6 (slotsFor Opponent)
+            do damageCreatures (Effect AbilityDamage) 6 (slotsFor Opponent)
                el <- randomPower
                wizChangePower Caster el (-3))
 
@@ -179,7 +180,7 @@ creatureStartOfTurn l =
           do mbtgt <- randomCreature Opponent
              case mbtgt of
                Nothing  -> return ()
-               Just tgt -> damageCreature Effect 10 tgt)
+               Just tgt -> damageCreature (Effect AbilityDamage) 10 tgt)
 
 
       , (other_magic_rabbit, creatureChangeAttack l 1)
@@ -255,13 +256,16 @@ castSpell c mbTgt =
          [r] -> return r
          _   -> stopError "[bug] Multiple beasts"
 
+  effSpell = Effect SpellDamage
+
   spells = Map.fromList
     [ (fire_flame_wave, damageSpell $ \dmg ->
-                            damageCreatures Effect (dmg 9) (slotsFor Opponent))
+                        damageCreatures effSpell (dmg 9) (slotsFor Opponent))
+
     , (fire_inferno, damageSpell $ \dmg ->
                      do t <- opponentTarget
-                        damageCreatures Effect (dmg 18) [t]
-                        damageCreatures Effect (dmg 10)
+                        damageCreatures effSpell (dmg 18) [t]
+                        damageCreatures effSpell (dmg 10)
                                             (delete t (slotsFor Opponent))
       )
     , (fire_armageddon, damageSpell $ \dmg ->
@@ -269,19 +273,19 @@ castSpell c mbTgt =
                                    (view (player Caster . playerPower Fire))
                            let d = dmg (8 + fromIntegral fp)
                            doWizardDamage Opponent c d
-                           damageCreatures Effect d allSlots)
+                           damageCreatures effSpell d allSlots)
 
     , (water_meditation,
         forM_ [ Fire, Air, Earth ] $ \el -> wizChangePower Caster el 1)
 
     , (water_acidic_rain, damageSpell $ \dmg ->
-        do damageCreatures Effect (dmg 15) allSlots
+        do damageCreatures effSpell (dmg 15) allSlots
            forM_ allElements $ \el -> wizChangePower Opponent el (-1))
 
     , (air_call_to_thunder, damageSpell $ \dmg ->
           do tgt <- opponentTarget
              doWizardDamage Opponent c (dmg 6)
-             damageCreature Effect (dmg 6) tgt)
+             damageCreature effSpell (dmg 6) tgt)
 
     , (air_lightning_bolt, damageSpell $ \dmg ->
          do p <- withGame (view (player Caster . playerPower Air))
@@ -289,7 +293,7 @@ castSpell c mbTgt =
 
     , (air_chain_lightning, damageSpell $ \dmg ->
         do doWizardDamage Opponent c (dmg 9)
-           damageCreatures Effect (dmg 9) (slotsFor Opponent))
+           damageCreatures effSpell (dmg 9) (slotsFor Opponent))
 
     , (air_tornado, do tgt <- opponentTarget
                        creatureDestroy tgt)
@@ -297,21 +301,23 @@ castSpell c mbTgt =
     , (earth_natures_ritual, do tgt <- casterTarget
                                 creatureChangeLife_ tgt 8
                                 wizChangeLife Caster 8)
+
     , (earth_rejuvenation,
         do p <- withGame (view (player Caster . playerPower Earth))
            wizChangeLife Caster (2 * p))
+
     , (earth_stone_rain,  damageSpell $ \dmg ->
-        do damageCreatures Effect (dmg 25) allSlots)
+        do damageCreatures effSpell (dmg 25) allSlots)
 
     , (earth_natures_fury, damageSpell $ \dmg ->
         furySpell dmg Caster)
 
     , (death_cursed_fog, damageSpell $ \dmg ->
          do doWizardDamage Opponent c (dmg 3)
-            damageCreatures Effect (dmg 12) allSlots)
+            damageCreatures effSpell (dmg 12) allSlots)
 
     , (death_dark_ritual, damageSpell $ \dmg ->
-          do damageCreatures Effect (dmg 3) (slotsFor Opponent)
+          do damageCreatures effSpell (dmg 3) (slotsFor Opponent)
              forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 3)
 
     , (death_blood_ritual, damageSpell $ \dmg ->
@@ -322,7 +328,7 @@ castSpell c mbTgt =
              Just cr  ->
                do let d = min 32 (fromIntegral (cr ^. deckCardLife))
                   creatureDestroy tgt
-                  damageCreatures Effect (dmg d) (slotsFor Opponent))
+                  damageCreatures effSpell (dmg d) (slotsFor Opponent))
 
     , (death_drain_souls,
         do deaths <- do g <- getGame
@@ -338,7 +344,7 @@ castSpell c mbTgt =
     , (other_rage_of_souls, damageSpell $ \dmg ->
         do p <- withGame (view (player Caster . playerPower Special))
            let opp = slotsFor Opponent
-           damageCreatures Effect (dmg (fromIntegral p + 9)) opp
+           damageCreatures effSpell (dmg (fromIntegral p + 9)) opp
            (_,deaths) <- countLiving opp
            wizChangeLife Caster (2 * deaths))
 
@@ -346,13 +352,13 @@ castSpell c mbTgt =
     , (holy_divine_justice, damageSpell $ \dmg ->
         do tgt <- casterTarget
            creatureChangeLife_ tgt 12
-           damageCreatures Effect (dmg 12) (delete tgt allSlots))
+           damageCreatures effSpell (dmg 12) (delete tgt allSlots))
     , (holy_divine_intervention,
         do forM_ [ Fire, Air, Earth, Water ] $ \el -> wizChangePower Caster el 2
            wizChangeLife Caster 10)
     , (holy_wrath_of_god, damageSpell $ \dmg ->
         do let opp = slotsFor Opponent
-           damageCreatures Effect (dmg 12) opp
+           damageCreatures effSpell (dmg 12) opp
            (alive,_) <- countLiving opp
            wizChangePower Caster Special alive
       )
@@ -360,7 +366,7 @@ castSpell c mbTgt =
     -- Mechanical spells
     , (mechanical_overtime, wizChangePower Caster Special 1)
     , (mechanical_cannonade, damageSpell $ \dmg ->
-        damageCreatures Effect (dmg 19) (slotsFor Opponent))
+        damageCreatures effSpell (dmg 19) (slotsFor Opponent))
 
 
     -- Illusion
@@ -369,7 +375,7 @@ castSpell c mbTgt =
          let opp  = inhabitedSlots g (slotsFor Opponent)
          forM_ opp $ \(cl, cc) ->
            do let damage = dmg . fromIntegral . (getAttackPower g) $ (cl, cc)
-              damageCreature Effect damage cl)
+              damageCreature effSpell damage cl)
     , (illusion_hypnosis, damageSpell $ \dmg ->
         furySpell dmg Opponent)
 
@@ -377,16 +383,16 @@ castSpell c mbTgt =
     -- Beast Abilities --------------------------------------
     , (beast's_trumpet, wizChangePower Caster Special 1)
     , (beast's_gaze, damageSpell $ \dmg ->
-                        damageCreature Effect (dmg 6) =<< creature =<< target)
+                        damageCreature effSpell (dmg 6) =<< creature =<< target)
     , (beast's_pump_energy,
         forM_ [Fire,Water,Air,Earth] $ \el -> wizChangePower Caster el 1)
     , (beast's_move_falcon, damageSpell $ \dmg ->
         do (l,_)  <- findBeast beast_death_falcon
            creatureMove l =<< casterTarget
-           damageCreatures Effect (dmg 4) (slotsFor Opponent))
+           damageCreatures effSpell (dmg 4) (slotsFor Opponent))
 
     , (beast's_poison, damageSpell $ \dmg ->
-        damageCreature Effect (dmg 14) =<< creature =<< opponentTarget)
+        damageCreature effSpell (dmg 14) =<< creature =<< opponentTarget)
 
     , (beast's_enrage,
           do (l,d) <- findBeast beast_wolverine
@@ -399,7 +405,7 @@ castSpell c mbTgt =
     , (beast's_breathe_fire, damageSpell $ \dmg ->
         do (_,d) <- findBeast beast_ancient_dragon
            doWizardDamage Opponent d 10
-           damageCreatures Effect (dmg 10) (slotsFor Opponent))
+           damageCreatures effSpell (dmg 10) (slotsFor Opponent))
 
 
     -- Goblin Spells --------------------------
@@ -412,22 +418,22 @@ castSpell c mbTgt =
             creatureMove lFrom lTo
             when (locWho lFrom == Caster) (creatureChangeLife_ lTo 5))
     , (goblin's_army_of_rats, damageSpell $ \dmg ->
-        do damageCreatures Effect (dmg 12) (slotsFor Opponent)
+        do damageCreatures effSpell (dmg 12) (slotsFor Opponent)
            mbL <- randomCreature Caster
            case mbL of
              Nothing -> return ()
-             Just l  -> damageCreature Effect (dmg 12) l)
+             Just l  -> damageCreature effSpell (dmg 12) l)
 
     -- Chaos spells -----------------------------
     , (chaos_doom_bolt, damageSpell $ \dmg ->
           do tgt <- randomCreature Opponent
              case tgt of
               Nothing  -> return ()
-              Just loc -> damageCreature Effect (dmg 25) loc)
+              Just loc -> damageCreature effSpell (dmg 25) loc)
     , (chaos_chaotic_wave, damageSpell $ \dmg ->
         do forM_ (slotsFor Opponent) $ \l ->
                  do amt <- random (randInRange 2 12)
-                    damageCreature Effect (dmg (fromIntegral amt)) l
+                    damageCreature effSpell (dmg (fromIntegral amt)) l
 
            forM_ (slotsFor Caster) $ \l ->
                  do amt <- random (randInRange 2 12)
@@ -441,11 +447,11 @@ castSpell c mbTgt =
            creatureChangeLife_ (leftOf tgt) 6)
     , (sorcery_fireball, damageSpell $ \dmg ->
         do tgt <- opponentTarget
-           damageCreature Effect (dmg 9) tgt
-           damageCreatures Effect (dmg 6) $ [leftOf tgt, rightOf tgt])
+           damageCreature effSpell (dmg 9) tgt
+           damageCreatures effSpell (dmg 6) $ [leftOf tgt, rightOf tgt])
     , (sorcery_steal_essence, damageSpell $ \dmg ->
         do tgt <- opponentTarget
-           damageCreature Effect (dmg 5) tgt
+           damageCreature effSpell (dmg 5) tgt
            whenCreature tgt $ \cr -> 
             if cr ^. deckCardLife <= 0
               then wizChangePower Caster Special 4
@@ -466,19 +472,19 @@ castSpell c mbTgt =
                          | e <- allElements ]
                (amt, elt) = maximumBy (compare `on` fst) eltList
 
-           damageCreatures Effect (dmg (fromIntegral amt)) (slotsFor Opponent)
+           damageCreatures effSpell (dmg (fromIntegral amt)) (slotsFor Opponent)
            wizChangePower Opponent elt (-3))
 
     , (sorcery_sonic_boom, damageSpell $ \dmg ->
         do doWizardDamage Opponent c (dmg 11)
            forM_ (slotsFor Opponent) $ \l ->
-              do damageCreature Effect (dmg 11) l
+              do damageCreature effSpell (dmg 11) l
                  creatureSkipNextAttack l)
 
     , (sorcery_disintegrate, damageSpell $ \dmg ->
         do tgt <- opponentTarget
            creatureDestroy tgt
-           damageCreatures Effect (dmg 11) (delete tgt $ slotsFor Opponent))
+           damageCreatures effSpell (dmg 11) (delete tgt $ slotsFor Opponent))
 
     -- Forest spells
     , (forest_ritual_of_the_forest,
@@ -492,11 +498,11 @@ castSpell c mbTgt =
     , (demonic_explosion, damageSpell $ \dmg ->
         do tgt <- casterTarget
            creatureDestroy tgt
-           damageCreature Effect (dmg 28) (oppositeOf tgt))
+           damageCreature effSpell (dmg 28) (oppositeOf tgt))
 
     , (demonic_power_chains, damageSpell $ \dmg ->
         do tgt <- opponentTarget
-           damageCreature Effect (dmg 12) tgt
+           damageCreature effSpell (dmg 12) tgt
            mb <- getCreatureAt tgt
            case mb of
               Nothing -> stopError "Spell must have a target"
@@ -506,7 +512,7 @@ castSpell c mbTgt =
                         wizChangePower Opponent (a ^. deckCardElement) (-3))
 
     , (demonic_hellfire, damageSpell $ \dmg ->
-        do damageCreatures Effect (dmg 13) $ slotsFor Opponent
+        do damageCreatures effSpell (dmg 13) $ slotsFor Opponent
            (_,deaths) <- countLiving (slotsFor Opponent)
            wizChangePower Caster Fire deaths)
 
@@ -520,7 +526,7 @@ castSpell c mbTgt =
              do let life    = cc ^. deckCardLife
                     baseDmg = div (life + 1) 2    -- half round up
                     damage  = dmg (fromIntegral baseDmg)
-                damageCreature Effect damage cl)
+                damageCreature effSpell damage cl)
 
     , (control_weakness, damageSpell $ \dmg ->
         do forM_ allElements (\e -> wizChangePower Opponent e (-1))
@@ -528,13 +534,13 @@ castSpell c mbTgt =
 
     -- Golem Spells
     , (golem_golems_frenzy, damageSpell $ \dmg ->
-        do damageCreatures Effect (dmg 3) (slotsFor Opponent)
+        do damageCreatures effSpell (dmg 3) (slotsFor Opponent)
            (_,deaths) <- countLiving (slotsFor Opponent)
            (l,_) <- Decks.Golem.getGolem
            creatureTemporaryAttackBoost l (deaths * 3))
 
     , (golem_golems_justice, damageSpell $ \dmg ->
-        do damageCreatures Effect (dmg 4) (slotsFor Opponent)
+        do damageCreatures effSpell (dmg 4) (slotsFor Opponent)
            (l,_) <- Decks.Golem.getGolem
            creatureChangeLife_ (leftOf l) 4
            creatureChangeLife_ (rightOf l) 4)
@@ -551,16 +557,16 @@ castSpell c mbTgt =
     , (spirit_divine_justice, damageSpell $ \dmg ->
         do tgt <- casterTarget
            creatureChangeLife_ tgt 12
-           damageCreatures Effect (dmg 12) (delete tgt allSlots))
+           damageCreatures effSpell (dmg 12) (delete tgt allSlots))
     , (spirit_rage_of_god, damageSpell $ \dmg ->
-         do damageCreatures Effect (dmg 12) (slotsFor Opponent)
+         do damageCreatures effSpell (dmg 12) (slotsFor Opponent)
             (lived,_) <- countLiving (slotsFor Opponent)
             when (lived > 0) $
               doWizardDamage Opponent c (dmg (fromIntegral (3 * lived))))
 
     -- Vampiric
     , (vampiric_blood_boil, damageSpell $ \dmg ->
-         do damageCreatures Effect (dmg 4) (slotsFor Opponent)
+         do damageCreatures effSpell (dmg 4) (slotsFor Opponent)
             (_,deaths) <- countLiving (slotsFor Opponent)
             when (deaths > 0) $ wizChangePower Caster Special deaths)
 
@@ -665,6 +671,11 @@ damageCreature dmg amt l =
            protectedL <- check (leftOf l)
            protectedR <- check (rightOf l)
            unless (protectedL || protectedR) (doDamage amt))
+{-
+    , (cult_fanatic,
+       case dmg of
+         Effect ->
+-}
     ]
 
   -- Additive changes to damage
@@ -888,7 +899,7 @@ doWizardDamage' who dc amt0 =
     do els <- findCreature who beast_white_elephant
        case els of
          [] -> k
-         (l,_) : _ -> do damageCreature Effect amt0 l
+         (l,_) : _ -> do damageCreature (Effect AbilityDamage) amt0 l
                          return False
   checkVampireMystic =
     do vms <- findCreature (theOtherOne who) vampiric_vampire_mystic
@@ -996,7 +1007,7 @@ creatureEndOfTurn l =
         forM_ (slotsFor Opponent) $ \sl ->
           whenCreature sl $ \cr ->
             when (cr ^. deckCardLife <= 8) $
-              damageCreature Effect 4 sl)
+              damageCreature (Effect AbilityDamage) 4 sl)
     , (goblin's_portal_jumper,
          do creatureSkipNextAttack (oppositeOf l)
             mbNew <- randomBlankSlot (locWho l)

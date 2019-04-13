@@ -27,14 +27,15 @@ creatures = Map.fromList
               do g <- getGame
                  let opp = inhabitedSlots g (slotsFor Opponent)
                  forM_ opp $ \(ol,oc) ->
-                    damageCreature Effect (oc ^. deckCard . cardCost) ol })
+                    damageCreature (Effect AbilityDamage)
+                      (oc ^. deckCard . cardCost) ol })
 
     , (illusion_hypnotist,
         defaultCreature
           { onSummoned = \l ->
               do ~(Just c) <- getCreatureAt l
                  doWizardDamage Opponent c 5
-                 damageCreatures Effect 5 (slotsFor Opponent) })
+                 damageCreatures (Effect AbilityDamage) 5 (slotsFor Opponent) })
 
   ]
 

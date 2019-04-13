@@ -37,7 +37,8 @@ creatures = Map.fromList
 
     , (air_titan,
         defaultCreature
-          { onSummoned = \l -> damageCreature Effect 15 (oppositeOf l) })
+          { onSummoned = \l ->
+              damageCreature (Effect AbilityDamage) 15 (oppositeOf l) })
 
 
   ]

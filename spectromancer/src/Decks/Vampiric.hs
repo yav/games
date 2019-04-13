@@ -32,7 +32,7 @@ creatures = Map.fromList
                  do mb <- getCreatureAt (oppositeOf loc)
                     case mb of
                       Nothing -> return ()
-                      Just _  -> damageCreature Effect 16 loc })
+                      Just _  -> damageCreature (Effect AbilityDamage) 16 loc })
 
     , (vampiric_ghoul,
         defaultCreature

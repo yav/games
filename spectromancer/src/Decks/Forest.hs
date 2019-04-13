@@ -20,7 +20,8 @@ creatures = Map.fromList
   [
       (forest_crazy_squirrel,
         defaultCreature
-          { onSummoned = \l -> do damageCreature Effect 8 (oppositeOf l) })
+          { onSummoned = \l ->
+              damageCreature (Effect AbilityDamage) 8 (oppositeOf l) })
 
     , (forest_vindictive_raccoon,
         defaultCreature
@@ -28,7 +29,7 @@ creatures = Map.fromList
             whenCreature (oppositeOf l) $ \op ->
                do g <- getGame
                   let atk = getAttackPower g (oppositeOf l, op)
-                  damageCreature Effect atk (oppositeOf l) })
+                  damageCreature (Effect AbilityDamage) atk (oppositeOf l) })
 
     , (forest_enraged_beaver,
         defaultCreature
@@ -38,7 +39,8 @@ creatures = Map.fromList
                   then return ()
                   else do ~(Just c) <- getCreatureAt l
                           doWizardDamage Opponent c atk
-                          damageCreatures Effect atk (slotsFor Opponent) })
+                          damageCreatures (Effect AbilityDamage)
+                              atk (slotsFor Opponent) })
 
     , (forest_bee_queen,
         defaultCreature

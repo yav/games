@@ -36,7 +36,7 @@ creatures = Map.fromList
           { onSummoned = \_ ->
             do g <- getGame
                let dmg = length (inhabitedSlots g allSlots)
-               damageCreatures Effect dmg (slotsFor Opponent) })
+               damageCreatures (Effect AbilityDamage) dmg (slotsFor Opponent) })
 
     , (other_golem,
         defaultCreature

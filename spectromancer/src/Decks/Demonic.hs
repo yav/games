@@ -23,7 +23,8 @@ creatures = Map.fromList
                  let dmg = min 10 fp
                  ~(Just c) <- getCreatureAt l
                  doWizardDamage Opponent c dmg
-                 damageCreatures Effect dmg (slotsFor Opponent) })
+                 damageCreatures
+                   (Effect AbilityDamage) dmg (slotsFor Opponent) })
   ]
 
 

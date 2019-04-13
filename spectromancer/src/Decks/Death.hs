@@ -26,11 +26,12 @@ creatures = Map.fromList
                    Nothing -> return ()
                    Just c1  ->
                      do let dmg = (c1 ^. deckCardLife + 1) `div` 2
-                        damageCreatures Effect dmg [l1] })
+                        damageCreatures (Effect AbilityDamage) dmg [l1] })
 
     , (death_master_lich,
         defaultCreature
-          { onSummoned = \_ -> damageCreatures Effect 8 (slotsFor Opponent) })
+          { onSummoned = \_ ->
+              damageCreatures (Effect AbilityDamage) 8 (slotsFor Opponent) })
 
     , (death_keeper_of_death,
         defaultCreature

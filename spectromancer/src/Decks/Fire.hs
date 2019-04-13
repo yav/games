@@ -23,18 +23,20 @@ creatures = Map.fromList
 
     , (fire_wall_of_fire,
         defaultCreature
-          { onSummoned = \_ -> damageCreatures Effect 5 (slotsFor Opponent) })
+          { onSummoned = \_ ->
+              damageCreatures (Effect AbilityDamage) 5 (slotsFor Opponent) })
 
     , (fire_bargul,
         defaultCreature
-          { onSummoned = \l -> damageCreatures Effect 4 (delete l allSlots) })
+          { onSummoned = \l ->
+              damageCreatures (Effect AbilityDamage) 4 (delete l allSlots) })
 
     , (fire_fire_elemental,
         defaultCreature
           { onSummoned = \l ->
               do ~(Just c) <- getCreatureAt l
                  doWizardDamage Opponent c 3
-                 damageCreatures Effect 3 (slotsFor Opponent) })
+                 damageCreatures (Effect AbilityDamage) 3 (slotsFor Opponent) })
 
   ]
 

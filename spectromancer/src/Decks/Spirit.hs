@@ -26,7 +26,7 @@ creatures = Map.fromList
     , (spirit_angel_of_war,
         defaultCreature
           { onSummoned = \_ ->
-            do damageCreatures Effect 8 (slotsFor Opponent)
+            do damageCreatures (Effect AbilityDamage) 8 (slotsFor Opponent)
                forM_ (slotsFor Caster) $ \s -> creatureChangeLife_ s 8 })
 
     , (spirit_templar,
