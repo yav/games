@@ -57,6 +57,7 @@ data Step :: Stack -> Stack -> Type where
   Build         :: AComponent :> a |-> a
 
 
+  IsReady     :: AComponent :> a |-> a
   GetCost     :: AComponent :> a |-> ANat :> a
   GetCount    :: AResource :> ARival :> a |-> ANat :> a
   IsLifeForm  :: LifeForm -> AComponent :> a |-> a

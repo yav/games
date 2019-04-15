@@ -30,14 +30,15 @@ artifacts =
       name = "Chalice of Fire",
       cost = [ Pay 1 Gold, Pay 1 Fire ],
       collect = [ 2 `times` gain Fire ],
-      powers = [ This > Exhaust > Resource Fire > Spend > ChooseC > Restore ]
+      powers = [ This > Exhaust > spend Fire > ChooseC > Restore ]
     }
 
   , artifact {
       name = "Chalice of Life",
       cost = [ Pay 1 Gold, Pay 1 Life, Pay 1 Water ],
       collect = [ gain Water, gain Life ],
-      powers = [ 2 `times` spend Water
+      powers = [ This > IsReady
+                 > 2 `times` spend Water
                  > 2 `times` (Resource Water > This > GainOn)
                  > Resource Life > This > GainOn ]
       -- XXX: REACTION
@@ -92,7 +93,7 @@ artifacts =
       powers  = [ This > Exhaust > Resource Life > Spend >
                   3 `times` (Resource Death > This > GainOn)
 
-                , This > Destroy
+                , This > Also > IsReady > Destroy
                   > ChooseC > Also > Discard
                   > GetCost > Repeat (ChooseR > isNot Gold > Gain)
                 ]
@@ -141,8 +142,9 @@ artifacts =
       name = "Corrupt Altar",
       cost = [ PayAny 3, Pay 2 Death ],
       collect = [ gain Life > gain Death ],
-      powers = [ 2 `times` spend Life >
-                 3 `times` (Resource Fire > This > GainOn)
+      powers = [ This > IsReady
+                 > 2 `times` spend Life
+                 > 3 `times` (Resource Fire > This > GainOn)
                , This > Exhaust
                  > ChooseC > Also > IsComponent Artifact
                            > Also > Destroy
@@ -160,22 +162,25 @@ artifacts =
   , artifact {
       name = "Ring of Midas",
       cost = [ Pay 1 Life, Pay 1 Gold ],
-      powers = [ 2 `times` (Resource Life > Spend)
+      powers = [ This > IsReady
+                 > 2 `times` spend Life
                  > Resource Gold > This > GainOn
-               , This > Exhaust > Resource Gold > This > GainOn ],
+               , This > Exhaust
+                 > Resource Gold > This > GainOn ],
       points = FixedPoints 1
     }
 
   , artifact {
       name = "Dwarven Pickaxe",
       cost = [ Pay 1 Fire ],
-      powers = [ This > Exhaust > Resource Fire > Spend > gain Gold ]
+      powers = [ This > Exhaust > spend Fire > gain Gold ]
     }
 
   , artifact {
       name = "Dragon Teeth",
       cost = [ Pay 1 Fire, Pay 1 Death ],
-      powers = [ 2 `times` spend Fire
+      powers = [ This > IsReady
+                 > 2 `times` spend Fire
                  > 3 `times` (Resource Fire > This > GainOn)
 
                , This > Exhaust
@@ -190,17 +195,21 @@ artifacts =
   , artifact {
       name = "Vault",
       cost = [ Pay 1 Gold, PayAny 1 ],
-      collect = [ NoCollect > Resource Gold > This > Contains
+      collect = [ NoCollect
+                  > Resource Gold > This > Contains
                   > 2 `times` (ChooseR > isNot Gold > Gain) ],
-      powers = [ This > Exhaust > Resource Gold > This > GainOn ]
+      powers = [ This > Exhaust
+                 > Resource Gold > This > GainOn ]
     }
 
   , artifact {
       name = "Athanor",
       cost = [ Pay 1 Gold, Pay 1 Fire ],
-      powers = [ This > Exhaust > spend Fire
+      powers = [ This > Exhaust
+                 > spend Fire
                  > 2 `times` (Resource Fire > This > GainOn)
-               
+               , This > Exhaust
+                 > 6 `times` (Resource Fire > This > SpendFrom)
                  > ChooseN
                  > Also > ChooseR > WithPrev
                  > Repeat (Also > Spend) > Done
@@ -251,23 +260,78 @@ artifacts =
       points = FixedPoints 1
     }
 
+    , artifact {
+        name = "Tree of Life",
+        cost = [ PayAny 2, Pay 1 Life ],
+        powers = [ This > Exhaust
+                   > 3 `times` gain Life
+                   > Rivals (gain Life)
+                   -- XXX: REACT
+                 ]
+      }
+
+    , artifact {
+        name = "Dragon Egg",
+        cost = [ Pay 1 Gold ],
+        powers = [ This > Also > IsReady > Destroy
+                 > ChooseC > Also > IsLifeForm Dragon
+                 > Also > Located InHand
+                 > 4 `times` (ChooseR > GainDiscount) > Build
+                 ],
+        points = FixedPoints 1
+      }
+
+    , artifact {
+        name = "Nightingale",
+        cost = [ Pay 1 Life, Pay 1 Water ],
+        isLifeForm = [ Creature ],
+        points = FixedPoints 1
+      }
+
+    , artifact {
+        name = "Jeweled Statuette",
+        cost = [ Pay 2 Death, Pay 1 Gold ],
+        powers = [ This > Exhaust
+                   > 3 `times` gain Death
+                   > Rivals (gain Death)
+
+                 , This > Also > IsReady > Destroy
+                   > 2 `times` gain Gold
+                   > gain Fire
+                 ],
+        points = FixedPoints 1
+      }
+
+    , artifact {
+        name = "Fountain of Youth",
+        cost = [ Pay 1 Water, Pay 1 Death ],
+        collect = [ gain Life ],
+        powers = [ This > IsReady
+                   > 2 `times` spend Death
+                   > 2 `times` (Resource Water > This > GainOn)
+                   > Resource Life > This > GainOn
+                 ]
+      }
+
+    , artifact {
+        name = "Guard Dog",
+        cost = [ Pay 1 Fire ],
+        isLifeForm = [ Creature ],
+        powers = [ {- not ready! -}
+                   spend Fire > This > Restore
+                  -- XXX: REACTION!!
+                 ]
+      }
+
+    , artifact {
+        name = "Dragon Bridle",
+        cost = [ Pay 1 Fire, Pay 1 Life, Pay 1 Water, Pay 1 Death ]
+        -- XXX: ABILITY, REACTION
+      }
+
 
   ]
 
-
-jstat1 :: Steps
-jstat1 = This > Exhaust
-       > 3 `times` gain Death
-       > Rivals (gain Death)
-
-jstat2 :: Steps
-jstat2 = This > Destroy > 2 `times` gain Gold > gain Fire
-
-egg :: Steps
-egg = This > Destroy
-    > ChooseC > Also > IsLifeForm Dragon
-              > Also > Located InHand
-    > 4 `times` (ChooseR > GainDiscount) > Build
 
 dog1 :: Steps -- Ability
 dog1 = Resource Fire > Spend > This > Restore
