@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings #-}
+{-# Language OverloadedStrings, MultiWayIf #-}
 module Effects
   ( creatureModifyPowerGrowth
   , creatureStartOfTurn
@@ -460,12 +460,12 @@ castSpell c mbTgt =
       do tgt <- casterTarget
          creatureDestroy tgt
          forM_ [Fire, Water, Air, Earth] $ \elt -> wizChangePower Caster elt 3)
+
     , (sorcery_ritual_of_glory,
-        do forM_ (slotsFor Caster) $ \l ->
-            whenCreature l $ \cr ->
-              do creatureChangeLife_ l 100000
-                 updGame_ $ creatureAt l . mapped 
-                    .~ deckCardAddMod (AttackBoost 3, UntilEndOfTurn 0) cr)
+        forM_ (slotsFor Caster) $ \l ->
+           do creatureChangeLife_ l 100000
+              creatureTemporaryAttackBoost l 3)
+
     , (sorcery_mana_burn, damageSpell $ \dmg ->
         do g <- getGame
            let eltList = [ (g ^. player Opponent . playerPower e, e)
@@ -671,11 +671,7 @@ damageCreature dmg amt l =
            protectedL <- check (leftOf l)
            protectedR <- check (rightOf l)
            unless (protectedL || protectedR) (doDamage amt))
-{-
-    , (cult_fanatic,
-       case dmg of
-         Effect ->
--}
+
     ]
 
   -- Additive changes to damage
@@ -720,7 +716,8 @@ creatureLeave (l,d) =
        Just act -> act
        Nothing  -> return ()
   where
-  abilities = Map.fromList (map beastDied (Map.toList Decks.Beast.beastAbilityMap))
+  abilities =
+    Map.fromList (map beastDied (Map.toList Decks.Beast.beastAbilityMap))
 
   beastDied (b,ab) = (b, updGame_ $ replaceCard (locWho l) ab
                                   $ newDeckCard Special (d ^. deckCardOrig))
@@ -811,11 +808,8 @@ creatureKill l =
 -- | The creature at the given location performs its attack, if any.
 creaturePerformAttack :: Location -> GameM ()
 creaturePerformAttack l =
-  do g <- getGame
-     case g ^. creatureAt l of
-       Nothing -> return ()
-       Just c
-         | isWall c
+  whenCreature l $ \c ->
+     if | isWall c
         || not (c ^. deckCardEnabled)
         || SkipNextAttack `elem` map fst (c ^. deckCardMods) -> return ()
 
@@ -823,6 +817,7 @@ creaturePerformAttack l =
            do diabledByHorror <- checkHorrors c
               unless diabledByHorror $
                 do addLog (CreatureAttack l)
+                   g <- getGame
                    let p = getAttackPower g (l,c)
                    case Map.lookup (deckCardName c) abilities of
                      Just act -> act c p

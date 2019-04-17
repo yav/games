@@ -54,10 +54,10 @@ data CreatureEffects = CreatureEffects
 
     -- | Someone is trying to deal damage to us.
   , onDamaged ::
-      Location      {- ^ Us -} ->
-      DamageSource  {- ^ How we got damaged -} ->
+      Location      {-^ Us -} ->
+      DamageSource  {-^ How we got damaged -} ->
       Int           {-^ How much damage we are taking -} ->
-      GameM Int
+      GameM Int     {-^ How much damage was dealt -}
 
     -- | We died!
   , onDied ::
