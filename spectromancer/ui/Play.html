@@ -100,7 +100,7 @@ function newGame(m,opts) {
   jQuery.getJSON(m,opts,function(res) {
     oldGame = res
     gameID = res.gid
-    b.append(drawGame(res.game,res.history))
+    b.append(drawGame(res.game,res.history,res.winner))
     scrollHist()
   })
 }
