@@ -14,6 +14,7 @@ module Util.JSON
 import           Prelude hiding (null,maybe)
 import           Data.Text(Text)
 import qualified Data.Aeson as JS
+import qualified Data.Aeson.Key as JS
 import qualified Data.Vector as Vector
 import qualified Data.ByteString.Lazy as LBS
 
@@ -42,7 +43,7 @@ maybe cvt x = case x of
                   Just a  -> cvt a
 
 object :: [ (Text,JS.Value) ] -> JS.Value
-object = JS.object
+object os = JS.object [ (JS.fromText t, v) | (t,v) <- os ]
 
 
 

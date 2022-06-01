@@ -1,9 +1,9 @@
+cabal-version:       2.4
 name:                spectromancer
 version:             0.1.0.0
 -- synopsis:
 -- description:
 build-type:          Simple
-cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src

@@ -1039,6 +1039,7 @@ getCreatureEffects c = Map.lookup (deckCardName c) newCreatureAPI
       , Decks.Spirit.creatures
       , Decks.Vampiric.creatures
       , Decks.Control.creatures
+      , Decks.Forest.creatures
       ]
 
 

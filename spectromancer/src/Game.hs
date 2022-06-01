@@ -63,10 +63,10 @@ module Game
 import           Data.Map(Map)
 import qualified Data.Map as Map
 import           Data.Text(Text)
-import qualified Data.Text as Text
 import           Data.List(foldl')
 import           Data.Aeson (ToJSON(..), (.=))
 import qualified Data.Aeson as JS
+import qualified Data.Aeson.Key as JS
 import Data.Maybe(maybeToList,mapMaybe)
 
 import Control.Lens( makeLenses, (^.), (.~), Lens',Traversal', at, non, (&)
@@ -295,7 +295,7 @@ inhabitedSlots g slots =
 
 jsElementMap :: ToJSON a => Map Element a -> JS.Value
 jsElementMap = JS.object . map toField . Map.toList
-  where toField (e,x) = Text.pack (show e) .= x
+  where toField (e,x) = JS.fromString (show e) .= x
 
 instance ToJSON DeckCard where
   toJSON c =
@@ -321,7 +321,7 @@ instance ToJSON Player where
     [ "name"    .= (c ^. playerName)
     , "life"    .= (c ^. playerLife)
     , "deck"    .= jsElementMap (c ^. playerDeck)
-    , "power"   .= JS.object [ Text.pack (show e) .= (c ^. playerPower e)
+    , "power"   .= JS.object [ JS.fromString (show e) .= (c ^. playerPower e)
                                | e <- allElements ]
     , "active"  .= [ Map.lookup s (c ^. playerActive)
                                           | s <- take slotNum [ 0 .. ] ]
